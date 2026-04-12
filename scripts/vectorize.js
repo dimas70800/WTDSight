@@ -240,7 +240,7 @@
                 high = Math.max(60, high * 0.9);
             }
 
-            const worker = new Worker('vectorize-worker.js');
+            const worker = new Worker('scripts/vectorize-worker.js');
 
             worker.onmessage = function (e) {
                 const result = e.data;
@@ -423,7 +423,7 @@
             }
 
             for (let i = 0; i < tests.length; i++) {
-                const worker = new Worker('vectorize-worker.js');
+                const worker = new Worker('scripts/vectorize-worker.js');
                 const test = tests[i];
 
                 worker.onmessage = function (e) {
