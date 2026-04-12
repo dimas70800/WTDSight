@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <title>WTDSight</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="shortcut icon" href="images/logo.svg" type="image/png">
+</head>
+
+<body style="overflow: hidden">
+    <!-- Главный Канвас -->
+    <canvas id="mainCanvas" width="3840" height="2160"></canvas>
+
+    <!-- Меню настройки изображения -->
+    <div id="functionalMenu" class="menuIsland" style="left: 1em; top: 1em;">
+
+        <!-- Перетаскиватель -->
+        <hr id="functionalMenuDragger" size="18px">
+
+        <div style="padding: 4px; border: 2px solid; border-radius: 10px; display: flex; flex-direction: column;">
+            <!-- Загрузить изображение по ссылке-->
+            <div class="block-with-elem">
+                <span id="refUrlTitle"></span>: <input type="text" id="refUrl" value="" placeholder=" Ссылка">
+                <button id="loadRefButton" onclick="setReference()">Загрузить</button>
+            </div>
+
+            <!-- Загрузить файл изображения -->
+            <div class="block-with-elem">
+                <span id="refFileTitle"></span>: <input type="file" id="refFile" accept="image/*">
+            </div>
+
+            <!-- Размер изображения -->
+            <div class="block-with-elem">
+                <span id="sizeRefTitle"></span>: <input type="number" id="refSize" oninput="setReferenceSize()"
+                    value="1" step="0.1" style="width: 4em">
+            </div>
+
+            <div class="block-with-elem">
+                <span id="rotationTitle">Поворот:</span>
+                <input type="number" id="refRotation" step="1" value="0" oninput="setReferenceRotation()">
+            </div>
+
+            <!-- Смещение изображения -->
+            <div class="block-with-elem">
+                <span id="shiftRefTitle"></span>:
+                <input type="number" id="refShiftX" oninput="setReferenceX()" value="0" step="0.01" style="width: 4em">
+                <input type="number" id="refShiftY" oninput="setReferenceY()" value="0" step="0.01" style="width: 4em">
+            </div>
+
+            <!-- Непрозрачность картинки -->
+            <div class="block-with-elem">
+                <span id="refOpacityTitle"></span>:<br><input id="refOpacityInput" type="range" value="0.5" min="0"
+                    max="1" step="0.01" oninput="setReferenceOpacity()">
+                <br><span id="selectImageTitle">Выбор изображения:</span>
+                <button id="nextRefButton"
+                    onclick="currentReference = (currentReference + 1) % 3 ; setReferenceMenu();">1/3 ></button><br>
+            </div>
+        </div>
+        <div class="block-with-elem" style="margin-top: 8px; padding: 4px; border: 2px solid; border-radius: 10px;">
+            <span id="saveFileNameTitle"></span>: <input type="text" id="saveFileName" value="sight" placeholder="Название">
+            <br>
+            <button id="loadButton" onclick="el('loadButtonInput').click()">Загрузить из файла</button>
+            <button id="saveButton" onclick="save()">Сохранить в файл</button>
+            <input type="file" id="loadButtonInput" style="display: none" accept="application/json">
+            <br>
+            <button id="autosaveManually" onclick="forcedSave()">Принудительно автосохранить</button><img id="saveIcon"
+                src="images/save.png" style="height: 1em; opacity: 0%;">
+        </div>
+        <div style="margin-top: 10px; display: flex; flex-direction: column;">
+            <button id="exportButtonBlk">Экспортировать прицел как .blk</button>
+            <button id="exportButton" onclick="exportToClipboard()">Экспортировать прицел как .txt</button>
+        </div>
+    </div>
+    <div id="toolsMenu" class="menuIsland" style="left: 1em; bottom: 1em;">
+        <hr id="toolsMenuDragger" size="18px">
+
+        <div class="panel-with-elem">
+            <span id="toolTitle"></span>:<br>
+            <button id="toolsLinesButton" style="line-height: 0; padding: 2px; overflow: hidden;"><img src="images/linesTool.png"
+                style="width: 3em; -webkit-user-drag: none;"></button>
+            <button id="toolsQuadsButton" style="line-height: 0; padding: 2px; overflow: hidden;"><img src="images/quadsTool.png"
+                style="width: 3em; -webkit-user-drag: none;"></button>
+            <button id="toolsHatchButton" style="line-height: 0; padding: 2px; overflow: hidden;"><img src="images/hatchTool.png"
+                style="width: 3em; -webkit-user-drag: none;"></button>
+            <button id="toolsVectorizeButton" style="line-height: 0; padding: 2px; overflow: hidden;"><img src="images/vectorizeTool.png"
+                style="width: 3em; -webkit-user-drag: none; border-radius: 5px;"></button>
+            <button id="toolsSelectButton" style="line-height: 0; padding: 2px; overflow: hidden;"><img src="images/selectTool.png"
+                style="width: 3em; -webkit-user-drag: none;"></button>
+        </div>
+        <div class="panel-with-elem">
+            <span id="opacityTitle"></span>:
+            <br>
+            <input id="opacityInput" type="range" value="1" min="0" max="1" step="0.05">
+            <br>
+            <br>
+            <span id="massLabel"></span>:<br>
+            <table>
+                <tr>
+                    <td>
+                        <span id="massXLabel"></span>:<br>
+                    </td>
+                    <td>
+                        <input id="massX" type="number" value="0" step="0.01" style="width: 6em">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <span id="massYLabel"></span>:<br>
+                    </td>
+                    <td>
+                        <input id="massY" type="number" value="0" step="0.01" style="width: 6em">
+                    </td>
+                <tr>
+                <tr>
+                    <td>
+                        <span id="massRLabel"></span>:<br>
+                    </td>
+                    <td>
+                        <input id="massR" type="number" value="0" step="1" style="width: 6em">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <span id="massSXLabel"></span>:<br>
+                    </td>
+                    <td>
+                        <input id="massSX" type="number" value="1" step="0.01" style="width: 6em">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <span id="massSYLabel"></span>:<br>
+                    </td>
+                    <td>
+                        <input id="massSY" type="number" value="1" step="0.01" style="width: 6em">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                    </td>
+                    <td>
+                        <button id="massB" onclick="applyMassTransform()">Применить</button>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <div>
+                <span id="changeLangTitle">Сменить язык: </span><br>
+                <img src="images/lang.png" style="width: 3em; border: 1px solid black; -webkit-user-drag: none;"
+                onclick="changeLang()">
+            </div>
+            <div>
+                <span id="colorCanvasLabel">Цвет фона:</span>
+                <div style="display: flex;">
+                    <div style="background-color: rgba(180, 180, 180, 0.5); width: 2rem; height: 2rem; padding: 2px; border: 2px solid black; border-radius: 5px; margin-left: auto">
+                        <input id="canvasBgColor" type="color" value="#ffffff" style="background: none; width: 100%; height: 100%; border: none; cursor: pointer;" oninput="setBgColorCanvas(this.value)">
+                    </div>
+                    <div style="display: flex; justify-content: center; padding: 4px;">
+                        <input id="outlineCheckBox" type="checkbox" style="width: 18px;" onchange="setOutlineCheckBox(this.checked)" checked>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="objectsMenu" class="menuIsland" style="right: 1em; top: 1em; max-height: 50%; display: flex; flex-direction: column; gap: 5px;">
+        <hr id="objectsMenuDragger" size="18px" style="min-height: 15px;">
+        <nobr><b id="objectsTitle"></b>&nbsp;(<span id="objCount">0</span>)</nobr>
+        <div id="objectsList">
+        </div>
+        <button id="clearButton" onclick="clearEverything()">Очистить</button>
+    </div>
+    <div id="infoMenu" class="menuIsland" style="right: 1em; bottom: 1em; text-align: center">
+        <hr id="infoMenuDragger" size="18px">
+        <b id="selObjectTitle"></b>
+        <table id="infoTable"></table>
+        <button id="infoDeleteButton" style="display: none">Удалить объект</button>
+    </div>
+    <div id="hints" style="position: absolute; left: 50%; transform: translateX(-50%); text-align: center; margin: auto; font-size: 0.8em; user-select: none;">
+        <span id="hintsText"></span>
+    </div>
+
+    <div class="export-modal-overlay" id="exportModal">
+        <div class="export-modal-content">
+
+            <div class="export-header">
+                <h2 id="exportModalTitle">Настройки экспорта прицела</h2>
+                <button class="export-close" id="closeExportBtn">x</button>
+            </div>
+
+            <div class="export-body">
+                <div class="export-grid">
+
+                    <div class="export-row">
+                        <label id="exportRangefinderProgressBarColor1">Цвет шкалы прогрессбара дальномера</label>
+                        <div class="export-color-group">
+                            <input type="color" id="exp-color1" value="#00ff00" onchange="updateColorValues('color1', this.value)">
+                            <span class="export-color-values" id="exp_color1_values">0,255,0,64</span>
+                            <input type="hidden" id="exp_color1_a" value="64">
+                        </div>
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportRangefinderProgressBarColor2">Цвет фона шкалы прогрессбара дальномера</label>
+                        <div class="export-color-group">
+                            <input type="color" id="exp_color2" value="#ffffff" onchange="updateColorValues('color2', this.value)">
+                            <span class="export-color-values" id="exp_color2_values">255,255,255,64</span>
+                            <input type="hidden" id="exp_color2_a" value="64">
+                        </div>
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportCrosshairColor">Цвет прицела</label>
+                        <div class="export-color-group">
+                            <input type="color" id="exp_color3" value="#1fef1f" onchange="updateColorValues('color3', this.value)">
+                            <span class="export-color-values" id="exp_color3_values">31,239,31,255</span>
+                            <input type="hidden" id="exp_color3_a" value="255">
+                        </div>
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportCrosshairLightColor">Цвет подсветки</label>
+                        <div class="export-color-group">
+                            <input type="color" id="exp_color4" value="#ff1e1e" onchange="updateColorValues('color4', this.value)">
+                            <span class="export-color-values" id="exp_color4_values">255,30,30,255</span>
+                            <input type="hidden" id="exp_color4_a" value="255">
+                        </div>
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportRangefinderTextScale">Масштаб текста дальномера</label>
+                        <input type="number" class="export-input" id="exp_rangefinderTextScale" value="0.7" step="0.1">
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportRangefinderVerticalOffset">Смещение дальномера по вертикали</label>
+                        <input type="number" class="export-input" id="exp_rangefinderVerticalOffset" value="18" step="0.1">
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportRangefinderHorizontalOffset">Смещение дальномера по горизонтали</label>
+                        <input type="number" class="export-input" id="exp_rangefinderHorizontalOffset" value="5" step="0.1">
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportFontSizeMult">Масштаб текста и цифр</label>
+                        <input type="number" class="export-input" id="exp_fontSizeMult" value="1" step="0.1">
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportLineSizeMult">Толщина линий</label>
+                        <input type="number" class="export-input" id="exp_lineSizeMult" value="1" step="0.1">
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportDrawCentralLineVert">Вертикальная линия</label>
+                        <input type="checkbox" class="export-checkbox" id="exp_drawCentralLineVert" checked>
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportDrawCentralLineHorz">Горизонтальная линия</label>
+                        <input type="checkbox" class="export-checkbox" id="exp_drawCentralLineHorz" checked>
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportCdhsa1">Длина делений на центральной линии</label><b>:</b>
+                        <span id="withTheValue"></span>
+                        <input type="number" class="export-input" id="exp_cdhsa1" value="0.005" step="0.001" style="width: 70px;">
+                        <span id="withoutTheValue"></span>
+                        <input type="number" class="export-input" id="exp_cdhsa2" value="0.003" step="0.001" style="width: 70px;">
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportCdhsm1">Длина делений слева от центральной</label><b>:</b>
+                        <span id="withTheValue2"></span>
+                        <input type="number" class="export-input" id="exp_cdhsm1" value="0.03" step="0.001" style="width: 70px;">
+                        <span id="withoutTheValue2"></span>
+                        <input type="number" class="export-input" id="exp_cdhsm2" value="0.02" step="0.001" style="width: 70px;">
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportDcp1">Смещение поправки по горизонтали</label><b>:</b>
+                        <span id="expPlusRightMinusLeft"></span>
+                        <input type="number" class="export-input" id="exp_dcp1" value="0.02" step="0.01" style="width: 70px;">
+                        <span id="expPlusDownMinusUp"></span>
+                        <input type="number" class="export-input" id="exp_dcp2" value="-0.005" step="0.01" style="width: 70px;">
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportDrawDistanceCorrection">Рисовать текст введённой поправки по дальности</label>
+                        <input type="checkbox" class="export-checkbox" id="exp_drawDistanceCorrection" checked>
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportUseSmoothEdge">Сглаживание граней</label>
+                        <input type="checkbox" class="export-checkbox" id="exp_useSmoothEdge" unchecked>
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportRangefinderUseThousandth">Рисовать текст полученной дальности дальномера</label>
+                        <input type="checkbox" class="export-checkbox" id="exp_rangefinderUseThousandth" checked>
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportDetectAllyTextScale">Размер текста обнаружения союзника</label>
+                        <input type="number" class="export-input" id="exp_detectAllyTextScale" value="0.7" step="0.1">
+                    </div>
+
+                    <div class="export-row">
+                        <label id="exportDetectAllyOffset1">Смещение текста обнаружения союзника по горизонтали</label><b>:</b>
+                        <span id="expPlusRightMinusLeft2">(+вправо, -влево)</span>
+                        <input type="number" class="export-input" id="exp_detectAllyOffset_1" value="4" step="0.01" style="width: 70px;">
+                        <span id="expPlusUpMinusDown">(+вверх, -вниз)</span>
+                        <input type="number" class="export-input" id="exp_detectAllyOffset_2" value="0.025" step="0.01" style="width: 70px;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="export-buttons">
+                <button class="export-btn export-btn-cancel" id="cancelExportBtn">Отмена</button>
+                <button class="export-btn export-btn-save" id="generateBlkBtn">Экспортировать как .blk</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="vectorizePanel" class="menuIsland" style="display: none; left: calc(2.5em + 310px); bottom: 1em; min-width: 280px; max-height: 70vh; overflow-y: auto; flex-direction: column; gap: 6px;">
+        <hr id="vectorizePanelDragger" size="18px" style="margin-bottom: 8px; cursor: default;">
+        <div id="vectorizeBeta" style="color: #666; text-align: center;">(Бета-Тест)</div>
+        <div id="vectorizeTitle" style="font-weight: bold; text-align: center;">Векторизация</div>
+
+        <div class="vectorize-section" style="border-top: 1px solid #ccc; padding-top: 8px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span id="vectorizeTargetLinesLabel">Целевое количество линий:</span>
+                <span><span id="vectorizeTargetVal">2000</span> / <span id="vectorizeMaxLines">8000</span></span>
+            </div>
+            <input type="range" id="vectorizeTargetLines" min="50" max="8000" step="10" value="2000" style="width: 100%;">
+
+            <div style="display: flex; justify-content: space-between; margin: 8px 0 5px;">
+                <span id="vectorizeSensitivityLabel">Чувствительность:</span>
+                <select id="vectorizeSensitivity">
+                    <option id="vectorizeVerySoft" value="very_soft">Очень мягкая</option>
+                    <option id="vectorizeSoft" value="soft">Мягкая</option>
+                    <option id="vectorizeSemiSoft" value="semi_soft">Полумягкая</option>
+                    <option id="vectorizeBalanced" value="balanced" selected>Сбалансированная</option>
+                    <option id="vectorizeSemiSharp" value="semi_sharp">Полурезкая</option>
+                    <option id="vectorizeSharp" value="sharp">Резкая</option>
+                    <option id="vectorizeVerySharp" value="very_sharp">Очень резкая</option>
+                </select>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin: 8px 0 5px;">
+                <span id="vectorizeDenoiseLabel">Шумоподавление:</span>
+                <select id="vectorizeDenoise" style="width: auto;">
+                    <option id="vectorizeDenoiseOff" value="0">Выкл</option>
+                    <option id="vectorizeDenoiseLow" value="1" selected>Слабое</option>
+                    <option id="vectorizeDenoiseHigh" value="2">Сильное</option>
+                </select>
+            </div>
+
+            <div style="margin: 8px 0;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span id="vectorizeSharpnessLabel">Чёткость границ:</span>
+                    <span><span id="vectorizeSharpnessVal">1.0</span></span>
+                </div>
+                <input type="range" id="vectorizeSharpness" min="0.3" max="2.5" step="0.05" value="1.0" style="width: 100%;">
+            </div>
+
+            <div style="margin: 8px 0 6px 0;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span id="vectorizeSimplifyLabel">Упрощение линий:</span>
+                    <span><span id="vectorizeSimplifyVal">1.0</span></span>
+                </div>
+                <input type="range" id="vectorizeSimplify" min="0.3" max="2.0" step="0.05" value="1.0" style="width: 100%;">
+            </div>
+        </div>
+
+        <div class="vectorize-section">
+            <div style="display: flex; gap: 8px; justify-content: center;">
+                <button id="vectorizeProcessBtn" style="background: #3f7cb9; color: white; padding: 5px 12px;"><span id="vectorizeProcess">🔄 Обработать</span></button>
+                <button id="vectorizeAutoBtn" style="background: #99802c; color: white; padding: 5px 12px;"><span id="vectorizeAuto">🧠 Автоподбор</span></button>
+                <button id="vectorizeResetBtn" style="background: #eb3b3b; color: white; padding: 5px 12px;"><span id="vectorizeReset">↺ Сброс</span></button>
+            </div>
+            <div style="display: flex; gap: 8px; justify-content: center; margin-top: 8px;">
+                <button id="vectorizeApplyBtn" style="background: #228025ff; color: white; padding: 5px 12px; width:100%"><span id="vectorizeApply">Создать</span></button>
+            </div>
+        </div>
+
+        <div class="vectorize-section" style="border-top: 1px solid #ccc; padding-top: 8px;">
+            <div style="font-size: 11px; color: #666; text-align: center;">
+                <span id="vectorizeLinesCreatedLabel">Линий создано</span>: <span id="vectorizeLineCount">0</span>
+            </div>
+            <div id="vectorizeStatus" style="font-size: 10px; color: #888; text-align: center; margin-top: 4px;"></div>
+        </div>
+    </div>
+
+    <a id="saver"></a>
+</body>
+
+<script src="scripts/util.js"></script>
+<script src="scripts/drawing.js"></script>
+<script src="scripts/lang.js"></script>
+<script src="scripts/v2.js"></script>
+<script src="scripts/saveload.js"></script>
+<script src="scripts/draggableIslands.js"></script>
+<script src="scripts/undo.js"></script>
+<script src="scripts/redo.js"></script>
+<script src="scripts/reference.js"></script>
+<script src="scripts/tools.js"></script>
+<script src="scripts/canvas.js"></script>
+<script src="scripts/autosave.js"></script>
+<script src="scripts/onerror.js"></script>
+<script src="scripts/exportblkmenu.js"></script>
+<script src="scripts/hatch.js"></script>
+<script src="scripts/vectorize.js"></script>
+</html>
