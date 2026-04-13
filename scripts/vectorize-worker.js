@@ -113,50 +113,113 @@ function hysteresisThreshold(suppressed, lowVal, highVal, w, h) {
 }
 
 function traceContours(binary, w, h) {
-    const visited = new Uint8Array(w*h);
-    const isEdge = (x,y) => x>=0 && x<w && y>=0 && y<h && binary[y*w + x] !== 0;
-    const getNeighbors = (x,y) => {
+    const visited = new Uint8Array(w * h);
+    const isEdge = (x, y) => x >= 0 && x < w && y >= 0 && y < h && binary[y * w + x] !== 0;
+
+    const getNeighbors = (cx, cy) => {
         const nb = [];
         for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
                 if (dx === 0 && dy === 0) continue;
-                if (isEdge(x+dx, y+dy)) nb.push([x+dx, y+dy]);
+                if (isEdge(cx + dx, cy + dy)) nb.push({x: cx + dx, y: cy + dy});
             }
         }
         return nb;
     };
+
+    const getBestNeighbor = (cx, cy, px, py) => {
+        const nbs = getNeighbors(cx, cy).filter(n => !visited[n.y * w + n.x]);
+        if (nbs.length === 0) return null;
+        if (nbs.length === 1) return nbs[0];
+
+        if (px !== -1) {
+            let bestDot = -Infinity;
+            let bestN = null;
+            let dx1 = cx - px, dy1 = cy - py;
+            let len1 = Math.hypot(dx1, dy1) || 1;
+            dx1 /= len1; dy1 /= len1;
+
+            for (let n of nbs) {
+                let dx2 = n.x - cx, dy2 = n.y - cy;
+                let len2 = Math.hypot(dx2, dy2) || 1;
+                dx2 /= len2; dy2 /= len2;
+
+                let dot = dx1 * dx2 + dy1 * dy2;
+                if (dot > bestDot) {
+                    bestDot = dot;
+                    bestN = n;
+                }
+            }
+            return bestN;
+        }
+        return nbs.find(n => Math.abs(n.x - cx) + Math.abs(n.y - cy) === 1) || nbs[0];
+    };
+
+    const traceDirection = (startX, startY, px, py) => {
+        let pts = [];
+        let cx = startX, cy = startY;
+        let prevX = px, prevY = py;
+
+        while (true) {
+            const idx = cy * w + cx;
+            if (visited[idx]) break;
+            visited[idx] = 1;
+            pts.push({x: cx, y: cy});
+
+            const next = getBestNeighbor(cx, cy, prevX, prevY);
+            if (!next) break;
+
+            prevX = cx;
+            prevY = cy;
+            cx = next.x;
+            cy = next.y;
+        }
+        return pts;
+    };
+
     let segments = [];
+    const getUnvisitedNeighbors = (x, y) => getNeighbors(x, y).filter(n => !visited[n.y * w + n.x]);
+
     for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
-            const idx = y*w + x;
-            if (!isEdge(x,y) || visited[idx]) continue;
-            const nb = getNeighbors(x,y);
-            if (nb.length !== 2) {
-                let points = [];
-                let cx = x, cy = y, px = -1, py = -1;
-                while (true) {
-                    const curIdx = cy*w + cx;
-                    if (visited[curIdx]) break;
-                    visited[curIdx] = 1;
-                    points.push({x: cx, y: cy});
-                    const nbs = getNeighbors(cx, cy);
-                    let next = null;
-                    for (let [nx, ny] of nbs) {
-                        if ((px === -1 || !(nx === px && ny === py)) && !visited[ny*w + nx]) {
-                            next = [nx, ny];
-                            break;
-                        }
-                    }
-                    if (!next) break;
-                    px = cx;
-                    py = cy;
-                    cx = next[0];
-                    cy = next[1];
-                }
-                if (points.length >= 3) segments.push(points);
+            const idx = y * w + x;
+            if (!isEdge(x, y) || visited[idx]) continue;
+
+            let nbs = getUnvisitedNeighbors(x, y);
+            if (nbs.length === 1) {
+                visited[idx] = 1;
+                let path = traceDirection(nbs[0].x, nbs[0].y, x, y);
+                segments.push([{x, y}, ...path]);
             }
         }
     }
+
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const idx = y * w + x;
+            if (!isEdge(x, y) || visited[idx]) continue;
+
+            visited[idx] = 1;
+            let pathA = [];
+            let pathB = [];
+
+            let nbs = getUnvisitedNeighbors(x, y);
+            if (nbs.length > 0) {
+                pathA = traceDirection(nbs[0].x, nbs[0].y, x, y);
+            }
+
+            nbs = getUnvisitedNeighbors(x, y);
+            if (nbs.length > 0) {
+                pathB = traceDirection(nbs[0].x, nbs[0].y, x, y);
+            }
+
+            let fullPath = [...pathB.reverse(), {x, y}, ...pathA];
+            if (fullPath.length >= 3) {
+                segments.push(fullPath);
+            }
+        }
+    }
+
     return segments;
 }
 
@@ -195,7 +258,7 @@ function rdpSimplify(points, epsilon) {
     return points.filter((_,i) => keep[i]);
 }
 
-function segmentsToLines(segments, epsilon, targetMaxLines) {
+function segmentsToLines(segments, epsilon) {
     let allLines = [];
     for (let seg of segments) {
         if (seg.length < 2) continue;
@@ -209,17 +272,19 @@ function segmentsToLines(segments, epsilon, targetMaxLines) {
             allLines.push({x1: last.x, y1: last.y, x2: first.x, y2: first.y});
         }
     }
-    if (allLines.length > targetMaxLines) allLines = allLines.slice(0, targetMaxLines);
     return allLines;
 }
 
 function findEpsilonForTarget(segments, targetLines, simplifyFactor) {
     if (segments.length === 0) return [];
+    
+    segments.sort((a, b) => b.length - a.length);
+
     let low = 0.2, high = 12.0;
     let bestLines = null, bestEps = low;
     for (let iter = 0; iter < 12; iter++) {
         const mid = (low + high) / 2;
-        const lines = segmentsToLines(segments, mid * simplifyFactor, targetLines*2);
+        const lines = segmentsToLines(segments, mid * simplifyFactor);
         if (lines.length <= targetLines) {
             bestLines = lines;
             bestEps = mid;
@@ -230,7 +295,8 @@ function findEpsilonForTarget(segments, targetLines, simplifyFactor) {
         if (high - low < 0.1) break;
     }
     const finalEps = (bestEps + 0.05) * simplifyFactor;
-    let final = segmentsToLines(segments, finalEps, targetLines);
+    let final = segmentsToLines(segments, finalEps);
+    
     if (final.length > targetLines) final = final.slice(0, targetLines);
     return final;
 }
@@ -262,7 +328,8 @@ self.onmessage = function(e) {
             
             const binary = hysteresisThreshold(suppressed, low, high, w, h);
             let segments = traceContours(binary, w, h);
-            segments = segments.filter(seg => seg.length >= 5);
+            
+            segments = segments.filter(seg => seg.length >= 8); 
             
             let linesCount = 0;
             let lines = [];
@@ -303,7 +370,8 @@ self.onmessage = function(e) {
             const binary = hysteresisThreshold(suppressed, params.low, params.high, w, h);
             
             let segments = traceContours(binary, w, h);
-            segments = segments.filter(seg => seg.length >= 5);
+            
+            segments = segments.filter(seg => seg.length >= 8);
             
             let lines = [];
             if (segments.length > 0) {
