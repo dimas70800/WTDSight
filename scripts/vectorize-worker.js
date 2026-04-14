@@ -76,12 +76,14 @@ function nonMaxSuppress(mag, dir, w, h) {
             else if (angle >= 22.5 && angle < 67.5) dirIdx = 1;
             else if (angle >= 67.5 && angle < 112.5) dirIdx = 2;
             else dirIdx = 3;
+            
             let n1, n2;
             if (dirIdx === 0) { n1 = mag[y*w + (x-1)]; n2 = mag[y*w + (x+1)]; }
             else if (dirIdx === 1) { n1 = mag[(y-1)*w + (x+1)]; n2 = mag[(y+1)*w + (x-1)]; }
             else if (dirIdx === 2) { n1 = mag[(y-1)*w + x]; n2 = mag[(y+1)*w + x]; }
             else { n1 = mag[(y-1)*w + (x-1)]; n2 = mag[(y+1)*w + (x+1)]; }
-            if (mag[idx] >= n1 && mag[idx] >= n2) suppressed[idx] = mag[idx];
+            
+            if (mag[idx] >= n1 && mag[idx] > n2) suppressed[idx] = mag[idx];
         }
     }
     return suppressed;
@@ -155,14 +157,15 @@ function traceContours(binary, w, h) {
         return nbs.find(n => Math.abs(n.x - cx) + Math.abs(n.y - cy) === 1) || nbs[0];
     };
 
-    const traceDirection = (startX, startY, px, py) => {
+    const traceDirection = (startX, startY) => {
         let pts = [];
         let cx = startX, cy = startY;
-        let prevX = px, prevY = py;
+        let prevX = -1, prevY = -1;
 
         while (true) {
             const idx = cy * w + cx;
             if (visited[idx]) break;
+            
             visited[idx] = 1;
             pts.push({x: cx, y: cy});
 
@@ -177,45 +180,43 @@ function traceContours(binary, w, h) {
         return pts;
     };
 
+    const burnNeighbors = (path) => {
+        for (let i = 0; i < path.length; i++) {
+            const p = path[i];
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const nx = p.x + dx, ny = p.y + dy;
+                    if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                        visited[ny * w + nx] = 1;
+                    }
+                }
+            }
+        }
+    };
+
     let segments = [];
-    const getUnvisitedNeighbors = (x, y) => getNeighbors(x, y).filter(n => !visited[n.y * w + n.x]);
 
     for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
-            const idx = y * w + x;
-            if (!isEdge(x, y) || visited[idx]) continue;
-
-            let nbs = getUnvisitedNeighbors(x, y);
+            if (!isEdge(x, y) || visited[y * w + x]) continue;
+            let nbs = getNeighbors(x, y).filter(n => !visited[n.y * w + n.x]);
             if (nbs.length === 1) {
-                visited[idx] = 1;
-                let path = traceDirection(nbs[0].x, nbs[0].y, x, y);
-                segments.push([{x, y}, ...path]);
+                let path = traceDirection(x, y);
+                if (path.length >= 8) {
+                    segments.push(path);
+                    burnNeighbors(path);
+                }
             }
         }
     }
 
     for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
-            const idx = y * w + x;
-            if (!isEdge(x, y) || visited[idx]) continue;
-
-            visited[idx] = 1;
-            let pathA = [];
-            let pathB = [];
-
-            let nbs = getUnvisitedNeighbors(x, y);
-            if (nbs.length > 0) {
-                pathA = traceDirection(nbs[0].x, nbs[0].y, x, y);
-            }
-
-            nbs = getUnvisitedNeighbors(x, y);
-            if (nbs.length > 0) {
-                pathB = traceDirection(nbs[0].x, nbs[0].y, x, y);
-            }
-
-            let fullPath = [...pathB.reverse(), {x, y}, ...pathA];
-            if (fullPath.length >= 3) {
-                segments.push(fullPath);
+            if (!isEdge(x, y) || visited[y * w + x]) continue;
+            let path = traceDirection(x, y);
+            if (path.length >= 8) {
+                segments.push(path);
+                burnNeighbors(path);
             }
         }
     }
@@ -329,8 +330,6 @@ self.onmessage = function(e) {
             const binary = hysteresisThreshold(suppressed, low, high, w, h);
             let segments = traceContours(binary, w, h);
             
-            segments = segments.filter(seg => seg.length >= 8); 
-            
             let linesCount = 0;
             let lines = [];
             if (segments.length > 0) {
@@ -370,8 +369,6 @@ self.onmessage = function(e) {
             const binary = hysteresisThreshold(suppressed, params.low, params.high, w, h);
             
             let segments = traceContours(binary, w, h);
-            
-            segments = segments.filter(seg => seg.length >= 8);
             
             let lines = [];
             if (segments.length > 0) {
