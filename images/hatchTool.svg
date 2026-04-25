@@ -1,0 +1,13 @@
+<svg width="800px" height="800px" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="hatch" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(50)">
+      <line x1="0" y1="0" x2="0" y2="10" stroke="#777" stroke-width="4"/>
+    </pattern>
+  </defs>
+  <polygon points="25,15 75,26 80,80 20,80 34,46" fill="url(#hatch)" stroke="#777" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="25" cy="15" r="6" fill="#777"/>
+  <circle cx="75" cy="26" r="6" fill="#777"/>
+  <circle cx="80" cy="80" r="6" fill="#777"/>
+  <circle cx="20" cy="80" r="6" fill="#777"/>
+  <circle cx="34" cy="46" r="6" fill="#777"/>
+</svg>

@@ -7,7 +7,8 @@ for (let i = 0; i < 3; i++) {
         y: 0,
         rotation: 0,
         opacity: 0.5,
-        url: null
+        url: null,
+        filname: ""
     });
 }
 
@@ -37,14 +38,30 @@ function setReferenceRotation() {
 }
 
 function setReferenceOpacity() {
-    referenceArray[currentReference].opacity = parseFloat(el("refOpacityInput").value);
+    const val = parseFloat(el("refOpacityInput").value);
+    referenceArray[currentReference].opacity = val;
+
+    const sharedSlider = el("refOpacityInputShared");
+    if (sharedSlider) {
+        sharedSlider.value = val;
+    }
+}
+
+function setReferenceOpacityShared(value) {
+    const mainSlider = el("refOpacityInput");
+    if (mainSlider) {
+        mainSlider.value = value;
+    }
+    referenceArray[currentReference].opacity = parseFloat(value);
 }
 
 el("refFile").onchange = () => {
     const fileInput = el("refFile");
     const file = fileInput.files[0];
     if (!file) return;
-    
+
+    referenceArray[currentReference].fileName = file.name;
+
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
@@ -56,6 +73,7 @@ el("refFile").onchange = () => {
 };
 
 function setReferenceSrc(url) {
+    referenceArray[currentReference].fileName = "";
     const img = new Image();
     img.crossOrigin = "Anonymous";
     img.onload = () => {
@@ -75,21 +93,32 @@ function setReferenceSrc(url) {
 function setReferenceMenu() {
     const nextBtn = el("nextRefButton");
     if (nextBtn) nextBtn.innerHTML = (currentReference + 1) + "/3 >";
-    
+
     const ref = referenceArray[currentReference];
     const urlInput = el("refUrl");
-    
+
     if (ref.url) {
         urlInput.value = ref.url;
     } else {
         urlInput.value = "";
     }
-    
+
     el("refSize").value = ref.size;
     el("refShiftX").value = ref.x;
     el("refShiftY").value = -ref.y;
     el("refRotation").value = ref.rotation;
     el("refOpacityInput").value = ref.opacity;
+
+    const fileNameSpan = el("refFileName");
+    if (fileNameSpan) {
+        if (ref.fileName) {
+            fileNameSpan.textContent = ref.fileName;
+        } else if (ref.url) {
+            fileNameSpan.textContent = "Загружено по URL";
+        } else {
+            fileNameSpan.textContent = "";
+        }
+    }
 }
 
 /*function calc()

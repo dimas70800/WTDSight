@@ -6,11 +6,13 @@ const ru =
     sizeRefTitle: "Размер картинки",
     shiftRefTitle: "Смещение картинки",
     refOpacityTitle: "Непрозрачность картинки",
+    refOpacityTitleShared: "Непрозрачность картинки",
     exportButton: "Экспортировать прицел как .txt",
     exportButtonBlk: "Экспортировать прицел как .blk",
 
     saveButton: "Сохранить в файл",
-    loadButton: "Загрузить из файла",
+    loadButton: "Загрузить из JSON",
+    loadBlkButton: "Загрузить из BLK",
     infoDeleteButton: "Удалить объект",
 
     toolTitle: "Инструмент",
@@ -144,7 +146,28 @@ const ru =
     selectedObjectsHint: "Нажмите Delete для удаления всех",
     deleteAllButton: "Удалить все",
 
-    colorCanvasLabel: "Цвет фона:"
+    colorCanvasLabel: "Цвет фона",
+
+    refTitleText: "Референс",
+    refFileLabel: "Выбрать файл",
+    fileTitleText: "Файл",
+    linesTitleText: "Линии",
+    quadsTitleText: "Четырёхугольники",
+    hatchTitleText: "Штриховка",
+    selectTitleText: "Выделение",
+    linesDescription: "Зажмите и тяните чтобы создать линию",
+    quadsDescription: "Кликайте по холсту для создания четырёхугольника (4 точки)",
+    hatchDescription: "Кликайте по холсту, чтобы создать контур (мин. 3 точки)",
+    selectDescription: "Зажмите и тяните чтобы выделить зону для удаления",
+    settingsTitleText: "Настройки",
+    themeTitleText: "Тема интерфейса",
+    changeThemeLabel: "Сменить тему",
+    outlineCheckBoxTitleText: "Отображать обводку",
+    hintsCheckBoxTitleText: "Отображать подсказки",
+
+    loaded: "Загружено",
+    objectsFromBLK: "объектов из BLK"
+
 };
 
 const en =
@@ -155,11 +178,13 @@ const en =
     sizeRefTitle: "Image size",
     shiftRefTitle: "Image shift",
     refOpacityTitle: "Image opacity",
+    refOpacityTitleShared: "Image opacity",
     exportButton: "Export sight as .txt",
     exportButtonBlk: "Export sight as .blk",
 
     saveButton: "Save to file",
-    loadButton: "Load from file",
+    loadButton: "Load from JSON",
+    loadBlkButton: "Load from BLK",
     infoDeleteButton: "Delete object",
 
     toolTitle: "Tool",
@@ -293,7 +318,28 @@ const en =
     selectedObjectsHint: "Press Delete to delete all",
     deleteAllButton: "Delete all",
 
-    colorCanvasLabel: "Background color:"
+    colorCanvasLabel: "Background color",
+
+    refTitleText: "Reference",
+    refFileLabel: "Choose file",
+    fileTitleText: "File",
+    linesTitleText: "Lines",
+    quadsTitleText: "Quads",
+    hatchTitleText: "Hatch",
+    selectTitleText: "Select",
+    linesDescription: "Click and drag to draw a line",
+    quadsDescription: "Click on the canvas to create a quad (4 points)",
+    hatchDescription: "Click on the canvas to create a contour (min. 3 points)",
+    selectDescription: "Click and drag to select an area to delete",
+
+    settingsTitleText: "Settings",
+    themeTitleText: "Interface theme",
+    changeThemeLabel: "Change theme",
+    outlineCheckBoxTitleText: "Show outline",
+    hintsCheckBoxTitleText: "Show hints",
+
+    loaded: "Loaded",
+    objectsFromBLK: "objects from BLK"
 };
 
 const langDependent =
@@ -304,11 +350,13 @@ const langDependent =
         "sizeRefTitle",
         "shiftRefTitle",
         "refOpacityTitle",
+        "refOpacityTitleShared",
         "exportButton",
         "exportButtonBlk",
 
         "saveButton",
         "loadButton",
+        "loadBlkButton",
         "infoDeleteButton",
 
         "toolTitle",
@@ -410,7 +458,28 @@ const langDependent =
         "selectedObjectsHint",
         "deleteAllButton",
 
-        "colorCanvasLabel"
+        "colorCanvasLabel",
+
+        "refTitleText",
+        "refFileLabel",
+        "fileTitleText",
+        "linesTitleText",
+        "quadsTitleText",
+        "hatchTitleText",
+        "selectTitleText",
+        "linesDescription",
+        "quadsDescription",
+        "hatchDescription",
+        "selectDescription",
+
+        "settingsTitleText",
+        "themeTitleText",
+        "changeThemeLabel",
+        "outlineCheckBoxTitleText",
+        "hintsCheckBoxTitleText",
+
+        "loaded",
+        "objectsFromBLK"
     ];
 
 function changeLang(to) {
@@ -444,8 +513,10 @@ function changeLang(to) {
     if (refUrlInput) refUrlInput.placeholder = lang.refUrlPlaceholder;
 
     showInfo(selectedId);
+
+    if (typeof saveAllSettings === 'function') {
+        saveAllSettings();
+    }
 }
 
 let lang = ru;
-
-changeLang("ru");

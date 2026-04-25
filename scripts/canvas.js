@@ -1,10 +1,38 @@
 const canvas = el("mainCanvas");
 const ctx = canvas.getContext("2d");
 
+function resizeCanvas() {
+    // Получаем коэффициент масштабирования пикселей (зум браузера или экрана)
+    const dpr = window.devicePixelRatio || 1;
+    
+    // Физический размер холста (здесь пиксели умножаются, возвращая кристальную четкость)
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    
+    // CSS-размер холста (чтобы он не вылезал за пределы экрана и скролл-баров)
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+}
+// Слушатель уже есть, его не трогаем
+// window.addEventListener("resize", resizeCanvas);
+// resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+resizeCanvas();
+
 // Positioning
 let screenPos = { x: 0, y: 0.1 }; // In sight coordinates
 let screenZoom = 1 / 1.21; // Sight scale * zoom * 2000 = pixels
 // Zoom = 1 => 0.5 sight = 1000 pixels, zoom = 2 => 0.5 sight = 2000 pixels
+function getBaseScale() {
+    return canvas.height * (2000 / 2160);
+}
+
+// Эта функция будет возвращать коэффициент толщины
+// Если экран меньше 4K, она будет уменьшать lineWidth
+function getLineWidth(baseWidth) {
+    return baseWidth * (canvas.height / 2160);
+}
 
 // Selection tool variables
 let selectionRect = null;      // { startX, startY, endX, endY } в мировых координатах
@@ -15,14 +43,16 @@ let gridSize = 0.1; // Size of grid cell in sight scale
 
 let mousePos = { x: 0, y: 0 };
 let mousePosWindow = { x: 0, y: 0 }
+let lastMousePosCanvas = { x: 0, y: 0 };
 
-let ctxBgColor = localStorage.getItem("canvasBgColor") || "#ffffff";
-el("outlineCheckBox").checked = localStorage.getItem("outlineCheckBox") === "true";
+let ctxBgColor = "#ffffff";
 
-function setOutlineCheckBox(val){
+function setOutlineCheckBox(val) {
     el("outlineCheckBox").checked = val;
     localStorage.setItem("outlineCheckBox", val.toString());
+    if (typeof saveAllSettings === 'function') saveAllSettings();
 }
+
 
 const colorPicker = el("canvasBgColor");
 if (colorPicker) {
@@ -32,6 +62,7 @@ if (colorPicker) {
 function setBgColorCanvas(clr) {
     ctxBgColor = clr;
     localStorage.setItem("canvasBgColor", ctxBgColor);
+    if (typeof saveAllSettings === 'function') saveAllSettings();
 }
 
 function render() {
@@ -55,11 +86,11 @@ function v2disposSight2v2sight(disposSight) {
 }
 
 function sight2pixel(sight) {
-    return sight * screenZoom * 2000;
+    return sight * screenZoom * getBaseScale();
 }
 
 function v2sight2v2pixel(sight) {
-    return { x: sight.x * screenZoom * 2000, y: sight.y * screenZoom * 2000 };
+    return { x: sight.x * screenZoom * getBaseScale(), y: sight.y * screenZoom * getBaseScale() };
 }
 
 function v2pixel2v2canvas(pixel) {
@@ -67,7 +98,7 @@ function v2pixel2v2canvas(pixel) {
 }
 
 function v2pixel2v2sight(pixel) {
-    return { x: pixel.x / screenZoom / 2000, y: pixel.y / screenZoom / 2000 };
+    return { x: pixel.x / screenZoom / getBaseScale(), y: pixel.y / screenZoom / getBaseScale() };
 }
 
 function v2disposSight2v2canvas(disposSight) {
@@ -110,7 +141,7 @@ function drawCrosshair() {
 }
 
 function drawGrid() {
-    ctx.lineWidth = 1;
+    ctx.lineWidth = getLineWidth(1);
 
     for (let z = 1; (0.5 * Math.pow(10, z - 1) < screenZoom) || (z === 1); z++) {
         const alpha = 0.25 * Math.pow(0.7, z - 1);
@@ -185,7 +216,7 @@ function drawStuff() {
                     ctx.moveTo(from.x, from.y);
                     ctx.lineTo(to.x, to.y);
                     ctx.strokeStyle = outlineColor;
-                    ctx.lineWidth = w + 1;
+                    ctx.lineWidth = getLineWidth(w + 1);
                     ctx.stroke();
                 }
 
@@ -193,7 +224,7 @@ function drawStuff() {
                 ctx.moveTo(from.x, from.y);
                 ctx.lineTo(to.x, to.y);
                 ctx.strokeStyle = c;
-                ctx.lineWidth = w;
+                ctx.lineWidth = getLineWidth(w);
                 ctx.stroke();
                 break;
 
@@ -211,7 +242,7 @@ function drawStuff() {
                     ctx.lineTo(pos4.x, pos4.y);
                     ctx.closePath();
                     ctx.strokeStyle = outlineColor;
-                    ctx.lineWidth = w + 1;
+                    ctx.lineWidth = getLineWidth(w + 1);
                     ctx.stroke();
                 }
 
@@ -240,7 +271,7 @@ function drawStuff() {
         }
     }
 
-    ctx.lineWidth = 1;
+    ctx.lineWidth = getLineWidth(1);
 }
 
 function getMousePos(offsetX, offsetY) {
@@ -252,7 +283,7 @@ function drawGhost() {
         ctx.save();
         ctx.globalAlpha = 0.7;
         ctx.strokeStyle = "rgba(100, 200, 100, 0.9)";
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = getLineWidth(1.5);
 
         for (const line of window.vectorizeTempLines) {
             const from = v2disposSight2v2canvas(line.start);
@@ -283,14 +314,14 @@ function drawGhost() {
             mousePosCanvas = trueMousePosCanvas;
     }
 
-    ctx.lineWidth = 1;
+    ctx.lineWidth = getLineWidth(1);
 
     ctx.strokeStyle = "rgba(0, 0, 0, 0.1)";
     ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
 
     function drawCircle(x, y, r) {
         ctx.beginPath();
-        ctx.arc(x, y, r, 0, 2 * Math.PI, false);
+        ctx.arc(x, y, getLineWidth(r), 0, 2 * Math.PI, false);
         ctx.closePath();
         ctx.fill();
     }
@@ -318,13 +349,13 @@ function drawGhost() {
                 const to = trueMousePosCanvas;
 
                 const outlineCheckBoxVal = el("outlineCheckBox").checked;
-                
+
                 if (outlineCheckBoxVal) {
                     ctx.beginPath();
                     ctx.moveTo(from.x, from.y);
                     ctx.lineTo(to.x, to.y);
                     ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
-                    ctx.lineWidth = 1;
+                    ctx.lineWidth = getLineWidth(1);
                     ctx.stroke();
                 }
 
@@ -401,7 +432,7 @@ function drawGhost() {
                 ctx.save();
                 ctx.globalAlpha = 0.6;
                 ctx.strokeStyle = "rgba(100, 200, 100, 0.8)";
-                ctx.lineWidth = 2;
+                ctx.lineWidth = getLineWidth(2);
 
                 for (const line of previewHatchLines) {
                     const from = v2disposSight2v2canvas(line.start);
@@ -430,7 +461,7 @@ function drawGhost() {
         ctx.fillStyle = "rgba(0, 59, 185, 0.3)";
         ctx.fillRect(from.x, from.y, to.x - from.x, to.y - from.y);
         ctx.strokeStyle = "rgba(149, 183, 255, 0.8)";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = getLineWidth(2);
         ctx.strokeRect(from.x, from.y, to.x - from.x, to.y - from.y);
         ctx.restore();
     }
@@ -457,8 +488,8 @@ function drawReference(index) {
     ctx.globalAlpha = ref.opacity;
 
     try {
-        const pixelWidth = (halfWidth * 2) * screenZoom * 2000;
-        const pixelHeight = (halfHeight * 2) * screenZoom * 2000;
+        const pixelWidth = (halfWidth * 2) * screenZoom * getBaseScale();
+        const pixelHeight = (halfHeight * 2) * screenZoom * getBaseScale();
 
         ctx.drawImage(ref.obj, -pixelWidth / 2, -pixelHeight / 2, pixelWidth, pixelHeight);
     }
@@ -525,33 +556,37 @@ function drawArrows() {
     for (let i = 0; i < arrowSources.length; i++) {
         const pos = arrowSources[i];
 
-        ctx.lineWidth = 5;
+        ctx.lineWidth = getLineWidth(5);
 
-        // x
+        const size100 = getLineWidth(100);
+        const size80 = getLineWidth(80);
+        const size10 = getLineWidth(10);
+
+        // X
         ctx.strokeStyle = (hoveredSource === i && hoveredAxis === 0) ? "rgb(128, 0, 0, 1)" : "rgb(255, 0, 0, 1)";
         ctx.beginPath();
 
         ctx.moveTo(pos.x, pos.y);
-        ctx.lineTo(pos.x + 100, pos.y);
-        ctx.lineTo(pos.x + 80, pos.y - 10);
-        ctx.moveTo(pos.x + 100, pos.y);
-        ctx.lineTo(pos.x + 80, pos.y + 10);
+        ctx.lineTo(pos.x + size100, pos.y);
 
-        ctx.closePath();
+        ctx.moveTo(pos.x + size80, pos.y - size10);
+        ctx.lineTo(pos.x + size100, pos.y);
+        ctx.lineTo(pos.x + size80, pos.y + size10);
+
 
         ctx.stroke();
 
-        // y
+        // Y
         ctx.strokeStyle = (hoveredSource === i && hoveredAxis === 1) ? "rgb(0, 128, 0, 1)" : "rgb(0, 255, 0, 1)";
         ctx.beginPath();
 
         ctx.moveTo(pos.x, pos.y);
-        ctx.lineTo(pos.x, pos.y - 100);
-        ctx.lineTo(pos.x - 10, pos.y - 80);
-        ctx.moveTo(pos.x, pos.y - 100);
-        ctx.lineTo(pos.x + 10, pos.y - 80);
+        ctx.lineTo(pos.x, pos.y - size100);
 
-        ctx.closePath();
+        ctx.moveTo(pos.x - size10, pos.y - size80);
+        ctx.lineTo(pos.x, pos.y - size100);
+        ctx.lineTo(pos.x + size10, pos.y - size80);
+
 
         ctx.stroke();
     }
@@ -567,9 +602,21 @@ function getArrowHitboxes() {
     const arrowSources = getArrowSources(object);
     const arrowHitboxes = [];
 
+     const hitboxSize = ('ontouchstart' in window) ? 30 : 10;
+
     for (const src of arrowSources) {
-        arrowHitboxes.push({ x1: src.x + 10, y1: src.y - 10, x2: src.x + 100, y2: src.y + 10 });
-        arrowHitboxes.push({ x1: src.x - 10, y1: src.y - 100, x2: src.x + 10, y2: src.y - 10 });
+        arrowHitboxes.push({ 
+            x1: src.x - hitboxSize, 
+            y1: src.y - hitboxSize, 
+            x2: src.x + 100 + hitboxSize, 
+            y2: src.y + hitboxSize 
+        });
+        arrowHitboxes.push({ 
+            x1: src.x - hitboxSize, 
+            y1: src.y - 100 - hitboxSize, 
+            x2: src.x + hitboxSize, 
+            y2: src.y + hitboxSize 
+        });
     }
 
     return arrowHitboxes;
@@ -676,16 +723,18 @@ function clearSelection() {
 
 function updateSelectionInfo() {
     const count = selectedObjectsSet.size;
+    const infoMenu = el("infoMenu");
     const title = el("selObjectTitle");
     const table = el("infoTable");
     const deleteBtn = el("infoDeleteButton");
 
     if (count > 0) {
+        show(infoMenu);
         title.textContent = `${lang.selectedObjectsCount}: ${count}`;
         table.innerHTML = `
             <tr>
                 <td colspan="2" style="text-align: center; padding: 4px;">
-                    <span style="font-size: 11px; color: #666;">${lang.selectedObjectsHint}</span>
+                    <span style="font-size: 11px; color: #777777;">${lang.selectedObjectsHint}</span>
                 </td>
             </tr>
         `;
@@ -699,11 +748,13 @@ function updateSelectionInfo() {
         if (obj) {
             showInfo(selectedId);
         } else {
+            hide(infoMenu);
             title.innerHTML = lang.selObjectTitle;
             table.innerHTML = "";
             hide(deleteBtn);
         }
     } else {
+        hide(infoMenu);
         title.innerHTML = lang.selObjectTitle;
         table.innerHTML = "";
         hide(deleteBtn);
@@ -761,6 +812,9 @@ let arrowPulling = false;
 let posPulled = null;
 
 canvas.onpointerdown = (e) => {
+
+    lastMousePosCanvas = getMousePos(e.offsetX, e.offsetY);
+
     if (e.button === 2) {
         dragging = true;
         //console.log("drag start");
@@ -875,16 +929,24 @@ canvas.onpointerdown = (e) => {
     }
 };
 
-let canvasDragSensitivity = 2;
-let canvasPullSensitivity = 1.5;
+// let canvasDragSensitivity = 2;
+// let canvasPullSensitivity = 1.5;
 
 canvas.onpointermove = (e) => {
-    mousePos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
-    mousePosWindow = getMousePos(e.offsetX, e.offsetY);
+    const currentMousePosCanvas = getMousePos(e.offsetX, e.offsetY);
 
-    const movement = v2mul({ x: e.movementX, y: e.movementY }, canvasDragSensitivity);
-    const sightMovement = v2pixel2v2sight(movement);
-    const pullMovement = v2pixel2v2sight(v2mul({ x: e.movementX, y: e.movementY }, canvasPullSensitivity));
+    const exactMovement = { 
+        x: currentMousePosCanvas.x - lastMousePosCanvas.x, 
+        y: currentMousePosCanvas.y - lastMousePosCanvas.y 
+    };
+
+    lastMousePosCanvas = currentMousePosCanvas;
+
+    mousePos = v2canvas2v2disposSight(currentMousePosCanvas);
+    mousePosWindow = currentMousePosCanvas;
+
+    const sightMovement = v2pixel2v2sight(exactMovement);
+    const pullMovement = v2pixel2v2sight(exactMovement);
 
     if (dragging) {
         screenPos = v2add(screenPos, v2inv(sightMovement));
@@ -929,6 +991,7 @@ canvas.onpointermove = (e) => {
             pullPos(object, posPulled);
         }
     }
+    
     if (tool === "select" && isSelecting && selectionRect) {
         const mouseWorld = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
         selectionRect.endX = mouseWorld.x;

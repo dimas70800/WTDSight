@@ -58,7 +58,7 @@ function endDrawing(pos) {
         case "lines":
             const object =
             {
-                name: lang.line + objIdStr,
+                name: lang.line + " " + objIdStr,
                 type: "line",
                 start: startPos,
                 end: pos,
@@ -111,7 +111,7 @@ function endDrawing(pos) {
                 if (isObjectConvex) {
                     const object =
                     {
-                        name: lang.quad + objIdStr,
+                        name: lang.quad + " " + objIdStr,
                         type: "quad",
                         pos1: quadPos[0],
                         pos2: quadPos[1],
@@ -218,6 +218,7 @@ function showInfo(id) {
         clearSelection();
     }
 
+    const infoMenu = el("infoMenu");
     const table = el("infoTable");
     table.innerHTML = "";
     el("selObjectTitle").innerHTML = lang.selObjectTitle;
@@ -244,6 +245,13 @@ function showInfo(id) {
     if (objects.has(selectedId)) objects.get(selectedId).selected = false;
 
     hide(el("infoDeleteButton"));
+
+    if (id == null) {
+        hide(infoMenu);
+        selectedId = null;
+        return;
+    }
+    show(infoMenu);
 
     selectedId = id;
     if (id == null) return;

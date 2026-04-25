@@ -1,8 +1,5 @@
-makeDraggable("functionalMenu");
-makeDraggable("toolsMenu");
 makeDraggable("objectsMenu");
 makeDraggable("infoMenu");
-makeDraggable("disclaimer");
 
 function makeDraggable(name)
 {
@@ -31,10 +28,9 @@ function makeDraggable(name)
 
         element.style.top = (element.offsetTop - movement.y) + "px";
         element.style.left = (element.offsetLeft - movement.x) + "px";
-        element.style.contentVisibility = 'auto';
 
-        element.style.right = null;
-        element.style.bottom = null;
+        element.style.bottom = "auto";
+        element.style.right = "auto";
     }
 
     function closeDragElement()

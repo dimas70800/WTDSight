@@ -9,6 +9,7 @@
 
     function initVectorize() {
         const vectorizeBtn = document.getElementById('toolsVectorizeButton');
+        window.toggleVectorizePanel = toggleVectorizePanel;
         if (!vectorizeBtn) {
             console.error("toolsVectorizeButton not found");
             return;
@@ -20,22 +21,22 @@
             }
         }
 
-        vectorizeBtn.onclick = (e) => {
-            e.stopPropagation();
-            tool = 'vectorize';
-            if (typeof markAllTools === 'function') markAllTools();
+        // vectorizeBtn.onclick = (e) => {
+        //     e.stopPropagation();
+        //     tool = 'vectorize';
+        //     if (typeof markAllTools === 'function') markAllTools();
 
-            toggleVectorizePanel(true);
-        };
+        //     toggleVectorizePanel(true);
+        // };
 
-        if (typeof markAllTools !== 'undefined') {
-            const originalMarkAllTools = markAllTools;
-            window.markAllTools = function () {
-                originalMarkAllTools();
-                const btn = document.getElementById('toolsVectorizeButton');
-                if (btn) btn.disabled = (tool === 'vectorize');
-            };
-        }
+        // if (typeof markAllTools !== 'undefined') {
+        //     const originalMarkAllTools = markAllTools;
+        //     window.markAllTools = function () {
+        //         originalMarkAllTools();
+        //         const btn = document.getElementById('toolsVectorizeButton');
+        //         if (btn) btn.disabled = (tool === 'vectorize');
+        //     };
+        // }
 
         const vectorizePanel = document.getElementById('vectorizePanel');
         if (!vectorizePanel) {
