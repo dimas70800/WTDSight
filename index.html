@@ -4,16 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <title>WTDSight</title>
-    <meta name="description" content="WTDSight - это удобный онлайн редактор для создания пользовательских прицелов для War Thunder!" />
+    <meta name="description"
+        content="WTDSight - это удобный онлайн редактор для создания пользовательских прицелов для War Thunder!" />
     <link rel="stylesheet" href="css/style.css">
     <link rel="shortcut icon" href="images/logo.svg" type="image/svg+xml">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-JPVCRMGP7V"></script>
     <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
 
-    gtag('config', 'G-JPVCRMGP7V');
+        gtag('config', 'G-JPVCRMGP7V');
     </script>
 </head>
 
@@ -210,10 +211,10 @@
 
                         <div id="panel-vectorize" class="panel-content">
                             <div id="vectorizePanel" style="display: flex; flex-direction: column; gap: 6px;">
-                                <div id="vectorizeBeta" style="color: #777777; text-align: center; font-size: 12px;">
+                                <h2 class="panel-title" id="vectorizeTitle" style="margin-bottom: 0px;">Векторизация
+                                </h2>
+                                <div id="vectorizeBeta" style="color: #777777; font-size: 12px; margin-bottom: 20px;">
                                     (Бета-Тест)</div>
-                                <h2 class="panel-title" id="vectorizeTitle"
-                                    style="text-align: center; margin-bottom: 10px;">Векторизация</h2>
 
                                 <div class="vectorize-section">
                                     <div
@@ -307,7 +308,7 @@
 
                         <div id="shared-drawing-tools"
                             style="display: none; flex-direction: column; gap: 15px; margin-top: 20px; border-top: 1px solid var(--border-col); padding-top: 15px;">
-                            <div class="panel-with-elem">
+                            <div class="panel-with-elem" id="panel-with-refOpacityShared">
                                 <span id="refOpacityTitleShared">Непрозрачность картинки</span>
                                 <input id="refOpacityInputShared" type="range" value="0.5" min="0" max="1" step="0.01"
                                     oninput="setReferenceOpacityShared(this.value)" style="margin-top: 5px;">
@@ -398,8 +399,13 @@
         <div class="settings-modal-content">
             <div class="settings-modal-header">
                 <h2 id="settingsTitleText">Настройки</h2>
-                <button class="settings-modal-close"
-                    onclick="document.getElementById('settingsModalWindow').style.display='none'">&times;</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                    <button onclick='window.open("https://discord.com/invite/KC8y4Xr2", "_blank")' style="display: flex; align-items: center; gap: 5px; font-size: 1em;" id="discord-server-btn">
+                        <img src="images/discord_icon.svg" alt="discord" style="height: 2em;">
+                        Discord Server</button>
+                    <button class="settings-modal-close"
+                        onclick="document.getElementById('settingsModalWindow').style.display='none'">&times;</button>
+                </div>
             </div>
             <div class="settings-body">
                 <div class="settings-row">

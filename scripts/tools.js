@@ -45,10 +45,10 @@ function switchTool(targetId) {
     // Общие настройки
     const sharedTools = document.getElementById('shared-drawing-tools');
     if (sharedTools) {
-        sharedTools.style.display = ['lines', 'quads', 'select', 'hatch', 'file'].includes(targetId) ? 'flex' : 'none';
+        sharedTools.style.display = ['lines', 'quads', 'select', 'hatch', 'file', 'vectorize', 'reference'].includes(targetId) ? 'flex' : 'none';
+        el("panel-with-refOpacityShared").style.display = (targetId === 'reference') ? 'none' : 'flex';
     }
 
-    // Если панель была свёрнута — разворачиваем
     if (shell.classList.contains('collapsed')) {
         togglePanel(false);
     }
@@ -69,7 +69,6 @@ toolNames.forEach(name => {
     }
 });
 
-// Инициализация
 document.addEventListener('DOMContentLoaded', () => {
     const firstBtn = document.querySelector('.tab-button[data-target="lines"]');
     if (firstBtn) firstBtn.classList.add('active');

@@ -657,3 +657,11 @@ input[type="range"] {
     pointer-events: none;
     z-index: 50;
 }
+
+#discord-server-btn {
+    background-color: #5865F2;
+}
+
+#discord-server-btn:hover{
+    background-color: #4e59cc;
+}

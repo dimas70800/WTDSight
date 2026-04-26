@@ -108,7 +108,8 @@ document.querySelectorAll('.nav-static .tab-button').forEach(btn => {
 
         const sharedTools = document.getElementById('shared-drawing-tools');
         if (sharedTools) {
-            sharedTools.style.display = (targetId === 'file') ? 'flex' : 'none';
+            sharedTools.style.display = (targetId === 'file' || targetId === 'reference') ? 'flex' : 'none';
+            el("panel-with-refOpacityShared").style.display = (targetId === 'reference') ? 'none' : 'flex';
         }
     });
 });
