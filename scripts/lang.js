@@ -166,7 +166,11 @@ const ru =
     hintsCheckBoxTitleText: "Отображать подсказки",
 
     loaded: "Загружено",
-    objectsFromBLK: "объектов из BLK"
+    objectsFromBLK: "объектов из BLK",
+
+    drawVertLinePreviewText: "Верт. линия",
+    drawHorzLinePreviewText: "Гориз. линия",
+    screenshotPreviewText: "Сделать скриншот"
 
 };
 
@@ -339,7 +343,11 @@ const en =
     hintsCheckBoxTitleText: "Show hints",
 
     loaded: "Loaded",
-    objectsFromBLK: "objects from BLK"
+    objectsFromBLK: "objects from BLK",
+
+    drawVertLinePreviewText: "Vert. line",
+    drawHorzLinePreviewText: "Horz. line",
+    screenshotPreviewText: "Take screenshot"
 };
 
 const langDependent =
@@ -479,7 +487,11 @@ const langDependent =
         "hintsCheckBoxTitleText",
 
         "loaded",
-        "objectsFromBLK"
+        "objectsFromBLK",
+
+        "drawVertLinePreviewText",
+        "drawHorzLinePreviewText",
+        "screenshotPreviewText"
     ];
 
 function changeLang(to) {

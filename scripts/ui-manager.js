@@ -156,3 +156,133 @@ window.addEventListener('load', () => {
     const settings = loadSettings();
     applyAllSettings(settings);
 });
+
+// Открытие/закрытие окна предпросмотра
+function toggleSightPreview() {
+    const overlay = document.getElementById('sightPreviewOverlay');
+    if (overlay.style.display === 'none') {
+        overlay.style.display = 'flex';
+        drawPreview(); // Рисуем актуальный вид при открытии
+    } else {
+        overlay.style.display = 'none';
+    }
+}
+
+function drawPreview() {
+    const pCanvas = document.getElementById('previewCanvas');
+    if (!pCanvas) return;
+    const pCtx = pCanvas.getContext('2d');
+    
+    pCanvas.width = 3840;
+    pCanvas.height = 2160;
+    
+    pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+    
+    const drawVert = document.getElementById('previewDrawCentralLineVert').checked;
+    const drawHorz = document.getElementById('previewDrawCentralLineHorz').checked;
+    
+    const previewScreenshotZoom = 1.08 ;
+
+    const baseScale = pCanvas.height * (2000 / 2160) * previewScreenshotZoom;
+    const cx = pCanvas.width / 2;
+    const cy = pCanvas.height / 2;
+    
+    function sightToPreview(pos) {
+        return {
+            x: cx + pos.x * baseScale,
+            y: cy + pos.y * baseScale
+        };
+    }
+    
+    pCtx.lineWidth = (pCanvas.height / 2160) * 2;
+    pCtx.strokeStyle = "rgba(0, 0, 0, 1)";
+    
+    if (drawVert || drawHorz) {
+        pCtx.beginPath();
+        if (drawVert) {
+            pCtx.moveTo(cx, 0);
+            pCtx.lineTo(cx, pCanvas.height);
+        }
+        if (drawHorz) {
+            pCtx.moveTo(0, cy);
+            pCtx.lineTo(pCanvas.width, cy);
+        }
+        pCtx.stroke();
+    }
+    
+    pCtx.fillStyle = "rgba(0, 0, 0, 1)";
+    pCtx.strokeStyle = "rgba(0, 0, 0, 1)";
+    pCtx.lineJoin = "round";
+    
+    for (const [id, object] of objects) {
+        if (object.type === "line") {
+            const from = sightToPreview(object.start);
+            const to = sightToPreview(object.end);
+            
+            pCtx.beginPath();
+            pCtx.moveTo(from.x, from.y);
+            pCtx.lineTo(to.x, to.y);
+            pCtx.stroke();
+        } else if (object.type === "quad") {
+            const p1 = sightToPreview(object.pos1);
+            const p2 = sightToPreview(object.pos2);
+            const p3 = sightToPreview(object.pos3);
+            const p4 = sightToPreview(object.pos4);
+            
+            pCtx.beginPath();
+            pCtx.moveTo(p1.x, p1.y);
+            pCtx.lineTo(p2.x, p2.y);
+            pCtx.lineTo(p3.x, p3.y);
+            pCtx.lineTo(p4.x, p4.y);
+            pCtx.closePath();
+            pCtx.fill();
+        }
+    }
+}
+
+window.addEventListener('resize', () => {
+    const overlay = document.getElementById('sightPreviewOverlay');
+    if (overlay && overlay.style.display === 'flex') {
+        drawPreview();
+    }
+});
+
+function takePreviewScreenshot() {
+    const bgImg = document.getElementById('previewBackground');
+    const pCanvas = document.getElementById('previewCanvas');
+    
+    if (!bgImg || !pCanvas) return;
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = pCanvas.width;   // 3840
+    tempCanvas.height = pCanvas.height; // 2160
+    
+    const tCtx = tempCanvas.getContext('2d');
+
+    tCtx.drawImage(bgImg, 0, 0, tempCanvas.width, tempCanvas.height);
+    
+    tCtx.drawImage(pCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+
+    tCtx.font = "20px Arial";
+    tCtx.fillStyle = "rgba(60, 60, 60, 0.2)";
+    tCtx.textAlign = "right";
+    tCtx.textBaseline = "bottom";
+    
+    const textPadding = 30;
+    const watermarkText = "Made with WTDSight by dimas7080";
+    
+    tCtx.fillText(watermarkText, tempCanvas.width - textPadding, tempCanvas.height - textPadding);
+
+    try {
+        const dataURL = tempCanvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `WTDSight_Preview_${new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_')}.png`;
+        link.href = dataURL;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (e) {
+        console.error("Ошибка при сохранении скриншота:", e);
+        alert("Не удалось сохранить скриншот.");
+    }
+}

@@ -260,7 +260,7 @@ html {
     right: 1em;
     width: 260px;
     height: 350px;
-    z-index: 1000;
+    z-index: 10;
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
@@ -665,3 +665,83 @@ input[type="range"] {
 #discord-server-btn:hover{
     background-color: #4e59cc;
 }
+
+.preview-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+}
+
+.preview-container {
+    position: relative;
+    width: 100vw;
+    height: 56.25vw;
+    max-height: 100vh;
+    max-width: 177.78vh;
+    background: #000;
+    overflow: hidden;
+    box-shadow: 0 0 30px rgba(0,0,0,0.8);
+}
+
+#previewBackground {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+}
+
+#previewCanvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.preview-close-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: auto;
+    z-index: 10;
+}
+
+.preview-controls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 10;
+    background: var(--bg-main-panel);
+    padding: 15px;
+    border-radius: var(--radius-ui);
+    border: 1px solid var(--border-col);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    pointer-events: auto;
+}
+
+.preview-controls label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.preview-controls input[type="checkbox"] {
+    transform: scale(1.2);
+    cursor: pointer;
+}
+

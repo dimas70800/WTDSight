@@ -71,6 +71,9 @@
 
             <div class="panel-container">
                 <div class="toggle-btn" onclick="togglePanel()" id="arrow">◀</div>
+                <div class="toggle-btn" onclick="toggleSightPreview()" id="sightPreviewBtn" style="top: 75px;">
+                    <img src="images/preview-btn.svg" alt="preview button" style="height: 50%;">
+                </div>
 
                 <main class="main-content-panel">
                     <div class="scroll-area" id="panel-content">
@@ -82,7 +85,7 @@
                                     <span id="refUrlTitle">URL картинки</span>:
                                     <div style="display: flex; gap: 5px; margin-top: 5px;">
                                         <input type="text" id="refUrl" value="" placeholder="Ссылка"
-                                            style="flex-grow: 1;">
+                                            style="flex-grow: 1; max-width: 64%">
                                         <button id="loadRefButton" onclick="setReference()">Загрузить</button>
                                     </div>
                                 </div>
@@ -400,7 +403,8 @@
             <div class="settings-modal-header">
                 <h2 id="settingsTitleText">Настройки</h2>
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                    <button onclick='window.open("https://discord.com/invite/KC8y4Xr2", "_blank")' style="display: flex; align-items: center; gap: 5px; font-size: 1em;" id="discord-server-btn">
+                    <button onclick='window.open("https://discord.com/invite/KC8y4Xr2", "_blank")'
+                        style="display: flex; align-items: center; gap: 5px; font-size: 1em;" id="discord-server-btn">
                         <img src="images/discord_icon.svg" alt="discord" style="height: 2em;">
                         Discord Server</button>
                     <button class="settings-modal-close"
@@ -533,6 +537,32 @@
             <div class="export-buttons"><button id="cancelExportBtn"
                     style="background: transparent; border: 1px solid var(--border-col);">Отмена</button><button
                     id="generateBlkBtn" style="background: #3f7cb9; color: white;">Экспортировать как .blk</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="sightPreviewOverlay" class="preview-overlay" style="display: none;">
+        <div class="preview-container">
+            <img src="images/preview.png" id="previewBackground" alt="Preview Background">
+            
+            <canvas id="previewCanvas"></canvas>
+            
+            <div class="toggle-btn preview-close-btn" onclick="toggleSightPreview()">
+                <img src="images/preview-btn.svg" alt="preview button" style="height: 50%;">
+            </div>
+            
+            <div class="preview-controls">
+                <label>
+                    <input type="checkbox" id="previewDrawCentralLineVert" checked onchange="drawPreview()"> 
+                    <span id="drawVertLinePreviewText">Верт. линия</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="previewDrawCentralLineHorz" checked onchange="drawPreview()"> 
+                    <span id="drawHorzLinePreviewText">Гориз. линия</span>
+                </label>
+                <button onclick="takePreviewScreenshot()" class="preview-screenshot-btn">
+                    <span id="screenshotPreviewText">Сделать скриншот</span>
+                </button>
             </div>
         </div>
     </div>
