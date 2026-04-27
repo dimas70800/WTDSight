@@ -485,6 +485,10 @@
                         id="exp_fontSizeMult" value="1" step="0.1" style="width: 70px;"></div>
                 <div class="export-row"><label id="exportLineSizeMult">Толщина линий</label><input type="number"
                         id="exp_lineSizeMult" value="1" step="0.1" style="width: 70px;"></div>
+                <div class="export-row">
+                    <label id="exportMaxDist">Макс. дистанция</label>
+                    <input type="number" id="exp_maxDist" value="6000" step="200" min="200" style="width: 70px;">
+                </div>
                 <div class="export-row"><label id="exportDrawCentralLineVert">Вертикальная линия</label><input
                         type="checkbox" id="exp_drawCentralLineVert" checked></div>
                 <div class="export-row"><label id="exportDrawCentralLineHorz">Горизонтальная линия</label><input
@@ -544,22 +548,43 @@
     <div id="sightPreviewOverlay" class="preview-overlay" style="display: none;">
         <div class="preview-container">
             <img src="images/preview.png" id="previewBackground" alt="Preview Background">
-            
+
             <canvas id="previewCanvas"></canvas>
-            
+
             <div class="toggle-btn preview-close-btn" onclick="toggleSightPreview()">
                 <img src="images/preview-btn.svg" alt="preview button" style="height: 50%;">
             </div>
-            
+
             <div class="preview-controls">
                 <label>
-                    <input type="checkbox" id="previewDrawCentralLineVert" checked onchange="drawPreview()"> 
+                    <input type="checkbox" id="previewDrawCentralLineVert" checked onchange="drawPreview()">
                     <span id="drawVertLinePreviewText">Верт. линия</span>
                 </label>
                 <label>
-                    <input type="checkbox" id="previewDrawCentralLineHorz" checked onchange="drawPreview()"> 
+                    <input type="checkbox" id="previewDrawCentralLineHorz" checked onchange="drawPreview()">
                     <span id="drawHorzLinePreviewText">Гориз. линия</span>
                 </label>
+                <label>
+                    <input type="checkbox" id="previewThermalToggle" onchange="toggleThermalMode()">
+                    <span id="thermalPreviewText">Тепловизор</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="previewDrawTicks" checked onchange="drawPreview()">
+                    <span id="dashPreviewText">Деления</span>
+                </label>
+                <label>
+                    <span id="spacingPreviewText">Расстояние:</span>
+                    <input type="number" id="previewTickSpacing" min="0.1" value="0.4" step="0.1"
+                        style="width: 60px; background: var(--input-bg); color: var(--text-white); border: 1px solid var(--border-col); border-radius: 4px; padding: 2px 5px;"
+                        oninput="drawPreview()">
+                </label>
+                <label>
+                    <span id="maxDistPreviewText">Макс. дистанция:</span>
+                    <input type="number" id="previewMaxDist" value="6000" min="200" max="6000" step="200"
+                        style="width: 60px; background: var(--input-bg); color: var(--text-white); border: 1px solid var(--border-col); border-radius: 4px; padding: 2px 5px;"
+                        oninput="this.value = Math.round(this.value / 200) * 200; drawPreview();">
+                </label>
+
                 <button onclick="takePreviewScreenshot()" class="preview-screenshot-btn">
                     <span id="screenshotPreviewText">Сделать скриншот</span>
                 </button>

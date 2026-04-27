@@ -157,12 +157,11 @@ window.addEventListener('load', () => {
     applyAllSettings(settings);
 });
 
-// Открытие/закрытие окна предпросмотра
 function toggleSightPreview() {
     const overlay = document.getElementById('sightPreviewOverlay');
     if (overlay.style.display === 'none') {
         overlay.style.display = 'flex';
-        drawPreview(); // Рисуем актуальный вид при открытии
+        drawPreview();
     } else {
         overlay.style.display = 'none';
     }
@@ -172,31 +171,36 @@ function drawPreview() {
     const pCanvas = document.getElementById('previewCanvas');
     if (!pCanvas) return;
     const pCtx = pCanvas.getContext('2d');
-    
+
     pCanvas.width = 3840;
     pCanvas.height = 2160;
-    
+
     pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
-    
+
+    const maxDist = parseInt(el('previewMaxDist').value) || 6000;
+
     const drawVert = document.getElementById('previewDrawCentralLineVert').checked;
     const drawHorz = document.getElementById('previewDrawCentralLineHorz').checked;
-    
-    const previewScreenshotZoom = 1.08 ;
+
+    const drawTicks = document.getElementById('previewDrawTicks')?.checked;
+    const tickSpacingRaw = parseFloat(document.getElementById('previewTickSpacing')?.value) || 4;
+
+    const previewScreenshotZoom = 1.08;
 
     const baseScale = pCanvas.height * (2000 / 2160) * previewScreenshotZoom;
     const cx = pCanvas.width / 2;
     const cy = pCanvas.height / 2;
-    
+
     function sightToPreview(pos) {
         return {
             x: cx + pos.x * baseScale,
             y: cy + pos.y * baseScale
         };
     }
-    
+
     pCtx.lineWidth = (pCanvas.height / 2160) * 2;
-    pCtx.strokeStyle = "rgba(0, 0, 0, 1)";
-    
+    pCtx.strokeStyle = "rgba(0, 0, 0, 0.8)";
+
     if (drawVert || drawHorz) {
         pCtx.beginPath();
         if (drawVert) {
@@ -209,16 +213,47 @@ function drawPreview() {
         }
         pCtx.stroke();
     }
-    
+
+    if (drawTicks) {
+        pCtx.lineWidth = (pCanvas.height / 2160) * 2;
+
+        const val_cdhsa1 = parseFloat(document.getElementById('exp_cdhsa1')?.value) * 2 || 0.005;
+        const val_cdhsa2 = parseFloat(document.getElementById('exp_cdhsa2')?.value) * 2 || 0.003;
+
+        const baseSpacing = tickSpacingRaw * baseScale * 0.01;
+
+        const stretching = 1;
+
+        let currentY = cy;
+
+        const maxDist = parseInt(document.getElementById('previewMaxDist')?.value) || 6000;
+
+        for (let d = 200; d <= maxDist; d += 200) {
+            const multiplier = 1 + (d / 2000) * stretching;
+            currentY += baseSpacing * multiplier;
+
+            if (currentY > pCanvas.height) break;
+
+            const isMajor = (d % 400 === 0);
+            const lenCentral = isMajor ? val_cdhsa1 : val_cdhsa2;
+            const lenCentralPx = lenCentral * baseScale;
+
+            pCtx.beginPath();
+            pCtx.moveTo(cx - lenCentralPx / 2, currentY);
+            pCtx.lineTo(cx + lenCentralPx / 2, currentY);
+            pCtx.stroke();
+        }
+    }
+
     pCtx.fillStyle = "rgba(0, 0, 0, 1)";
     pCtx.strokeStyle = "rgba(0, 0, 0, 1)";
     pCtx.lineJoin = "round";
-    
+
     for (const [id, object] of objects) {
         if (object.type === "line") {
             const from = sightToPreview(object.start);
             const to = sightToPreview(object.end);
-            
+
             pCtx.beginPath();
             pCtx.moveTo(from.x, from.y);
             pCtx.lineTo(to.x, to.y);
@@ -228,7 +263,7 @@ function drawPreview() {
             const p2 = sightToPreview(object.pos2);
             const p3 = sightToPreview(object.pos3);
             const p4 = sightToPreview(object.pos4);
-            
+
             pCtx.beginPath();
             pCtx.moveTo(p1.x, p1.y);
             pCtx.lineTo(p2.x, p2.y);
@@ -250,27 +285,27 @@ window.addEventListener('resize', () => {
 function takePreviewScreenshot() {
     const bgImg = document.getElementById('previewBackground');
     const pCanvas = document.getElementById('previewCanvas');
-    
+
     if (!bgImg || !pCanvas) return;
 
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = pCanvas.width;   // 3840
     tempCanvas.height = pCanvas.height; // 2160
-    
+
     const tCtx = tempCanvas.getContext('2d');
 
     tCtx.drawImage(bgImg, 0, 0, tempCanvas.width, tempCanvas.height);
-    
+
     tCtx.drawImage(pCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
 
     tCtx.font = "20px Arial";
     tCtx.fillStyle = "rgba(60, 60, 60, 0.2)";
     tCtx.textAlign = "right";
     tCtx.textBaseline = "bottom";
-    
+
     const textPadding = 30;
     const watermarkText = "Made with WTDSight by dimas7080";
-    
+
     tCtx.fillText(watermarkText, tempCanvas.width - textPadding, tempCanvas.height - textPadding);
 
     try {
@@ -284,5 +319,16 @@ function takePreviewScreenshot() {
     } catch (e) {
         console.error("Ошибка при сохранении скриншота:", e);
         alert("Не удалось сохранить скриншот.");
+    }
+}
+
+function toggleThermalMode() {
+    const isThermal = document.getElementById('previewThermalToggle').checked;
+    const bgImg = document.getElementById('previewBackground');
+
+    if (isThermal) {
+        bgImg.src = 'images/previewThermal.png';
+    } else {
+        bgImg.src = 'images/preview.png';
     }
 }

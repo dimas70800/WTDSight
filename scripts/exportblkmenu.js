@@ -1,16 +1,16 @@
 function updateColorValues(id, hex) {
-    const r = parseInt(hex.substr(1,2), 16);
-    const g = parseInt(hex.substr(3,2), 16);
-    const b = parseInt(hex.substr(5,2), 16);
+    const r = parseInt(hex.substr(1, 2), 16);
+    const g = parseInt(hex.substr(3, 2), 16);
+    const b = parseInt(hex.substr(5, 2), 16);
     const a = document.getElementById(`exp_${id}_a`).value;
     document.getElementById(`exp_${id}_values`).textContent = `${r},${g},${b},${a}`;
 }
 
 function hexToRgb(hex) {
     return {
-        r: parseInt(hex.substr(1,2), 16),
-        g: parseInt(hex.substr(3,2), 16),
-        b: parseInt(hex.substr(5,2), 16)
+        r: parseInt(hex.substr(1, 2), 16),
+        g: parseInt(hex.substr(3, 2), 16),
+        b: parseInt(hex.substr(5, 2), 16)
     };
 }
 
@@ -18,9 +18,9 @@ function loadExportSettings() {
     try {
         const saved = localStorage.getItem('exportSettings');
         if (!saved) return;
-        
+
         const s = JSON.parse(saved);
-        
+
         // Цвета
         if (s.color1) {
             document.getElementById('exp-color1').value = s.color1.hex;
@@ -42,38 +42,38 @@ function loadExportSettings() {
             document.getElementById('exp_color4_a').value = s.color4.a;
             updateColorValues('color4', s.color4.hex);
         }
-        
+
         // Числовые параметры
         if (s.rangefinderTextScale) document.getElementById('exp_rangefinderTextScale').value = s.rangefinderTextScale;
         if (s.rangefinderVerticalOffset) document.getElementById('exp_rangefinderVerticalOffset').value = s.rangefinderVerticalOffset;
         if (s.rangefinderHorizontalOffset) document.getElementById('exp_rangefinderHorizontalOffset').value = s.rangefinderHorizontalOffset;
         if (s.fontSizeMult) document.getElementById('exp_fontSizeMult').value = s.fontSizeMult;
         if (s.lineSizeMult) document.getElementById('exp_lineSizeMult').value = s.lineSizeMult;
-        
+
         // Чекбоксы
         if (s.drawCentralLineVert !== undefined) document.getElementById('exp_drawCentralLineVert').checked = s.drawCentralLineVert;
         if (s.drawCentralLineHorz !== undefined) document.getElementById('exp_drawCentralLineHorz').checked = s.drawCentralLineHorz;
-        
+
         // Множители рисок
         if (s.cdhsa1) document.getElementById('exp_cdhsa1').value = s.cdhsa1;
         if (s.cdhsa2) document.getElementById('exp_cdhsa2').value = s.cdhsa2;
         if (s.cdhsm1) document.getElementById('exp_cdhsm1').value = s.cdhsm1;
         if (s.cdhsm2) document.getElementById('exp_cdhsm2').value = s.cdhsm2;
-        
+
         // Смещение поправки
         if (s.dcp1) document.getElementById('exp_dcp1').value = s.dcp1;
         if (s.dcp2) document.getElementById('exp_dcp2').value = s.dcp2;
-        
+
         // Дополнительные параметры
         if (s.drawDistanceCorrection !== undefined) document.getElementById('exp_drawDistanceCorrection').checked = s.drawDistanceCorrection;
         if (s.useSmoothEdge !== undefined) document.getElementById('exp_useSmoothEdge').checked = s.useSmoothEdge;
         if (s.rangefinderUseThousandth !== undefined) document.getElementById('exp_rangefinderUseThousandth').checked = s.rangefinderUseThousandth;
-        
+
         // Обнаружение союзника
         if (s.detectAllyTextScale) document.getElementById('exp_detectAllyTextScale').value = s.detectAllyTextScale;
         if (s.detectAllyOffset_1) document.getElementById('exp_detectAllyOffset_1').value = s.detectAllyOffset_1;
         if (s.detectAllyOffset_2) document.getElementById('exp_detectAllyOffset_2').value = s.detectAllyOffset_2;
-        
+
     } catch (e) {
         console.log('Ошибка загрузки настроек', e);
     }
@@ -98,39 +98,40 @@ function saveExportSettings() {
             hex: document.getElementById('exp_color4').value,
             a: document.getElementById('exp_color4_a').value
         },
-        
+
         // Числовые параметры
         rangefinderTextScale: document.getElementById('exp_rangefinderTextScale').value,
         rangefinderVerticalOffset: document.getElementById('exp_rangefinderVerticalOffset').value,
         rangefinderHorizontalOffset: document.getElementById('exp_rangefinderHorizontalOffset').value,
         fontSizeMult: document.getElementById('exp_fontSizeMult').value,
         lineSizeMult: document.getElementById('exp_lineSizeMult').value,
-        
+        maxDist: document.getElementById('exp_maxDist').value,
+
         // Чекбоксы
         drawCentralLineVert: document.getElementById('exp_drawCentralLineVert').checked,
         drawCentralLineHorz: document.getElementById('exp_drawCentralLineHorz').checked,
-        
+
         // Множители рисок
         cdhsa1: document.getElementById('exp_cdhsa1').value,
         cdhsa2: document.getElementById('exp_cdhsa2').value,
         cdhsm1: document.getElementById('exp_cdhsm1').value,
         cdhsm2: document.getElementById('exp_cdhsm2').value,
-        
+
         // Смещение поправки
         dcp1: document.getElementById('exp_dcp1').value,
         dcp2: document.getElementById('exp_dcp2').value,
-        
+
         // Дополнительные параметры
         drawDistanceCorrection: document.getElementById('exp_drawDistanceCorrection').checked,
         useSmoothEdge: document.getElementById('exp_useSmoothEdge').checked,
         rangefinderUseThousandth: document.getElementById('exp_rangefinderUseThousandth').checked,
-        
+
         // Обнаружение союзника
         detectAllyTextScale: document.getElementById('exp_detectAllyTextScale').value,
         detectAllyOffset_1: document.getElementById('exp_detectAllyOffset_1').value,
         detectAllyOffset_2: document.getElementById('exp_detectAllyOffset_2').value
     };
-    
+
     localStorage.setItem('exportSettings', JSON.stringify(settings));
     return settings;
 }
@@ -140,7 +141,7 @@ function generateBlkContent(settings) {
     const color2 = hexToRgb(settings.color2.hex);
     const color3 = hexToRgb(settings.color3.hex);
     const color4 = hexToRgb(settings.color4.hex);
-    
+
     let blk = '';
     blk += `rangefinderProgressBarColor1:c = ${color1.r}, ${color1.g}, ${color1.b}, ${settings.color1.a}\n`;
     blk += `rangefinderProgressBarColor2:c = ${color2.r}, ${color2.g}, ${color2.b}, ${settings.color2.a}\n`;
@@ -161,9 +162,11 @@ function generateBlkContent(settings) {
     blk += `rangefinderUseThousandth:b = ${settings.rangefinderUseThousandth ? 'yes' : 'no'}\n`;
     blk += `detectAllyTextScale:r = ${settings.detectAllyTextScale}\n`;
     blk += `detectAllyOffset:p2 = ${settings.detectAllyOffset_1}, ${settings.detectAllyOffset_2}\n\n`;
-    
+
+    const maxDistLimit = parseInt(settings.maxDist) || 6000;
+
     blk += `crosshair_distances{\n`;
-    for (let d = 200; d <= 6000; d += 200) {
+    for (let d = 200; d <= maxDistLimit; d += 200) {
         if (d % 400 === 0) {
             const val = d / 100;
             blk += `  distance:p3=${d}, ${val}, 0\n`;
@@ -172,31 +175,31 @@ function generateBlkContent(settings) {
         }
     }
     blk += `}\n\n`;
-    
+
     blk += `crosshair_hor_ranges{\n`;
     blk += `}\n\n`;
-    
+
     blk += `matchExpClass {\n`;
     blk += `  exp_tank:b = yes\n`;
     blk += `  exp_heavy_tank:b = yes\n`;
     blk += `  exp_tank_destroyer:b = yes\n`;
     blk += `  exp_SPAA:b = yes\n`;
     blk += `}\n\n`;
-    
+
     return blk;
 }
 
 function addDrawingObjectsToBlk(blk) {
     if (typeof objects === 'undefined' || !objects) return blk;
-    
+
     let areLinesPresent = false;
     let areQuadsPresent = false;
-    
-    objects.forEach((obj) => { 
+
+    objects.forEach((obj) => {
         if (obj && obj.type === "line") areLinesPresent = true;
         else if (obj && obj.type === "quad") areQuadsPresent = true;
     });
-    
+
     if (areLinesPresent) {
         blk += `drawLines{\n`;
         objects.forEach((obj) => {
@@ -205,7 +208,7 @@ function addDrawingObjectsToBlk(blk) {
         });
         blk += `}\n\n`;
     }
-    
+
     if (areQuadsPresent) {
         blk += `drawQuads{\n`;
         objects.forEach((obj) => {
@@ -216,7 +219,7 @@ function addDrawingObjectsToBlk(blk) {
     }
 
     blk += '\n//Made in WTDSight by dimas7080';
-    
+
     return blk;
 }
 
@@ -226,15 +229,15 @@ function getFileName() {
         if (fileNameInput && fileNameInput.value) {
             return fileNameInput.value;
         }
-    } catch (e) {}
+    } catch (e) { }
     return 'sight';
 }
 
 function saveBlkFile(content, fileName) {
     try {
-        const blob = new Blob([content], {type: "text/plain"});
+        const blob = new Blob([content], { type: "text/plain" });
         const url = window.URL.createObjectURL(blob);
-        
+
         let saver = document.getElementById('saver');
         if (!saver) {
             saver = document.createElement('a');
@@ -242,15 +245,15 @@ function saveBlkFile(content, fileName) {
             saver.style.display = 'none';
             document.body.appendChild(saver);
         }
-        
+
         saver.href = url;
         saver.download = fileName + '.blk';
         saver.click();
-        
+
         setTimeout(() => {
             window.URL.revokeObjectURL(url);
         }, 100);
-        
+
         return true;
     } catch (error) {
         console.error('Ошибка при создании файла:', error);
@@ -284,7 +287,7 @@ function onGenerateBlkClick() {
         let blk = generateBlkContent(settings);
         blk = addDrawingObjectsToBlk(blk);
         const fileName = getFileName();
-        
+
         if (saveBlkFile(blk, fileName)) {
             closeModal();
         }
@@ -298,24 +301,24 @@ function initExportModal() {
     if (typeof objects === 'undefined') {
         window.objects = new Map();
     }
-    
+
     const modal = document.getElementById('exportModal');
     const exportBtn = document.getElementById('exportButtonBlk');
     const closeBtn = document.getElementById('closeExportBtn');
     const cancelBtn = document.getElementById('cancelExportBtn');
     const generateBtn = document.getElementById('generateBlkBtn');
-    
+
     if (!modal || !exportBtn || !closeBtn || !cancelBtn || !generateBtn) {
         console.error('Не найдены элементы модального окна!');
         return;
     }
-    
+
     exportBtn.onclick = openModal;
     closeBtn.onclick = closeModal;
     cancelBtn.onclick = closeModal;
     modal.onclick = onModalClick;
     generateBtn.onclick = onGenerateBlkClick;
-    
+
     loadExportSettings();
 }
 

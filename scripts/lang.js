@@ -72,6 +72,7 @@ const ru =
     exportRangefinderHorizontalOffset: "Смещение дальномера по горизонтали",
     exportFontSizeMult: "Масштаб текста и цифр",
     exportLineSizeMult: "Толщина линий",
+    exportMaxDist: "Максимальная дистанция",
     exportDrawCentralLineVert: "Вертикальная линия",
     exportDrawCentralLineHorz: "Горизонтальная линия",
     exportCdhsa1: "Длина делений на центральной линии",
@@ -170,6 +171,10 @@ const ru =
 
     drawVertLinePreviewText: "Верт. линия",
     drawHorzLinePreviewText: "Гориз. линия",
+    thermalPreviewText: "Тепловизор",
+    dashPreviewText: "Деления",
+    spacingPreviewText: "Расстояние",
+    maxDistPreviewText: "Макс. дистанция",
     screenshotPreviewText: "Сделать скриншот"
 
 };
@@ -248,6 +253,7 @@ const en =
     exportRangefinderHorizontalOffset: "Rangefinder horizontal offset",
     exportFontSizeMult: "Text and numbers scale",
     exportLineSizeMult: "Line thickness",
+    exportMaxDist: "Max distance",
     exportDrawCentralLineVert: "Vertical line",
     exportDrawCentralLineHorz: "Horizontal line",
     exportCdhsa1: "Center line tick length",
@@ -347,6 +353,10 @@ const en =
 
     drawVertLinePreviewText: "Vert. line",
     drawHorzLinePreviewText: "Horz. line",
+    thermalPreviewText: "Thermal",
+    dashPreviewText: "Dashes",
+    spacingPreviewText: "Spacing",
+    maxDistPreviewText: "Max distance",
     screenshotPreviewText: "Take screenshot"
 };
 
@@ -405,6 +415,7 @@ const langDependent =
         "exportRangefinderHorizontalOffset",
         "exportFontSizeMult",
         "exportLineSizeMult",
+        "exportMaxDist",
         "exportDrawCentralLineVert",
         "exportDrawCentralLineHorz",
         "exportCdhsa1",
@@ -491,6 +502,10 @@ const langDependent =
 
         "drawVertLinePreviewText",
         "drawHorzLinePreviewText",
+        "thermalPreviewText",
+        "dashPreviewText",
+        "spacingPreviewText",
+        "maxDistPreviewText",
         "screenshotPreviewText"
     ];
 
