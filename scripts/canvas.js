@@ -46,10 +46,10 @@ let mousePosWindow = { x: 0, y: 0 }
 let lastMousePosCanvas = { x: 0, y: 0 };
 
 let ctxBgColor = "#ffffff";
+let drawGridEnabled = true;
 
 function setOutlineCheckBox(val) {
     el("outlineCheckBox").checked = val;
-    localStorage.setItem("outlineCheckBox", val.toString());
     if (typeof saveAllSettings === 'function') saveAllSettings();
 }
 
@@ -61,7 +61,12 @@ if (colorPicker) {
 
 function setBgColorCanvas(clr) {
     ctxBgColor = clr;
-    localStorage.setItem("canvasBgColor", ctxBgColor);
+    if (typeof saveAllSettings === 'function') saveAllSettings();
+}
+
+function toggleDrawGrid(show) {
+    drawGridEnabled = show;
+    el("drawGridCheckBox").checked = show;
     if (typeof saveAllSettings === 'function') saveAllSettings();
 }
 
@@ -71,7 +76,9 @@ function render() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for (let i = 0; i < 3; i++) drawReference(i);
-    drawGrid();
+    if (drawGridEnabled) {
+        drawGrid();
+    }
     drawCrosshair();
     drawStuff();
     drawArrows();

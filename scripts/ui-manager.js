@@ -16,7 +16,8 @@ function loadSettings() {
         theme: 'dark',
         hints: true,
         outline: true,
-        canvasBgColor: '#c7c7c7'
+        canvasBgColor: '#c7c7c7',
+        drawGrid: true
     };
 }
 
@@ -28,18 +29,20 @@ function saveAllSettings() {
     saveTimeout = setTimeout(() => {
         const hintsEl = document.getElementById('hintsCheckBox');
         const outlineEl = document.getElementById('outlineCheckBox');
+        const drawGridEl = document.getElementById('drawGridCheckBox');
+        const canvasBgColorEl = document.getElementById('canvasBgColor');
 
-        if (!hintsEl || !outlineEl) {
-            return;
-        }
+        if (!hintsEl || !outlineEl || !drawGridEl || !canvasBgColorEl) return;
 
         const settings = {
             language: (typeof lang !== 'undefined' && lang === en) ? 'en' : 'ru',
             theme: document.body.getAttribute('data-theme') || 'dark',
             hints: hintsEl.checked,
             outline: outlineEl.checked,
-            canvasBgColor: localStorage.getItem('canvasBgColor') || '#c7c7c7'
+            canvasBgColor: canvasBgColorEl.value,
+            drawGrid: drawGridEl.checked
         };
+
         localStorage.setItem('wtdsight-settings', JSON.stringify(settings));
     }, 100);
 }
@@ -55,25 +58,23 @@ function applyAllSettings(settings) {
         document.body.removeAttribute('data-theme');
     }
 
-    const hintsEl = document.getElementById('hints');
-    const hintsCheckBox = document.getElementById('hintsCheckBox');
-    if (hintsEl) {
-        hintsEl.style.display = settings.hints ? 'block' : 'none';
-    }
-    if (hintsCheckBox) {
-        hintsCheckBox.checked = settings.hints;
+    if (typeof toggleHints === 'function') {
+        toggleHints(settings.hints !== undefined ? settings.hints : true);
     }
 
-    const outlineCheckBox = document.getElementById('outlineCheckBox');
-    if (outlineCheckBox && typeof settings.outline !== 'undefined') {
-        outlineCheckBox.checked = settings.outline;
-        localStorage.setItem('outlineCheckBox', settings.outline.toString());
+    // 4. Обводка
+    if (typeof setOutlineCheckBox === 'function') {
+        setOutlineCheckBox(settings.outline !== undefined ? settings.outline : true);
     }
 
-    if (settings.canvasBgColor && typeof setBgColorCanvas === 'function') {
-        setBgColorCanvas(settings.canvasBgColor);
-        const colorPicker = document.getElementById('canvasBgColor');
-        if (colorPicker) colorPicker.value = settings.canvasBgColor;
+    // 5. Цвет фона
+    if (typeof setBgColorCanvas === 'function') {
+        setBgColorCanvas(settings.canvasBgColor || '#c7c7c7');
+    }
+
+    // 6. Сетка (Исправлено имя функции на toggleDrawGrid)
+    if (typeof toggleDrawGrid === 'function') {
+        toggleDrawGrid(settings.drawGrid !== undefined ? settings.drawGrid : true);
     }
 }
 
@@ -126,8 +127,13 @@ function toggleTheme() {
 
 function toggleHints(show) {
     const hintsEl = document.getElementById('hints');
+    const hintsCheckBox = document.getElementById('hintsCheckBox');
+    
     if (hintsEl) {
         hintsEl.style.display = show ? 'block' : 'none';
+    }
+    if (hintsCheckBox) {
+        hintsCheckBox.checked = show;
     }
     saveAllSettings();
 }

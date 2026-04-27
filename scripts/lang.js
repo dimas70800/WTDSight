@@ -165,6 +165,7 @@ const ru =
     changeThemeLabel: "Сменить тему",
     outlineCheckBoxTitleText: "Отображать обводку",
     hintsCheckBoxTitleText: "Отображать подсказки",
+    drawGridCheckBoxTitleText: "Отображать сетку прицела",
 
     loaded: "Загружено",
     objectsFromBLK: "объектов из BLK",
@@ -347,6 +348,7 @@ const en =
     changeThemeLabel: "Change theme",
     outlineCheckBoxTitleText: "Show outline",
     hintsCheckBoxTitleText: "Show hints",
+    drawGridCheckBoxTitleText: "Show sight grid",
 
     loaded: "Loaded",
     objectsFromBLK: "objects from BLK",
@@ -496,7 +498,7 @@ const langDependent =
         "changeThemeLabel",
         "outlineCheckBoxTitleText",
         "hintsCheckBoxTitleText",
-
+        "drawGridCheckBoxTitleText",
         "loaded",
         "objectsFromBLK",
 
