@@ -15,7 +15,7 @@ function loadSettings() {
         language: 'ru',
         theme: 'dark',
         hints: true,
-        outline: true,
+        outline: false,
         canvasBgColor: '#c7c7c7',
         drawGrid: true
     };
