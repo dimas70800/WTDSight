@@ -4,18 +4,15 @@ const ctx = canvas.getContext("2d");
 function resizeCanvas() {
     // Получаем коэффициент масштабирования пикселей (зум браузера или экрана)
     const dpr = window.devicePixelRatio || 1;
-    
-    // Физический размер холста (здесь пиксели умножаются, возвращая кристальную четкость)
+
+    // Физический размер холста
     canvas.width = window.innerWidth * dpr;
     canvas.height = window.innerHeight * dpr;
-    
-    // CSS-размер холста (чтобы он не вылезал за пределы экрана и скролл-баров)
+
+    // CSS-размер холста
     canvas.style.width = window.innerWidth + 'px';
     canvas.style.height = window.innerHeight + 'px';
 }
-// Слушатель уже есть, его не трогаем
-// window.addEventListener("resize", resizeCanvas);
-// resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 
 resizeCanvas();
@@ -458,6 +455,33 @@ function drawGhost() {
                 drawCircle(mousePosCanvas.x, mousePosCanvas.y, 20);
             }
             break;
+        case "curve":
+            if (isDrawingCurve && curvePoints.length > 0) {
+                ctx.beginPath();
+                const startCanvas = v2disposSight2v2canvas(curvePoints[0]);
+                ctx.moveTo(startCanvas.x, startCanvas.y);
+
+                let limit = snapping ? curvePoints.length - 1 : curvePoints.length;
+
+                for (let i = 1; i < limit; i++) {
+                    const ptCanvas = v2disposSight2v2canvas(curvePoints[i]);
+                    ctx.lineTo(ptCanvas.x, ptCanvas.y);
+                }
+                if (snapping) {
+                    let snapP = snappingPos(mousePos);
+                    let targetPos = snapP != null ? snapP : mousePos;
+                    const targetCanvas = v2disposSight2v2canvas(targetPos);
+                    ctx.lineTo(targetCanvas.x, targetCanvas.y);
+                }
+
+                ctx.strokeStyle = el("outlineCheckBox").checked ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.5)";
+                ctx.lineWidth = getLineWidth(1);
+                ctx.stroke();
+            }
+            if (snapping) {
+                drawCircle(mousePosCanvas.x, mousePosCanvas.y, 20);
+            }
+            break;
     }
     if (tool === "select" && selectionRect && isSelecting) {
         const from = v2disposSight2v2canvas({ x: selectionRect.startX, y: selectionRect.startY });
@@ -609,20 +633,20 @@ function getArrowHitboxes() {
     const arrowSources = getArrowSources(object);
     const arrowHitboxes = [];
 
-     const hitboxSize = ('ontouchstart' in window) ? 30 : 10;
+    const hitboxSize = ('ontouchstart' in window) ? 30 : 10;
 
     for (const src of arrowSources) {
-        arrowHitboxes.push({ 
-            x1: src.x - hitboxSize, 
-            y1: src.y - hitboxSize, 
-            x2: src.x + 100 + hitboxSize, 
-            y2: src.y + hitboxSize 
+        arrowHitboxes.push({
+            x1: src.x - hitboxSize,
+            y1: src.y - hitboxSize,
+            x2: src.x + 100 + hitboxSize,
+            y2: src.y + hitboxSize
         });
-        arrowHitboxes.push({ 
-            x1: src.x - hitboxSize, 
-            y1: src.y - 100 - hitboxSize, 
-            x2: src.x + hitboxSize, 
-            y2: src.y + hitboxSize 
+        arrowHitboxes.push({
+            x1: src.x - hitboxSize,
+            y1: src.y - 100 - hitboxSize,
+            x2: src.x + hitboxSize,
+            y2: src.y + hitboxSize
         });
     }
 
@@ -912,6 +936,21 @@ canvas.onpointerdown = (e) => {
                     addHatchPoint(clickPos);
                 }
             }
+            else if (tool === "curve") {
+                const clickCanvas = getMousePos(e.offsetX, e.offsetY);
+                let clickPos = v2canvas2v2disposSight(clickCanvas);
+
+                isDrawingCurve = true;
+                curvePoints = [];
+
+                if (snapping) {
+                    const snapPos = snappingPos(clickPos);
+                    if (snapPos != null) {
+                        curvePoints.push(snapPos);
+                    }
+                }
+                curvePoints.push(clickPos);
+            }
             else {
                 if (!snapping)
                     startDrawing(mousePos);
@@ -942,15 +981,24 @@ canvas.onpointerdown = (e) => {
 canvas.onpointermove = (e) => {
     const currentMousePosCanvas = getMousePos(e.offsetX, e.offsetY);
 
-    const exactMovement = { 
-        x: currentMousePosCanvas.x - lastMousePosCanvas.x, 
-        y: currentMousePosCanvas.y - lastMousePosCanvas.y 
+    const exactMovement = {
+        x: currentMousePosCanvas.x - lastMousePosCanvas.x,
+        y: currentMousePosCanvas.y - lastMousePosCanvas.y
     };
 
     lastMousePosCanvas = currentMousePosCanvas;
 
     mousePos = v2canvas2v2disposSight(currentMousePosCanvas);
     mousePosWindow = currentMousePosCanvas;
+
+    if (tool === "curve" && isDrawingCurve) {
+        let mousePos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
+
+        let lastPoint = curvePoints[curvePoints.length - 1];
+        if (v2sqrmag(mousePos, lastPoint) > 0.0000001) {
+            curvePoints.push(mousePos);
+        }
+    }
 
     const sightMovement = v2pixel2v2sight(exactMovement);
     const pullMovement = v2pixel2v2sight(exactMovement);
@@ -964,7 +1012,6 @@ canvas.onpointermove = (e) => {
             arrowPulling = false;
         }
         else {
-            // Pull the pos
             const object = objects.get(selectedId);
 
             function pullPos(object, index) {
@@ -998,7 +1045,7 @@ canvas.onpointermove = (e) => {
             pullPos(object, posPulled);
         }
     }
-    
+
     if (tool === "select" && isSelecting && selectionRect) {
         const mouseWorld = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
         selectionRect.endX = mouseWorld.x;
@@ -1017,6 +1064,17 @@ canvas.onpointerup = (e) => {
         if (arrowPulling === true) {
             arrowPulling = false;
             showInfo(selectedId);
+        } else if (tool === "curve" && isDrawingCurve) {
+            isDrawingCurve = false;
+
+            if (snapping) {
+                const snapP = snappingPos(mousePos);
+                if (snapP != null) {
+                    curvePoints[curvePoints.length - 1] = snapP;
+                }
+            }
+
+            finishCurve();
         }
         else {
             if (!snapping)

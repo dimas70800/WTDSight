@@ -1,6 +1,6 @@
 
 let tool = "lines";
-const toolNames = ["lines", "quads", "hatch", "vectorize", "select"];
+const toolNames = ["lines", "quads", "hatch", "vectorize", "select", "curve"];
 
 
 function switchTool(targetId) {
@@ -45,7 +45,7 @@ function switchTool(targetId) {
     // Общие настройки
     const sharedTools = document.getElementById('shared-drawing-tools');
     if (sharedTools) {
-        sharedTools.style.display = ['lines', 'quads', 'select', 'hatch', 'file', 'vectorize', 'reference'].includes(targetId) ? 'flex' : 'none';
+        sharedTools.style.display = ['lines', 'quads', 'select', 'hatch', 'file', 'vectorize', 'reference', "curve"].includes(targetId) ? 'flex' : 'none';
         el("panel-with-refOpacityShared").style.display = (targetId === 'reference') ? 'none' : 'flex';
     }
 

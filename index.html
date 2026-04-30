@@ -47,6 +47,9 @@
                     <button id="toolsLinesButton" class="tab-button active" data-target="lines">
                         <img src="images/linesTool.svg" alt="Lines">
                     </button>
+                    <button id="toolsCurveButton" class="tab-button" data-target="curve">
+                        <img src="images/curveTool.svg" alt="Curve">
+                    </button>
                     <button id="toolsQuadsButton" class="tab-button" data-target="quads">
                         <img src="images/quadsTool.svg" alt="Quads">
                     </button>
@@ -169,6 +172,25 @@
                                 тяните чтобы создать линию
                             </p>
                             <span id="toolTitle" style="display:none;"></span>
+                        </div>
+
+                        <div id="panel-curve" class="panel-content">
+                            <h2 class="panel-title" id="curveTitleText">Кривая</h2>
+                            <p style="font-size: 13px; color: #aaa; margin-top:0;" id="curveDescription">Зажмите и
+                                рисуйте произвольную линию. При
+                                отпускании она конвертируется в обычные линии</p>
+
+                            <div class="block-with-elem" style="margin-top: 10px;">
+
+                                <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
+                                    <span id="curveSimplificationLabel">Упрощение линий</span>
+                                    <input type="range" id="curveSimplifyInput" min="1" max="50" value="10">
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 5px;">
+                                    <span id="curveSmoothingLabel">Сглаживание</span>
+                                    <input type="range" id="curveSmoothInput" min="1" max="15" value="5">
+                                </div>
+                            </div>
                         </div>
 
                         <div id="panel-quads" class="panel-content">
@@ -308,6 +330,7 @@
                                 тяните чтобы выделить зону
                                 для удаления</p>
                         </div>
+
 
                         <div id="shared-drawing-tools"
                             style="display: none; flex-direction: column; gap: 15px; margin-top: 20px; border-top: 1px solid var(--border-col); padding-top: 15px;">
@@ -608,6 +631,7 @@
     <script src="scripts/redo.js"></script>
     <script src="scripts/reference.js"></script>
     <script src="scripts/tools.js"></script>
+    <script src="scripts/curve.js"></script>
     <script src="scripts/canvas.js"></script>
     <script src="scripts/autosave.js"></script>
     <script src="scripts/exportblkmenu.js"></script>

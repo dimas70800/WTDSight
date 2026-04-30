@@ -176,7 +176,12 @@ const ru =
     dashPreviewText: "Деления",
     spacingPreviewText: "Расстояние",
     maxDistPreviewText: "Макс. дистанция",
-    screenshotPreviewText: "Сделать скриншот"
+    screenshotPreviewText: "Сделать скриншот",
+
+    curveTitleText: "Кривая",
+    curveDescription: "Зажмите и рисуйте произвольную линию. При отпускании она конвертируется в обычные линии",
+    curveSimplificationLabel: "Упрощение линий",
+    curveSmoothingLabel: "Сглаживание"
 
 };
 
@@ -359,7 +364,12 @@ const en =
     dashPreviewText: "Dashes",
     spacingPreviewText: "Spacing",
     maxDistPreviewText: "Max distance",
-    screenshotPreviewText: "Take screenshot"
+    screenshotPreviewText: "Take screenshot",
+
+    curveTitleText: "Curve",
+    curveDescription: "Click and drag to draw a freehand line. It will be converted into straight segments upon release.",
+    curveSimplificationLabel: "Line Simplification",
+    curveSmoothingLabel: "Smoothing"
 };
 
 const langDependent =
@@ -508,7 +518,12 @@ const langDependent =
         "dashPreviewText",
         "spacingPreviewText",
         "maxDistPreviewText",
-        "screenshotPreviewText"
+        "screenshotPreviewText",
+
+        "curveTitleText",
+        "curveDescription",
+        "curveSimplificationLabel",
+        "curveSmoothingLabel"
     ];
 
 function changeLang(to) {
