@@ -502,8 +502,8 @@ function snappingPos(mouse) {
     }
 
     return (closestPos != null ? {
-        x: Math.round(closestPos.x * 100000) / 100000,
-        y: Math.round(closestPos.y * 100000) / 100000
+        x: closestPos.x,
+        y: closestPos.y
     } : null);
 }
 
