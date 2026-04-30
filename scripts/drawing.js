@@ -42,7 +42,10 @@ function clearEverything() {
 function startDrawing(pos) {
     switch (tool) {
         case "lines":
-            startPos = pos;
+            startPos = startPos = {
+                x: Math.round(pos.x * 1000000) / 1000000,
+                y: Math.round(pos.y * 1000000) / 1000000
+            };
             break;
     }
 
@@ -51,6 +54,11 @@ function startDrawing(pos) {
 
 function endDrawing(pos) {
     if (tool === "lines" && startPos == null) return;
+
+    const roundedPos = {
+        x: Math.round(pos.x * 1000000) / 1000000,
+        y: Math.round(pos.y * 1000000) / 1000000
+    };
 
     const objIdStr = nextId().toString();
 
@@ -61,7 +69,7 @@ function endDrawing(pos) {
                 name: lang.line + " " + objIdStr,
                 type: "line",
                 start: startPos,
-                end: pos,
+                end: roundedPos,
                 selected: false
             };
 
@@ -72,7 +80,7 @@ function endDrawing(pos) {
 
         case "quads":
             if (quadPos.length < 3) {
-                quadPos.push(pos);
+                quadPos.push(roundedPos);
             }
             else {
                 // Check if convex
@@ -502,8 +510,8 @@ function snappingPos(mouse) {
     }
 
     return (closestPos != null ? {
-        x: closestPos.x,
-        y: closestPos.y
+        x: Math.round(closestPos.x * 1000000) / 1000000,
+        y: Math.round(closestPos.y * 1000000) / 1000000
     } : null);
 }
 

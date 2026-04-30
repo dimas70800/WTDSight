@@ -7,8 +7,8 @@ let hatchPhase = 0;
 
 function startHatchDrawing(pos) {
     hatchPoints = [{
-        x: Math.round(pos.x * 100000) / 100000,
-        y: Math.round(pos.y * 100000) / 100000
+        x: Math.round(pos.x * 1000000) / 1000000,
+        y: Math.round(pos.y * 1000000) / 1000000
     }];
     isDrawingHatch = true;
     previewHatchLines = [];
@@ -19,22 +19,21 @@ function startHatchDrawing(pos) {
 function addHatchPoint(pos) {
     if (!isDrawingHatch) return;
     const roundedPos = {
-        x: Math.round(pos.x * 100000) / 100000,
-        y: Math.round(pos.y * 100000) / 100000
+        x: Math.round(pos.x * 1000000) / 1000000,
+        y: Math.round(pos.y * 1000000) / 1000000
     };
     if (hatchPoints.length > 0) {
         const lastPoint = hatchPoints[hatchPoints.length - 1];
-        if (Math.abs(roundedPos.x - lastPoint.x) < 0.00001 && 
-            Math.abs(roundedPos.y - lastPoint.y) < 0.00001) {
+        if (Math.abs(roundedPos.x - lastPoint.x) < 0.000001 && 
+            Math.abs(roundedPos.y - lastPoint.y) < 0.000001) {
             return;
         }
     }
-    hatchPoints.push(pos);
+    hatchPoints.push(roundedPos);
     updateHatchPreview();
 }
 
 function updateHatchPreview() {
-    // Обновляем количество точек в левой панели (HTML)
     const countEl = document.getElementById('hatchPointsNum');
     if (countEl) countEl.innerText = hatchPoints.length;
 
@@ -129,8 +128,14 @@ function finalizeHatch() {
         const object = {
             name: lang.line + " " + objIdStr,
             type: "line",
-            start: { x: line.start.x, y: line.start.y },
-            end: { x: line.end.x, y: line.end.y },
+            start: { 
+                x: Math.round(line.start.x * 1000000) / 1000000,
+                y: Math.round(line.start.y * 1000000) / 1000000
+            },
+            end: { 
+                x: Math.round(line.end.x * 1000000) / 1000000,
+                y: Math.round(line.end.y * 1000000) / 1000000
+            },
             selected: false
         };
         objects.set(objIdStr, object);
@@ -155,7 +160,6 @@ function clearHatchState() {
     cancelHatch();
 }
 
-// Привязываем элементы из новой левой панели к логике
 document.addEventListener('DOMContentLoaded', () => {
     const angleInput = document.getElementById('hatchAngleInput');
     const densityInput = document.getElementById('hatchDensityInput');
