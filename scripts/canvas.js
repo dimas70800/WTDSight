@@ -147,6 +147,9 @@ function drawCrosshair() {
 function drawGrid() {
     ctx.lineWidth = getLineWidth(1);
 
+    const gridHalfWidth = 9 * gridSize;
+    const gridHalfHeight = 5 * gridSize;
+
     for (let z = 1; (0.5 * Math.pow(10, z - 1) < screenZoom) || (z === 1); z++) {
         const alpha = 0.25 * Math.pow(0.7, z - 1);
         const gridStep = gridSize * Math.pow(0.1, z - 1);
@@ -154,17 +157,22 @@ function drawGrid() {
         ctx.strokeStyle = "rgba(0, 0, 0, " + alpha.toString() + ")";
         ctx.beginPath();
 
-        for (let i = -0.5; i <= 0.5; i += gridStep) {
-            const from = v2disposSight2v2canvas({ x: -1, y: i });
-            const to = v2disposSight2v2canvas({ x: 1, y: i });
+        const stepsX = Math.round((gridHalfWidth * 2) / gridStep);
+        const stepsY = Math.round((gridHalfHeight * 2) / gridStep);
+
+        for (let i = 0; i <= stepsY; i++) {
+            const y = -gridHalfHeight + i * gridStep;
+            const from = v2disposSight2v2canvas({ x: -gridHalfWidth, y: y });
+            const to = v2disposSight2v2canvas({ x: gridHalfWidth, y: y });
 
             ctx.moveTo(from.x, from.y);
             ctx.lineTo(to.x, to.y);
         }
 
-        for (let j = -1; j <= 1; j += gridStep) {
-            const from = v2disposSight2v2canvas({ x: j, y: -0.5 });
-            const to = v2disposSight2v2canvas({ x: j, y: 0.5 });
+        for (let j = 0; j <= stepsX; j++) {
+            const x = -gridHalfWidth + j * gridStep;
+            const from = v2disposSight2v2canvas({ x: x, y: -gridHalfHeight });
+            const to = v2disposSight2v2canvas({ x: x, y: gridHalfHeight });
 
             ctx.moveTo(from.x, from.y);
             ctx.lineTo(to.x, to.y);
