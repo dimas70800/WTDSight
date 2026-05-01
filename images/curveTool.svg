@@ -1,5 +1,22 @@
-<svg width="800px" height="800px" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <path d="M 80 20 C 20 20, 80 80, 25 80" stroke="#777" stroke-width="5" stroke-linecap="round" fill="none"/>
-  <circle cx="80" cy="20" r="8" fill="#777"/>
-  <circle cx="20" cy="80" r="8" fill="#777"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="_Слой_1" data-name="Слой_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 800">
+  <!-- Generator: Adobe Illustrator 30.1.0, SVG Export Plug-In . SVG Version: 2.1.1 Build 136)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: none;
+        stroke: #777;
+        stroke-linecap: round;
+        stroke-miterlimit: 32;
+        stroke-width: 40px;
+      }
+
+      .st1 {
+        fill: #777;
+      }
+    </style>
+  </defs>
+  <path class="st0" d="M641.7,160.2c-44.55,44.55-49.11,43.65-70.7,63.8-60,56-130,0-171,67-39,59,60,132,0,203-31.52,37.3-111.11,1.85-164.11,68.85-20.86,26.37-37.33,39.28-75.89,77.15"/>
+  <circle class="st1" cx="640" cy="160" r="64"/>
+  <circle class="st1" cx="160" cy="640" r="64"/>
 </svg>
