@@ -24,7 +24,7 @@ function addHatchPoint(pos) {
     };
     if (hatchPoints.length > 0) {
         const lastPoint = hatchPoints[hatchPoints.length - 1];
-        if (Math.abs(roundedPos.x - lastPoint.x) < 0.000001 && 
+        if (Math.abs(roundedPos.x - lastPoint.x) < 0.000001 &&
             Math.abs(roundedPos.y - lastPoint.y) < 0.000001) {
             return;
         }
@@ -79,7 +79,7 @@ function generateHatchLines(points, angleDeg, spacing, phase) {
     for (let k = kMin; k <= kMax; k++) {
         const proj = base + phase + k * spacing;
         const intersections = [];
-        
+
         for (let i = 0; i < points.length; i++) {
             const p1 = points[i];
             const p2 = points[(i + 1) % points.length];
@@ -128,11 +128,11 @@ function finalizeHatch() {
         const object = {
             name: lang.line + " " + objIdStr,
             type: "line",
-            start: { 
+            start: {
                 x: Math.round(line.start.x * 1000000) / 1000000,
                 y: Math.round(line.start.y * 1000000) / 1000000
             },
-            end: { 
+            end: {
                 x: Math.round(line.end.x * 1000000) / 1000000,
                 y: Math.round(line.end.y * 1000000) / 1000000
             },
@@ -166,6 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const phaseInput = document.getElementById('hatchPhaseInput');
     const createBtn = document.getElementById('hatchCreateBtn');
     const cancelBtn = document.getElementById('hatchCancelBtn');
+    const value = Number((hatchDensity * 2.5).toFixed(6));
+    document.getElementById('middleLineForHatch').innerHTML = `50% = ${value} ↑`;
 
     if (angleInput) {
         angleInput.oninput = (e) => {
@@ -184,6 +186,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (newDensity > 0.5) newDensity = 0.5;
             hatchDensity = newDensity;
             densityInput.value = hatchDensity;
+            const value = Number((hatchDensity * 2.5).toFixed(6));
+            document.getElementById('middleLineForHatch').innerHTML = `50% = ${value} ↑`;
             updateHatchPreview();
         };
     }

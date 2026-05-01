@@ -43,7 +43,7 @@ const ru =
     quad: "Четырёхугольник",
 
     hintsText: "[ПКМ] - Двигать холст, [ЛКМ] - Рисовать, [СКМ] - Выбрать объект, [Ctrl] - Приклеить курсор к существующей вершине<br>" +
-        "[Колёсико] - Масштабирование, [Ctrl+Z] - Отмена, [Ctrl+Y] - Вернуть [Ctrl+A] - Сброс выбора объекта, [Delete] - Удалить выбранный объект",
+        "[Колёсико] - Масштабирование, [Ctrl+Z] - Отмена, [Ctrl+Y] - Вернуть, [Ctrl+A] - Сброс выбора объекта, [Delete] - Удалить выбранный объект, [Q/E] - Поворот холста",
 
     massLabel: "Преобразование рисунка",
     massXLabel: "Смещение X",
@@ -181,7 +181,9 @@ const ru =
     curveTitleText: "Кривая",
     curveDescription: "Зажмите и рисуйте произвольную линию. При отпускании она конвертируется в обычные линии",
     curveSimplificationLabel: "Упрощение линий",
-    curveSmoothingLabel: "Сглаживание"
+    curveSmoothingLabel: "Сглаживание",
+
+    visualRotationTitle: "Поворот холста"
 
 };
 
@@ -230,7 +232,7 @@ const en =
     quad: "Quad",
 
     hintsText: "[RMB] - Move canvas, [LMB] - Draw, [MMB] - Select object, [Ctrl] - Snap to vertices<br>" +
-        "[Mouse Wheel] - Zoom, [Ctrl+Z] - Undo, [Ctrl+Y] - Redo, [Ctrl+A] - Clear selection, [Delete] - Delete selected object",
+        "[Mouse Wheel] - Zoom, [Ctrl+Z] - Undo, [Ctrl+Y] - Redo, [Ctrl+A] - Clear selection, [Delete] - Delete selected object, [Q/E] - Rotate canvas",
 
     massLabel: "Drawing transform",
     massXLabel: "Shift X",
@@ -367,9 +369,11 @@ const en =
     screenshotPreviewText: "Take screenshot",
 
     curveTitleText: "Curve",
-    curveDescription: "Click and drag to draw a freehand line. It will be converted into straight segments upon release.",
+    curveDescription: "Click and drag to draw a freehand line. It will be converted into straight segments upon release",
     curveSimplificationLabel: "Line Simplification",
-    curveSmoothingLabel: "Smoothing"
+    curveSmoothingLabel: "Smoothing",
+
+    visualRotationTitle: "Rotate canvas"
 };
 
 const langDependent =
@@ -523,7 +527,9 @@ const langDependent =
         "curveTitleText",
         "curveDescription",
         "curveSimplificationLabel",
-        "curveSmoothingLabel"
+        "curveSmoothingLabel",
+
+        "visualRotationTitle"
     ];
 
 function changeLang(to) {

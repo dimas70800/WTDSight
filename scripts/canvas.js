@@ -18,7 +18,7 @@ window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
 // Positioning
-let screenPos = { x: 0, y: 0.1 }; // In sight coordinates
+let screenPos = { x: 0, y: 0 }; // In sight coordinates
 let screenZoom = 1 / 1.21; // Sight scale * zoom * 2000 = pixels
 // Zoom = 1 => 0.5 sight = 1000 pixels, zoom = 2 => 0.5 sight = 2000 pixels
 function getBaseScale() {
@@ -67,10 +67,35 @@ function toggleDrawGrid(show) {
     if (typeof saveAllSettings === 'function') saveAllSettings();
 }
 
-function render() {
+let globalVisualRotation = 0;
 
+function updateVisualRotation() {
+    const input = document.getElementById("visualRotationInput");
+    if (input) {
+        globalVisualRotation = parseFloat(input.value) || 0;
+    }
+}
+
+function changeVisualRotation(delta) {
+    const input = document.getElementById("visualRotationInput");
+    if (input) {
+        let current = parseFloat(input.value) || 0;
+        current += delta;
+        input.value = current;
+        updateVisualRotation();
+    }
+}
+
+function render() {
     ctx.fillStyle = ctxBgColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    if (globalVisualRotation !== 0) {
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(globalVisualRotation * Math.PI / 180);
+        ctx.translate(-canvas.width / 2, -canvas.height / 2);
+    }
 
     for (let i = 0; i < 3; i++) drawReference(i);
     if (drawGridEnabled) {
@@ -81,8 +106,10 @@ function render() {
     drawArrows();
     drawGhost();
 
+    ctx.restore();
     requestAnimationFrame(render);
 }
+
 render();
 
 function v2disposSight2v2sight(disposSight) {
@@ -122,25 +149,21 @@ function v2canvas2v2disposSight(canv) {
 }
 
 function drawCrosshair() {
-    const crossSightPos =
-    {
-        x: 0,
-        y: 0
-    };
-
+    const crossSightPos = { x: 0, y: 0 };
     const crossPixelPos = v2sight2v2pixel(v2disposSight2v2sight(crossSightPos));
     const crossCanvasPos = v2pixel2v2canvas(crossPixelPos);
 
     ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
     ctx.beginPath();
 
-    ctx.moveTo(0, crossCanvasPos.y);
-    ctx.lineTo(canvas.width, crossCanvasPos.y);
+    const infinity = 10000;
 
-    ctx.moveTo(crossCanvasPos.x, 0);
-    ctx.lineTo(crossCanvasPos.x, canvas.height);
+    ctx.moveTo(crossCanvasPos.x - infinity, crossCanvasPos.y);
+    ctx.lineTo(crossCanvasPos.x + infinity, crossCanvasPos.y);
 
-    ctx.closePath();
+    ctx.moveTo(crossCanvasPos.x, crossCanvasPos.y - infinity);
+    ctx.lineTo(crossCanvasPos.x, crossCanvasPos.y + infinity);
+
     ctx.stroke();
 }
 
@@ -287,7 +310,24 @@ function drawStuff() {
 }
 
 function getMousePos(offsetX, offsetY) {
-    return { x: offsetX * (canvas.width / canvas.clientWidth), y: offsetY * (canvas.height / canvas.clientHeight) };
+    let rawX = offsetX * (canvas.width / canvas.clientWidth);
+    let rawY = offsetY * (canvas.height / canvas.clientHeight);
+
+    if (globalVisualRotation !== 0) {
+        const rad = -globalVisualRotation * Math.PI / 180;
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        
+        const dx = rawX - cx;
+        const dy = rawY - cy;
+        
+        return { 
+            x: dx * Math.cos(rad) - dy * Math.sin(rad) + cx, 
+            y: dx * Math.sin(rad) + dy * Math.cos(rad) + cy 
+        };
+    }
+
+    return { x: rawX, y: rawY };
 }
 
 function drawGhost() {
