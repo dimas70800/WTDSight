@@ -3,7 +3,7 @@ let redoEvents = [];
 const capacity = 500;
 
 function pushEvent(type, data) {
-    
+
     redoEvents = [];
 
     let eventData;
@@ -112,6 +112,30 @@ function popEvent() {
             };
             break;
         }
+        case 'add_multiple': {
+            for (const item of data) {
+                if (objects.has(item.id)) {
+                    objects.delete(item.id);
+                    if (typeof selectedId !== 'undefined' && selectedId === item.id) {
+                        unselectAnyObjects();
+                        showInfo(null);
+                    }
+                }
+            }
+            redoEvent = { type: 'add_multiple', data: data };
+            break;
+        }
+
+        case 'delete_multiple': {
+            for (const item of data) {
+                if (!objects.has(item.id)) {
+                    item.object.selected = false;
+                    objects.set(item.id, item.object);
+                }
+            }
+            redoEvent = { type: 'delete_multiple', data: data };
+            break;
+        }
         default:
             break;
     }
@@ -120,7 +144,7 @@ function popEvent() {
         redoEvents.push(redoEvent);
         if (redoEvents.length > capacity) redoEvents.shift();
     }
-    
+
     refreshObjectsList();
 }
 

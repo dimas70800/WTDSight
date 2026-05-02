@@ -123,6 +123,8 @@ function finalizeHatch() {
         return;
     }
 
+    let newObjects = [];
+
     for (const line of finalLines) {
         const objIdStr = nextId().toString();
         const object = {
@@ -139,7 +141,12 @@ function finalizeHatch() {
             selected: false
         };
         objects.set(objIdStr, object);
-        pushEvent("add", { id: objIdStr, object: object });
+        
+        newObjects.push({ id: objIdStr, object: object });
+    }
+
+    if (newObjects.length > 0) {
+        pushEvent("add_multiple", newObjects);
     }
 
     refreshObjectsList(true);

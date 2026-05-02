@@ -435,10 +435,10 @@ let snapping = false;
 
 document.onkeydown = (e) => {
     if (e.code === "KeyQ") {
-        changeVisualRotation(-1);
+        changeVisualRotation(-15);
     }
     if (e.code === "KeyE") {
-        changeVisualRotation(1);
+        changeVisualRotation(15);
     }
     if (e.code === "KeyZ" && e.ctrlKey) {
         e.preventDefault();

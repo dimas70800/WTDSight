@@ -70,6 +70,8 @@ function finishCurve() {
     let smoothed = smoothCurve(curvePoints, smoothVal);
     let simplified = simplifyRDP(smoothed, epsilon);
 
+    let newObjects = []; 
+
     for (let i = 0; i < simplified.length - 1; i++) {
         const objIdStr = nextId().toString();
         const object = {
@@ -80,7 +82,11 @@ function finishCurve() {
             selected: false
         };
         objects.set(objIdStr, object);
-        pushEvent("add", { id: objIdStr, object: object });
+        newObjects.push({ id: objIdStr, object: object }); 
+    }
+    
+    if (newObjects.length > 0) {
+        pushEvent("add_multiple", newObjects);
     }
     
     refreshObjectsList(true);

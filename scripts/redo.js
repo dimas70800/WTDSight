@@ -85,6 +85,31 @@ function popRedo() {
             };
             break;
         }
+
+        case 'add_multiple': {
+            for (const item of data) {
+                if (!objects.has(item.id)) {
+                    item.object.selected = false;
+                    objects.set(item.id, item.object);
+                }
+            }
+            undoEvent = { type: 'add_multiple', data: data };
+            break;
+        }
+
+        case 'delete_multiple': {
+            for (const item of data) {
+                if (objects.has(item.id)) {
+                    objects.delete(item.id);
+                    if (typeof selectedId !== 'undefined' && selectedId === item.id) {
+                        unselectAnyObjects();
+                        showInfo(null);
+                    }
+                }
+            }
+            undoEvent = { type: 'delete_multiple', data: data };
+            break;
+        }
         default:
             break;
     }
@@ -93,6 +118,6 @@ function popRedo() {
         events.push(undoEvent);
         if (events.length > capacity) events.shift();
     }
-    
+
     refreshObjectsList();
 }

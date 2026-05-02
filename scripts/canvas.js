@@ -846,15 +846,18 @@ function deleteSelectedObjects() {
 
     if (idsToDelete.length === 0) return;
 
+    let deletedObjects = [];
+
     for (const id of idsToDelete) {
         const obj = objects.get(id);
         if (obj) {
-            pushEvent("delete", { id: id, object: obj });
+            deletedObjects.push({ id: id, object: obj });
+            objects.delete(id);
         }
     }
 
-    for (const id of idsToDelete) {
-        objects.delete(id);
+    if (deletedObjects.length > 0) {
+        pushEvent("delete_multiple", deletedObjects);
     }
 
     selectedObjectsSet.clear();
