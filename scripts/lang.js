@@ -43,7 +43,8 @@ const ru =
     quad: "Четырёхугольник",
 
     hintsText: "[ПКМ] - Двигать холст, [ЛКМ] - Рисовать, [СКМ] - Выбрать объект, [Ctrl] - Приклеить курсор к существующей вершине<br>" +
-        "[Колёсико] - Масштабирование, [Ctrl+Z] - Отмена, [Ctrl+Y] - Вернуть, [Ctrl+A] - Сброс выбора объекта, [Delete] - Удалить выбранный объект, [Q/E] - Поворот холста",
+        "[Колёсико] - Масштабирование, [Ctrl+Z] - Отмена, [Ctrl+Y] - Вернуть, [Ctrl+A] - Сброс выбора объекта, [Delete] - Удалить выбранный объект, [Q/E] - Поворот холста, " + 
+        "[Ctrl+S] - Сохранить",
 
     massLabel: "Преобразование рисунка",
     massXLabel: "Смещение X",
@@ -183,7 +184,8 @@ const ru =
     curveSimplificationLabel: "Упрощение линий",
     curveSmoothingLabel: "Сглаживание",
 
-    visualRotationTitle: "Поворот холста"
+    visualRotationTitle: "Поворот холста",
+    savedNotificationText: "Сохранено!"
 
 };
 
@@ -232,7 +234,8 @@ const en =
     quad: "Quad",
 
     hintsText: "[RMB] - Move canvas, [LMB] - Draw, [MMB] - Select object, [Ctrl] - Snap to vertices<br>" +
-        "[Mouse Wheel] - Zoom, [Ctrl+Z] - Undo, [Ctrl+Y] - Redo, [Ctrl+A] - Clear selection, [Delete] - Delete selected object, [Q/E] - Rotate canvas",
+        "[Mouse Wheel] - Zoom, [Ctrl+Z] - Undo, [Ctrl+Y] - Redo, [Ctrl+A] - Clear selection, [Delete] - Delete selected object, [Q/E] - Rotate canvas, " + 
+        "[Ctrl+S] - Save",
 
     massLabel: "Drawing transform",
     massXLabel: "Shift X",
@@ -373,7 +376,8 @@ const en =
     curveSimplificationLabel: "Line Simplification",
     curveSmoothingLabel: "Smoothing",
 
-    visualRotationTitle: "Rotate canvas"
+    visualRotationTitle: "Rotate canvas",
+    savedNotificationText: "Saved!"
 };
 
 const langDependent =
@@ -529,7 +533,8 @@ const langDependent =
         "curveSimplificationLabel",
         "curveSmoothingLabel",
 
-        "visualRotationTitle"
+        "visualRotationTitle",
+        "savedNotificationText"
     ];
 
 function changeLang(to) {

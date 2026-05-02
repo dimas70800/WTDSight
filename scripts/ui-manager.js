@@ -150,7 +150,7 @@ function showNotification(msg, isError = false) {
     const toast = document.getElementById(isError ? 'errorNotification' : 'toastNotification');
     toast.innerHTML = msg;
     toast.style.top = '20px';
-    setTimeout(() => { toast.style.top = '-60px'; }, 4000);
+    setTimeout(() => { toast.style.top = '-100px'; }, 4000);
 }
 
 window.addEventListener('error', function (e) { showNotification(`Ошибка: ${e.message}`, true); });

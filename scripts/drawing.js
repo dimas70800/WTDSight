@@ -434,6 +434,16 @@ function deleteObject(id) {
 let snapping = false;
 
 document.onkeydown = (e) => {
+    const activeElem = document.activeElement;
+    if (activeElem.tagName === 'INPUT' || activeElem.tagName === 'TEXTAREA') {
+        if (e.code === "Escape") activeElem.blur();
+        return;
+    }
+    if (e.ctrlKey && e.code === "KeyS") {
+        e.preventDefault();
+        forcedSave();
+        showNotification(lang.savedNotificationText)
+    }
     if (e.code === "KeyQ") {
         changeVisualRotation(-15);
     }
