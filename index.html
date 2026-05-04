@@ -222,7 +222,8 @@
                                         style="width: 100px;">
                                 </div>
                                 <div style="display: flex; justify-content: right; padding: 0 5%;">
-                                    <span id="middleLineForHatch" style="font-size: 13px; color: #aaa;">50% = 0.075 ↑</span>
+                                    <span id="middleLineForHatch" style="font-size: 13px; color: #aaa;">50% = 0.075
+                                        ↑</span>
                                 </div>
                                 <div
                                     style="font-size: 12px; color: #888; text-align: center; margin-top: 10px; border-top: 1px solid var(--border-col); padding-top: 8px;">
@@ -332,6 +333,18 @@
                             <p style="font-size: 13px; color: #aaa; margin-top:0;" id="selectDescription">Зажмите и
                                 тяните чтобы выделить зону
                                 для удаления</p>
+                            <div class="block-with-elem"
+                                style="display: flex; justify-content:space-evenly; flex-direction: row;">
+                                <button id="selModeAll" onclick="setSelectionMode('all')" style="width: 60px; height: 60px;">
+                                    <img src="images/allSelectIcon.svg" alt="Все" style="height: 100%; width: 100%;">
+                                </button>
+                                <button id="selModeLines" onclick="setSelectionMode('lines')" style="width: 60px; height: 60px;">
+                                    <img src="images/linesTool.svg" alt="Линии" style="height: 100%; width: 100%;">
+                                </button>
+                                <button id="selModeQuads" onclick="setSelectionMode('quads')" style="width: 60px; height: 60px;">
+                                    <img src="images/quadsTool.svg" alt="Квады" style="height: 100%; width: 100%;">
+                                </button>
+                            </div>
                         </div>
 
 
@@ -345,12 +358,10 @@
                             <div class="panel-with-elem">
                                 <span id="visualRotationTitle">Поворот холста</span>
                                 <div style="display: flex; gap: 5px;">
-                                    <button onclick="changeVisualRotation(-15)"
-                                        style="flex: 1; background: #444; color: white; border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center;">Q</button>
+                                    <button onclick="changeVisualRotation(-15)" style="flex: 1;">Q</button>
                                     <input type="number" id="visualRotationInput" step="1" value="0"
                                         oninput="updateVisualRotation()" style="flex: 3; text-align: center;">
-                                    <button onclick="changeVisualRotation(15)"
-                                        style="flex: 1; background: #444; color: white; border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center;">E</button>
+                                    <button onclick="changeVisualRotation(15)" style="flex: 1;">E</button>
                                 </div>
                             </div>
                             <div class="panel-with-elem">

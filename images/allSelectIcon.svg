@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 800">
+  <defs>
+    <style>
+      .st0 {
+        fill: none;
+        stroke-miterlimit: 32;
+      }
+
+      .st0, .st1 {
+        stroke: #777;
+        stroke-linecap: round;
+        stroke-width: 40px;
+      }
+
+      .st2 {
+        fill: #777;
+      }
+
+      .st1 {
+        stroke-linejoin: round;
+      }
+    </style>
+  </defs>
+  <g>
+    <polygon class="st1" fill="rgba(119,119,119,0.2)" points="481 167.67 81 101 147.67 501 414.33 434.33 481 167.67"/>
+    <circle class="st2" cx="481" cy="167.67" r="40"/>
+    <circle class="st2" cx="81" cy="101" r="40"/>
+    <circle class="st2" cx="147.67" cy="501" r="40"/>
+    <circle class="st2" cx="414.33" cy="434.33" r="40"/>
+  </g>
+  <g>
+    <line class="st0" x1="739.17" y1="338.83" x2="397.33" y2="680.67"/>
+    <circle class="st2" cx="739.17" cy="338.83" r="45.58"/>
+    <circle class="st2" cx="397.33" cy="680.67" r="45.58"/>
+  </g>
+</svg>

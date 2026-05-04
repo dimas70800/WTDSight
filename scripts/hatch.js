@@ -12,7 +12,7 @@ function startHatchDrawing(pos) {
     }];
     isDrawingHatch = true;
     previewHatchLines = [];
-    hatchPhase = 0;
+    hatchPhase = el("hatchPhaseInput").value ? parseFloat(el("hatchPhaseInput").value) : 0;
     updateHatchPreview();
 }
 

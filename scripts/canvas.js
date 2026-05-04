@@ -771,9 +771,9 @@ function updateSelectionFromRect() {
     for (const [id, obj] of objects) {
         let intersects = false;
 
-        if (obj.type === "line") {
+        if (obj.type === "line" && (selectionFilterMode === 'all' || selectionFilterMode === 'lines')) {
             intersects = isLineIntersectsRect(obj.start, obj.end, minX, minY, maxX, maxY);
-        } else if (obj.type === "quad") {
+        } else if (obj.type === "quad" && (selectionFilterMode === 'all' || selectionFilterMode === 'quads')) {
             intersects = isQuadIntersectsRect(obj, minX, minY, maxX, maxY);
         }
 
@@ -787,6 +787,48 @@ function updateSelectionFromRect() {
 
     updateSelectionInfo();
 }
+
+let selectionFilterMode = 'all';
+
+function setSelectionMode(mode) {
+    selectionFilterMode = mode;
+
+    const btnAll = document.getElementById('selModeAll');
+    const btnLines = document.getElementById('selModeLines');
+    const btnQuads = document.getElementById('selModeQuads');
+
+    [btnAll, btnLines, btnQuads].forEach(btn => {
+        btn.style.background = 'transparent';
+        btn.style.color = 'inherit';
+        btn.style.border = '1px solid var(--border-col)';
+        
+        btn.onmouseover = () => {
+            if (selectionFilterMode !== btn.id.replace('selMode', '').toLowerCase()) {
+                btn.style.background = 'rgba(128, 128, 128, 0.3)';
+            }
+        };
+        btn.onmouseout = () => {
+            if (selectionFilterMode !== btn.id.replace('selMode', '').toLowerCase()) {
+                btn.style.background = 'transparent';
+            }
+        };
+    });
+
+    let activeBtn;
+    if (mode === 'all') activeBtn = btnAll;
+    else if (mode === 'lines') activeBtn = btnLines;
+    else if (mode === 'quads') activeBtn = btnQuads;
+
+    if (activeBtn) {
+        activeBtn.style.background = 'var(--input-bg)';
+        activeBtn.style.color = 'var(--text-white)';
+        activeBtn.onmouseover = null;
+        activeBtn.onmouseout = null;
+    }
+    
+    updateSelectionFromRect();
+}
+setSelectionMode('all');
 
 function clearSelection() {
     for (const [id, obj] of objects) {
