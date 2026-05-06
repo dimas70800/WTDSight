@@ -1,5 +1,6 @@
 let hatchPoints = [];
 let isDrawingHatch = false;
+let isHatchDragging = false;
 let previewHatchLines = [];
 let hatchAngle = 45;
 let hatchDensity = 0.03;
@@ -16,19 +17,53 @@ function startHatchDrawing(pos) {
     updateHatchPreview();
 }
 
-function addHatchPoint(pos) {
+function addHatchPoint(pos, isDragging = false) {
     if (!isDrawingHatch) return;
+    
     const roundedPos = {
         x: Math.round(pos.x * 1000000) / 1000000,
         y: Math.round(pos.y * 1000000) / 1000000
     };
+
     if (hatchPoints.length > 0) {
-        const lastPoint = hatchPoints[hatchPoints.length - 1];
-        if (Math.abs(roundedPos.x - lastPoint.x) < 0.000001 &&
-            Math.abs(roundedPos.y - lastPoint.y) < 0.000001) {
-            return;
+        const last = hatchPoints[hatchPoints.length - 1];
+        if (Math.abs(roundedPos.x - last.x) < 0.000001 && 
+            Math.abs(roundedPos.y - last.y) < 0.000001) return;
+    }
+    if (hatchPoints.length > 1) {
+        const prevLast = hatchPoints[hatchPoints.length - 2];
+        if (Math.abs(roundedPos.x - prevLast.x) < 0.000001 && 
+            Math.abs(roundedPos.y - prevLast.y) < 0.000001) return;
+    }
+
+    let existingIndex = -1;
+    let radius = 0.001;
+
+    for (let i = 0; i < hatchPoints.length; i++) {
+        if (Math.abs(roundedPos.x - hatchPoints[i].x) < radius &&
+            Math.abs(roundedPos.y - hatchPoints[i].y) < radius) {
+            existingIndex = i;
+            break;
         }
     }
+
+    if (snapping) {
+        const finalPos = (existingIndex !== -1) ? hatchPoints[existingIndex] : roundedPos;
+        
+        hatchPoints.push({ x: finalPos.x, y: finalPos.y });
+        updateHatchPreview();
+        return;
+    }
+
+    if (existingIndex !== -1) {
+        if (!isDragging) {
+            hatchPoints.splice(existingIndex, 1);
+            if (hatchPoints.length === 0) cancelHatch();
+            else updateHatchPreview();
+        }
+        return;
+    }
+
     hatchPoints.push(roundedPos);
     updateHatchPreview();
 }
@@ -141,7 +176,7 @@ function finalizeHatch() {
             selected: false
         };
         objects.set(objIdStr, object);
-        
+
         newObjects.push({ id: objIdStr, object: object });
     }
 
@@ -157,6 +192,7 @@ function finalizeHatch() {
 function cancelHatch() {
     hatchPoints = [];
     isDrawingHatch = false;
+    isHatchDragging = false;
     previewHatchLines = [];
     hatchPhase = 0;
     const countEl = document.getElementById('hatchPointsNum');

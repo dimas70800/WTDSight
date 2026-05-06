@@ -495,13 +495,19 @@ document.onkeyup = (e) => {
     }
 };
 
-function snappingPos(mouse) {
+function snappingPos(mouse, maxPixelRadius = Infinity) {
     let closestPos = null;
     let closestSqrMag = Infinity;
 
+    let maxSqrMag = Infinity;
+    if (maxPixelRadius !== Infinity) {
+        const radiusSight = maxPixelRadius / screenZoom / getBaseScale();
+        maxSqrMag = radiusSight * radiusSight;
+    }
+
     function comp(pos) {
         const sqrMag = v2sqrmag(mouse, pos);
-        if (sqrMag < closestSqrMag) {
+        if (sqrMag < closestSqrMag && sqrMag <= maxSqrMag) {
             closestPos = pos;
             closestSqrMag = sqrMag;
         }
@@ -512,15 +518,12 @@ function snappingPos(mouse) {
             case "line":
                 comp(obj.start);
                 comp(obj.end);
-
                 break;
-
             case "quad":
                 comp(obj.pos1);
                 comp(obj.pos2);
                 comp(obj.pos3);
                 comp(obj.pos4);
-
                 break;
         }
     }

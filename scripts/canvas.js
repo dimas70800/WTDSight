@@ -2,7 +2,7 @@ const canvas = el("mainCanvas");
 const ctx = canvas.getContext("2d");
 
 function resizeCanvas() {
-    // Получаем коэффициент масштабирования пикселей (зум браузера или экрана)
+    // Коэффициент масштабирования пикселей
     const dpr = window.devicePixelRatio || 1;
 
     // Физический размер холста
@@ -317,13 +317,13 @@ function getMousePos(offsetX, offsetY) {
         const rad = -globalVisualRotation * Math.PI / 180;
         const cx = canvas.width / 2;
         const cy = canvas.height / 2;
-        
+
         const dx = rawX - cx;
         const dy = rawY - cy;
-        
-        return { 
-            x: dx * Math.cos(rad) - dy * Math.sin(rad) + cx, 
-            y: dx * Math.sin(rad) + dy * Math.cos(rad) + cy 
+
+        return {
+            x: dx * Math.cos(rad) - dy * Math.sin(rad) + cx,
+            y: dx * Math.sin(rad) + dy * Math.cos(rad) + cy
         };
     }
 
@@ -801,7 +801,7 @@ function setSelectionMode(mode) {
         btn.style.background = 'transparent';
         btn.style.color = 'inherit';
         btn.style.border = '1px solid var(--border-col)';
-        
+
         btn.onmouseover = () => {
             if (selectionFilterMode !== btn.id.replace('selMode', '').toLowerCase()) {
                 btn.style.background = 'rgba(128, 128, 128, 0.3)';
@@ -825,7 +825,7 @@ function setSelectionMode(mode) {
         activeBtn.onmouseover = null;
         activeBtn.onmouseout = null;
     }
-    
+
     updateSelectionFromRect();
 }
 setSelectionMode('all');
@@ -921,6 +921,7 @@ canvas.onpointerover = (e) => {
 
 canvas.onpointerleave = (e) => {
     canvasHover = false;
+    isHatchDragging = false;
     if (tool !== "hatch" || !isDrawingHatch) {
         clearDrawing();
     }
@@ -1019,15 +1020,16 @@ canvas.onpointerdown = (e) => {
                 let clickPos = v2canvas2v2disposSight(clickCanvas);
 
                 if (snapping) {
-                    const snapPos = snappingPos(clickPos);
+                    const snapPos = snappingPos(clickPos, 40);
                     if (snapPos != null) clickPos = snapPos;
                 }
 
                 if (!isDrawingHatch) {
                     startHatchDrawing(clickPos);
                 } else {
-                    addHatchPoint(clickPos);
+                    addHatchPoint(clickPos, false);
                 }
+                isHatchDragging = true;
             }
             else if (tool === "curve") {
                 const clickCanvas = getMousePos(e.offsetX, e.offsetY);
@@ -1092,7 +1094,12 @@ canvas.onpointermove = (e) => {
             curvePoints.push(mousePos);
         }
     }
-
+    if (tool === "hatch" && isDrawingHatch && isHatchDragging && snapping) {
+        const snapPos = snappingPos(mousePos, 40);
+        if (snapPos != null) {
+            addHatchPoint(snapPos, true);
+        }
+    }
     const sightMovement = v2pixel2v2sight(exactMovement);
     const pullMovement = v2pixel2v2sight(exactMovement);
 
@@ -1154,6 +1161,9 @@ canvas.onpointerup = (e) => {
     }
 
     if (e.button === 0) {
+
+        isHatchDragging = false;
+
         if (arrowPulling === true) {
             arrowPulling = false;
             showInfo(selectedId);
