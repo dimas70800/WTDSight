@@ -746,3 +746,13 @@ input[type="range"] {
     cursor: pointer;
 }
 
+option {
+    background-color: var(--bg-main-panel);
+    color: var(--text-white);
+    padding: 8px;
+    font-family: inherit;
+}
+
+option:checked {
+    background-color: var(--input-bg);
+}

@@ -28,13 +28,17 @@ function getBaseScale() {
 // Эта функция будет возвращать коэффициент толщины
 // Если экран меньше 4K, она будет уменьшать lineWidth
 function getLineWidth(baseWidth) {
-    return baseWidth * (canvas.height / 2160);
+    return baseWidth * (canvas.height / 2160) * 1.5;
 }
 
 // Selection tool variables
 let selectionRect = null;      // { startX, startY, endX, endY } в мировых координатах
 let isSelecting = false;
 let selectedObjectsSet = new Set();
+
+let isDraggingSelected = false;
+let dragStartPos = null;
+let dragObjectsData = null;
 
 let gridSize = 0.1; // Size of grid cell in sight scale
 
@@ -530,6 +534,39 @@ function drawGhost() {
                 drawCircle(mousePosCanvas.x, mousePosCanvas.y, 20);
             }
             break;
+        case "text":
+            if (textToolState.active) {
+                const rectCanvas = {
+                    tl: v2disposSight2v2canvas({ x: textToolState.rect.x, y: textToolState.rect.y }),
+                    br: v2disposSight2v2canvas({ x: textToolState.rect.x + textToolState.rect.w, y: textToolState.rect.y + textToolState.rect.h }),
+                    tr: v2disposSight2v2canvas({ x: textToolState.rect.x + textToolState.rect.w, y: textToolState.rect.y }),
+                    bl: v2disposSight2v2canvas({ x: textToolState.rect.x, y: textToolState.rect.y + textToolState.rect.h })
+                };
+
+                ctx.save();
+                ctx.strokeStyle = "rgba(0, 0, 0, 0.8)";
+                ctx.lineWidth = getLineWidth(1);
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(rectCanvas.tl.x, rectCanvas.tl.y, rectCanvas.br.x - rectCanvas.tl.x, rectCanvas.br.y - rectCanvas.tl.y);
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+                drawCircle(rectCanvas.tl.x, rectCanvas.tl.y, 8);
+                drawCircle(rectCanvas.tr.x, rectCanvas.tr.y, 8);
+                drawCircle(rectCanvas.bl.x, rectCanvas.bl.y, 8);
+                drawCircle(rectCanvas.br.x, rectCanvas.br.y, 8);
+
+                ctx.strokeStyle = el("outlineCheckBox").checked ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.8)";
+                ctx.lineWidth = getLineWidth(1);
+                previewTextLines.forEach(line => {
+                    const from = v2disposSight2v2canvas(line.start);
+                    const to = v2disposSight2v2canvas(line.end);
+                    drawLine(from.x, from.y, to.x, to.y);
+                });
+
+                ctx.restore();
+            }
+            break;
     }
     if (tool === "select" && selectionRect && isSelecting) {
         const from = v2disposSight2v2canvas({ x: selectionRect.startX, y: selectionRect.startY });
@@ -990,9 +1027,96 @@ canvas.onpointerdown = (e) => {
             }
 
             pushEvent("move", { id: selectedId, posPulled: posPulled, prevValue: prevValue });
+        } else if (tool === "text") {
+            const clickCanvas = getMousePos(e.offsetX, e.offsetY);
+            let clickPos = v2canvas2v2disposSight(clickCanvas);
+
+            if (!textToolState.active) {
+                textToolState.active = true;
+                textToolState.rect.x = clickPos.x;
+                textToolState.rect.y = clickPos.y;
+
+                const fontSize = parseFloat(document.getElementById('textFontSize').value) || 4;
+
+                textToolState.rect.w = fontSize * 0.05; // Ширина
+                textToolState.rect.h = fontSize * 0.012; // Высота
+
+                document.getElementById('textInputContent').focus();
+                updateTextPreview();
+            } else {
+                const hitRadius = 20 / screenZoom / getBaseScale();
+
+                const dist = (p1, p2) => Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
+
+                const tl = { x: textToolState.rect.x, y: textToolState.rect.y };
+                const tr = { x: textToolState.rect.x + textToolState.rect.w, y: textToolState.rect.y };
+                const bl = { x: textToolState.rect.x, y: textToolState.rect.y + textToolState.rect.h };
+                const br = { x: textToolState.rect.x + textToolState.rect.w, y: textToolState.rect.y + textToolState.rect.h };
+
+                if (dist(clickPos, br) < hitRadius) textToolState.action = 'resize_br';
+                else if (dist(clickPos, tr) < hitRadius) textToolState.action = 'resize_tr';
+                else if (dist(clickPos, bl) < hitRadius) textToolState.action = 'resize_bl';
+                else if (dist(clickPos, tl) < hitRadius) textToolState.action = 'resize_tl';
+                else if (clickPos.x > tl.x && clickPos.x < br.x && clickPos.y > tl.y && clickPos.y < br.y) {
+                    textToolState.action = 'move';
+                    textToolState.offsetX = clickPos.x - textToolState.rect.x;
+                    textToolState.offsetY = clickPos.y - textToolState.rect.y;
+                } else {
+                    textToolState.rect.x = clickPos.x;
+                    textToolState.rect.y = clickPos.y;
+                    document.getElementById('textInputContent').focus();
+                    updateTextPreview();
+                }
+            }
         } else if (tool === "select") {
             const clickCanvas = getMousePos(e.offsetX, e.offsetY);
             const clickWorld = v2canvas2v2disposSight(clickCanvas);
+
+            // Проверяем, кликнули ли по выделенному объекту
+            if (selectedObjectsSet.size > 0) {
+                let clickedOnSelected = false;
+
+                for (const id of selectedObjectsSet) {
+                    const obj = objects.get(id);
+                    if (obj) {
+                        // Проверяем попадание в объект
+                        if (obj.type === "line") {
+                            // Проверяем, близка ли точка к линии
+                            const dist = distanceToLine(clickWorld, obj.start, obj.end);
+                            const hitRadius = 15 / screenZoom / getBaseScale();
+                            if (dist < hitRadius) {
+                                clickedOnSelected = true;
+                                break;
+                            }
+                        } else if (obj.type === "quad") {
+                            if (isPointInQuad(clickWorld, obj)) {
+                                clickedOnSelected = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (clickedOnSelected) {
+                    // Начинаем перетаскивание всех выделенных объектов
+                    isDraggingSelected = true;
+                    dragStartPos = clickWorld;
+
+                    // Сохраняем начальные позиции для undo
+                    dragObjectsData = [];
+                    for (const id of selectedObjectsSet) {
+                        const obj = objects.get(id);
+                        if (obj) {
+                            dragObjectsData.push({
+                                id: id,
+                                object: obj,
+                                startData: getObjectMoveData(obj)
+                            });
+                        }
+                    }
+                    return;
+                }
+            }
 
             isSelecting = true;
             selectionRect = {
@@ -1102,7 +1226,37 @@ canvas.onpointermove = (e) => {
     }
     const sightMovement = v2pixel2v2sight(exactMovement);
     const pullMovement = v2pixel2v2sight(exactMovement);
-
+    if (tool === "text" && textToolState.action) {
+        if (textToolState.action === 'move') {
+            textToolState.rect.x = mousePos.x - textToolState.offsetX;
+            textToolState.rect.y = mousePos.y - textToolState.offsetY;
+        }
+        else if (textToolState.action === 'resize_br') {
+            textToolState.rect.w = Math.max(0.025, mousePos.x - textToolState.rect.x);
+            textToolState.rect.h = Math.max(0.025, mousePos.y - textToolState.rect.y);
+        }
+        else if (textToolState.action === 'resize_tr') {
+            textToolState.rect.w = Math.max(0.025, mousePos.x - textToolState.rect.x);
+            let deltaY = textToolState.rect.y - mousePos.y;
+            textToolState.rect.y = mousePos.y;
+            textToolState.rect.h = Math.max(0.025, textToolState.rect.h + deltaY);
+        }
+        else if (textToolState.action === 'resize_bl') {
+            let deltaX = textToolState.rect.x - mousePos.x;
+            textToolState.rect.x = mousePos.x;
+            textToolState.rect.w = Math.max(0.025, textToolState.rect.w + deltaX);
+            textToolState.rect.h = Math.max(0.025, mousePos.y - textToolState.rect.y);
+        }
+        else if (textToolState.action === 'resize_tl') {
+            let deltaX = textToolState.rect.x - mousePos.x;
+            let deltaY = textToolState.rect.y - mousePos.y;
+            textToolState.rect.x = mousePos.x;
+            textToolState.rect.y = mousePos.y;
+            textToolState.rect.w = Math.max(0.025, textToolState.rect.w + deltaX);
+            textToolState.rect.h = Math.max(0.025, textToolState.rect.h + deltaY);
+        }
+        updateTextPreview();
+    }
     if (dragging) {
         screenPos = v2add(screenPos, v2inv(sightMovement));
     }
@@ -1145,7 +1299,24 @@ canvas.onpointermove = (e) => {
             pullPos(object, posPulled);
         }
     }
+    if (isDraggingSelected && dragStartPos) {
+        const currentWorld = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
+        const delta = {
+            x: currentWorld.x - dragStartPos.x,
+            y: currentWorld.y - dragStartPos.y
+        };
+        dragStartPos = currentWorld;
 
+        for (const item of dragObjectsData) {
+            const obj = item.object;
+            moveObject(obj, delta);
+        }
+
+        if (selectedObjectsSet.size > 0) {
+            updateSelectionInfo();
+        }
+        return;
+    }
     if (tool === "select" && isSelecting && selectionRect) {
         const mouseWorld = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
         selectionRect.endX = mouseWorld.x;
@@ -1162,6 +1333,9 @@ canvas.onpointerup = (e) => {
 
     if (e.button === 0) {
 
+        if (tool === "text" && textToolState.action) {
+            textToolState.action = null;
+        }
         isHatchDragging = false;
 
         if (arrowPulling === true) {
@@ -1189,6 +1363,28 @@ canvas.onpointerup = (e) => {
                 else
                     endDrawing(v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY)));
             }
+        }
+        if (isDraggingSelected) {
+            const endPos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
+            const totalDelta = {
+                x: endPos.x - (dragStartPos ? dragStartPos.x : 0),
+                y: endPos.y - (dragStartPos ? dragStartPos.y : 0)
+            };
+
+            if (dragObjectsData && dragObjectsData.length > 0) {
+                pushEvent("move_multiple", {
+                    objectsData: dragObjectsData.map(item => ({
+                        id: item.id,
+                        prevData: item.startData,
+                        newData: getObjectMoveData(item.object)
+                    }))
+                });
+            }
+
+            isDraggingSelected = false;
+            dragStartPos = null;
+            dragObjectsData = null;
+            return;
         }
         if (tool === "select" && isSelecting) {
             isSelecting = false;
@@ -1221,3 +1417,75 @@ onwheel = (e) => {
 
     //console.log("Zoom: " + screenZoom);
 };
+
+function distanceToLine(point, lineStart, lineEnd) {
+    const dx = lineEnd.x - lineStart.x;
+    const dy = lineEnd.y - lineStart.y;
+    const lengthSq = dx * dx + dy * dy;
+
+    if (lengthSq === 0) {
+        return Math.sqrt((point.x - lineStart.x) ** 2 + (point.y - lineStart.y) ** 2);
+    }
+
+    let t = ((point.x - lineStart.x) * dx + (point.y - lineStart.y) * dy) / lengthSq;
+    t = Math.max(0, Math.min(1, t));
+
+    const projX = lineStart.x + t * dx;
+    const projY = lineStart.y + t * dy;
+
+    return Math.sqrt((point.x - projX) ** 2 + (point.y - projY) ** 2);
+}
+
+function isPointInQuad(point, quad) {
+    const corners = [quad.pos1, quad.pos2, quad.pos3, quad.pos4];
+    let inside = false;
+
+    for (let i = 0, j = corners.length - 1; i < corners.length; j = i++) {
+        const xi = corners[i].x, yi = corners[i].y;
+        const xj = corners[j].x, yj = corners[j].y;
+
+        const intersect = ((yi > point.y) !== (yj > point.y)) &&
+            (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+
+        if (intersect) inside = !inside;
+    }
+
+    return inside;
+}
+
+function getObjectMoveData(obj) {
+    if (obj.type === "line") {
+        return {
+            type: "line",
+            start: { x: obj.start.x, y: obj.start.y },
+            end: { x: obj.end.x, y: obj.end.y }
+        };
+    } else if (obj.type === "quad") {
+        return {
+            type: "quad",
+            pos1: { x: obj.pos1.x, y: obj.pos1.y },
+            pos2: { x: obj.pos2.x, y: obj.pos2.y },
+            pos3: { x: obj.pos3.x, y: obj.pos3.y },
+            pos4: { x: obj.pos4.x, y: obj.pos4.y }
+        };
+    }
+    return null;
+}
+
+function moveObject(obj, delta) {
+    if (obj.type === "line") {
+        obj.start.x += delta.x;
+        obj.start.y += delta.y;
+        obj.end.x += delta.x;
+        obj.end.y += delta.y;
+    } else if (obj.type === "quad") {
+        obj.pos1.x += delta.x;
+        obj.pos1.y += delta.y;
+        obj.pos2.x += delta.x;
+        obj.pos2.y += delta.y;
+        obj.pos3.x += delta.x;
+        obj.pos3.y += delta.y;
+        obj.pos4.x += delta.x;
+        obj.pos4.y += delta.y;
+    }
+}

@@ -110,6 +110,19 @@ function popRedo() {
             undoEvent = { type: 'delete_multiple', data: data };
             break;
         }
+        case 'move_multiple': {
+            const { objectsData } = data;
+
+            for (const item of objectsData) {
+                const obj = objects.get(item.id);
+                if (!obj) continue;
+
+                applyObjectCoordinates(obj, item.newData);
+            }
+
+            undoEvent = { type: 'move_multiple', data: { objectsData: objectsData } };
+            break;
+        }
         default:
             break;
     }

@@ -160,7 +160,7 @@ const ru =
     linesDescription: "Зажмите и тяните чтобы создать линию",
     quadsDescription: "Кликайте по холсту для создания четырёхугольника (4 точки)",
     hatchDescription: "Кликайте по холсту, чтобы создать контур (мин. 3 точки)",
-    selectDescription: "Зажмите и тяните чтобы выделить зону для удаления",
+    selectDescription: "Зажмите и тяните чтобы выделить зону для удаления или перемещения",
     settingsTitleText: "Настройки",
     themeTitleText: "Тема интерфейса",
     changeThemeLabel: "Сменить тему",
@@ -185,8 +185,27 @@ const ru =
     curveSmoothingLabel: "Сглаживание",
 
     visualRotationTitle: "Поворот холста",
-    savedNotificationText: "Сохранено!"
+    savedNotificationText: "Сохранено!",
 
+    textTitleText: "Текст",
+    textDescription: "Кликните по холсту, чтобы создать текстовую зону",
+    fontLabel: "Шрифт",
+    customFontLabel: "Свой шрифт...",
+    uploadFontLabel: "Загрузить свой шрифт (.ttf, .otf)",
+    fontFileName: "Шрифт загружается...",
+    textInputLabel: "Текст",
+    fontSizeLabel: "Размер шрифта",
+    simplifyLabel: "Упрощение",
+    textCreateBtn: "Создать",
+    textCancelBtn: "Отмена",
+
+    uploadFontTextInfo: "Загрузите шрифт",
+    loadingTextInfo: "Загрузка...",
+    networkErrorTextInfo: "Ошибка сети",
+    selectedTextInfo: "Выбран : ",
+    loadingErrorTextInfo: "Ошибка загрузки!",
+    couldntLoadFontTextInfo: "Не удалось загрузить шрифт: ",
+    loadingFontErrorTextInfo: "Ошибка загрузки шрифта: "
 };
 
 const en =
@@ -351,7 +370,7 @@ const en =
     linesDescription: "Click and drag to draw a line",
     quadsDescription: "Click on the canvas to create a quad (4 points)",
     hatchDescription: "Click on the canvas to create a contour (min. 3 points)",
-    selectDescription: "Click and drag to select an area to delete",
+    selectDescription: "Click and drag to select an area to delete or move",
 
     settingsTitleText: "Settings",
     themeTitleText: "Interface theme",
@@ -377,7 +396,27 @@ const en =
     curveSmoothingLabel: "Smoothing",
 
     visualRotationTitle: "Rotate canvas",
-    savedNotificationText: "Saved!"
+    savedNotificationText: "Saved!",
+
+    textTitleText: "Text",
+    textDescription: "Click on the canvas to create a text area",
+    fontLabel: "Font",
+    customFontLabel: "Custom font...",
+    uploadFontLabel: "Upload custom font (.ttf, .otf)",
+    fontFileName: "Loading font...",
+    textInputLabel: "Text",
+    fontSizeLabel: "Font size",
+    simplifyLabel: "Simplification",
+    textCreateBtn: "Create",
+    textCancelBtn: "Cancel",
+
+    uploadFontTextInfo: "Upload a font",
+    loadingTextInfo: "Loading...",
+    networkErrorTextInfo: "Network error ",
+    selectedTextInfo: "Selected: ",
+    loadingErrorTextInfo: "Loading error!",
+    couldntLoadFontTextInfo: "Couldn't load font: ",
+    loadingFontErrorTextInfo: "Font loading error: "
 };
 
 const langDependent =
@@ -534,7 +573,19 @@ const langDependent =
         "curveSmoothingLabel",
 
         "visualRotationTitle",
-        "savedNotificationText"
+        "savedNotificationText",
+
+        "textTitleText",
+        "textDescription",
+        "fontLabel",
+        "customFontLabel",
+        "uploadFontLabel",
+        "fontFileName",
+        "textInputLabel",
+        "fontSizeLabel",
+        "simplifyLabel",
+        "textCreateBtn",
+        "textCancelBtn"
     ];
 
 function changeLang(to) {

@@ -56,6 +56,9 @@
                     <button id="toolsHatchButton" class="tab-button" data-target="hatch">
                         <img src="images/hatchTool.svg" alt="Hatch">
                     </button>
+                    <button id="toolsTextButton" class="tab-button" data-target="text">
+                        <img src="images/textTool.svg" alt="Text">
+                    </button>
                     <button id="toolsVectorizeButton" class="tab-button" data-target="vectorize">
                         <img src="images/vectorizeTool.png" alt="Vectorize">
                     </button>
@@ -335,18 +338,73 @@
                                 для удаления</p>
                             <div class="block-with-elem"
                                 style="display: flex; justify-content:space-evenly; flex-direction: row;">
-                                <button id="selModeAll" onclick="setSelectionMode('all')" style="width: 60px; height: 60px;">
+                                <button id="selModeAll" onclick="setSelectionMode('all')"
+                                    style="width: 60px; height: 60px;">
                                     <img src="images/allSelectIcon.svg" alt="Все" style="height: 100%; width: 100%;">
                                 </button>
-                                <button id="selModeLines" onclick="setSelectionMode('lines')" style="width: 60px; height: 60px;">
+                                <button id="selModeLines" onclick="setSelectionMode('lines')"
+                                    style="width: 60px; height: 60px;">
                                     <img src="images/linesTool.svg" alt="Линии" style="height: 100%; width: 100%;">
                                 </button>
-                                <button id="selModeQuads" onclick="setSelectionMode('quads')" style="width: 60px; height: 60px;">
+                                <button id="selModeQuads" onclick="setSelectionMode('quads')"
+                                    style="width: 60px; height: 60px;">
                                     <img src="images/quadsTool.svg" alt="Квады" style="height: 100%; width: 100%;">
                                 </button>
                             </div>
                         </div>
 
+                        <div id="panel-text" class="panel-content">
+                            <h2 class="panel-title" id="textTitleText">Текст</h2>
+                            <p style="font-size: 13px; color: #aaa; margin-top:0;" id="textDescription">
+                                Кликните по холсту, чтобы создать текстовую зону
+                            </p>
+
+                            <div class="block-with-elem">
+                                <div>
+                                    <span id="fontLabel">Шрифт:</span>
+                                    <select id="fontSelector" style="width: 100%; margin-top: 5px; margin-bottom: 5px;">
+                                        <option value="custom" id="customFontLabel">Свой шрифт...</option>
+                                        <option value="fonts/Times-New-Roman.ttf" selected>Times New Roman</option>
+                                        <option value="fonts/Pixel.ttf">Pixel</option>
+                                        <option value="fonts/RubikMonoOne-Regular.ttf">RubikMonoOne</option>
+                                        <option value="fonts/MonsieurLaDoulaise.ttf">MonsieurLaDoulaise</option>
+                                        <option value="fonts/Roboto-Regular.ttf">Roboto</option>
+                                    </select>
+                                </div>
+
+                                <div id="customFontDiv" style="display: none;">
+                                    <label for="fontFile" class="file-upload-btn" id="uploadFontLabel">Загрузить свой
+                                        шрифт (.ttf, .otf)</label>
+                                    <input type="file" id="fontFile" accept=".ttf,.otf,.woff" style="display: none;">
+                                </div>
+                                <span id="fontFileName"
+                                    style="display: block; font-size: 12px; color: #777; word-break: break-all;"></span>
+
+                                <div style="margin-top: 10px;">
+                                    <span id="textInputLabel">Текст</span>
+                                    <textarea id="textInputContent" rows="3"
+                                        style="width: 100%; margin-top: 5px; resize: vertical; background: var(--input-bg); color: var(--text-white); border: 1px solid var(--border-col); padding: 5px; border-radius: 6px;"></textarea>
+                                </div>
+
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                                    <span id="fontSizeLabel">Размер шрифта:</span>
+                                    <input type="number" id="textFontSize" step="1" min="0" value="6" style="width: 5em">
+                                </div>
+
+                                <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 10px;">
+                                    <span id="simplifyLabel">Упрощение</span>
+                                    <input type="range" id="textSimplifyInput" min="1" max="50" value="0">
+                                </div>
+
+                                <div style="display: flex; gap: 8px; margin-top: 15px;">
+                                    <button id="textCreateBtn"
+                                        style="background: #228025; color: white; flex-grow: 1;">Создать</button>
+                                    <button id="textCancelBtn"
+                                        style="background: #eb3b3b; color: white; flex-grow: 1;">Отмена</button>
+                                </div>
+                            </div>
+                        </div>
 
                         <div id="shared-drawing-tools"
                             style="display: none; flex-direction: column; gap: 15px; margin-top: 20px; border-top: 1px solid var(--border-col); padding-top: 15px;">
@@ -662,6 +720,8 @@
     <script src="scripts/exportblkmenu.js"></script>
     <script src="scripts/hatch.js"></script>
     <script src="scripts/vectorize.js"></script>
+    <script src="scripts/opentype.min.js"></script>
+    <script src="scripts/text-tool.js"></script>
 </body>
 
 </html>

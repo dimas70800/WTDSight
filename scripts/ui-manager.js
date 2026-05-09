@@ -62,17 +62,17 @@ function applyAllSettings(settings) {
         toggleHints(settings.hints !== undefined ? settings.hints : true);
     }
 
-    // 4. Обводка
+    // Обводка
     if (typeof setOutlineCheckBox === 'function') {
         setOutlineCheckBox(settings.outline !== undefined ? settings.outline : true);
     }
 
-    // 5. Цвет фона
+    // Цвет фона
     if (typeof setBgColorCanvas === 'function') {
         setBgColorCanvas(settings.canvasBgColor || '#c7c7c7');
     }
 
-    // 6. Сетка (Исправлено имя функции на toggleDrawGrid)
+    // Сетка
     if (typeof toggleDrawGrid === 'function') {
         toggleDrawGrid(settings.drawGrid !== undefined ? settings.drawGrid : true);
     }
@@ -204,7 +204,7 @@ function drawPreview() {
         };
     }
 
-    pCtx.lineWidth = (pCanvas.height / 2160) * 2;
+    pCtx.lineWidth = (pCanvas.height / 2160) * 1.5;
     pCtx.strokeStyle = "rgba(0, 0, 0, 0.8)";
 
     if (drawVert || drawHorz) {
