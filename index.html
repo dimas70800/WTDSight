@@ -50,6 +50,9 @@
                     <button id="toolsCurveButton" class="tab-button" data-target="curve">
                         <img src="images/curveTool.svg" alt="Curve">
                     </button>
+                    <button id="toolsBrushButton" class="tab-button" data-target="brush">
+                        <img src="images/brushTool.svg" alt="Brush">
+                    </button>
                     <button id="toolsQuadsButton" class="tab-button" data-target="quads">
                         <img src="images/quadsTool.svg" alt="Quads">
                     </button>
@@ -59,11 +62,11 @@
                     <button id="toolsTextButton" class="tab-button" data-target="text">
                         <img src="images/textTool.svg" alt="Text">
                     </button>
-                    <button id="toolsVectorizeButton" class="tab-button" data-target="vectorize">
-                        <img src="images/vectorizeTool.png" alt="Vectorize">
-                    </button>
                     <button id="toolsSelectButton" class="tab-button" data-target="select">
                         <img src="images/selectTool.png" alt="Select">
+                    </button>
+                    <button id="toolsVectorizeButton" class="tab-button" data-target="vectorize">
+                        <img src="images/vectorizeTool.png" alt="Vectorize">
                     </button>
                 </nav>
 
@@ -366,6 +369,7 @@
                                         <option value="custom" id="customFontLabel">Свой шрифт...</option>
                                         <option value="fonts/Times-New-Roman.ttf" selected>Times New Roman</option>
                                         <option value="fonts/Pixel.ttf">Pixel</option>
+                                        <option value="fonts/Minecraft.ttf">Minecraft</option>
                                         <option value="fonts/RubikMonoOne-Regular.ttf">RubikMonoOne</option>
                                         <option value="fonts/MonsieurLaDoulaise.ttf">MonsieurLaDoulaise</option>
                                         <option value="fonts/Roboto-Regular.ttf">Roboto</option>
@@ -389,7 +393,8 @@
                                 <div
                                     style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
                                     <span id="fontSizeLabel">Размер шрифта:</span>
-                                    <input type="number" id="textFontSize" step="1" min="0" value="6" style="width: 5em">
+                                    <input type="number" id="textFontSize" step="1" min="0" value="6"
+                                        style="width: 5em">
                                 </div>
 
                                 <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 10px;">
@@ -402,6 +407,28 @@
                                         style="background: #228025; color: white; flex-grow: 1;">Создать</button>
                                     <button id="textCancelBtn"
                                         style="background: #eb3b3b; color: white; flex-grow: 1;">Отмена</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="panel-brush" class="panel-content">
+                            <h2 class="panel-title" id="brushTitleText">Кисть</h2>
+                            <p style="font-size: 13px; color: #aaa; margin-top:0;" id="brushDescription">
+                                Зажмите и рисуйте произвольную линию. При отпускании она конвертируется в обычные четырёхугольники
+                            </p>
+
+                            <div class="block-with-elem" style="margin-top: 10px;">
+                                <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
+                                    <span id="brushThicknessLabel">Толщина кисти</span>
+                                    <input type="range" id="brushThicknessInput" min="1" max="100" value="10">
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
+                                    <span id="brushSimplificationLabel">Упрощение линий</span>
+                                    <input type="range" id="brushSimplifyInput" min="1" max="50" value="10">
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 5px;">
+                                    <span id="brushSmoothingLabel">Сглаживание</span>
+                                    <input type="range" id="brushSmoothInput" min="1" max="15" value="5">
                                 </div>
                             </div>
                         </div>
@@ -722,6 +749,7 @@
     <script src="scripts/vectorize.js"></script>
     <script src="scripts/opentype.min.js"></script>
     <script src="scripts/text-tool.js"></script>
+    <script src="scripts/brush.js"></script>
 </body>
 
 </html>

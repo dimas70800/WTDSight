@@ -40,6 +40,10 @@ let isDraggingSelected = false;
 let dragStartPos = null;
 let dragObjectsData = null;
 
+let isPullingCenter = false;
+let centerPullSource = null;
+let centerPullStartData = null;
+
 let gridSize = 0.1; // Size of grid cell in sight scale
 
 let mousePos = { x: 0, y: 0 };
@@ -567,6 +571,53 @@ function drawGhost() {
                 ctx.restore();
             }
             break;
+        case "brush":
+            let brushThicknessInput = el("brushThicknessInput");
+            let brushThicknessVal = brushThicknessInput ? parseInt(brushThicknessInput.value) : 10;
+            let brushRadiusSight = (brushThicknessVal * 0.001) / 2;
+            let brushRadiusPixel = sight2pixel(brushRadiusSight);
+
+            if (isDrawingBrush && brushPoints.length > 0) {
+                ctx.beginPath();
+                const startCanvas = v2disposSight2v2canvas(brushPoints[0]);
+                ctx.moveTo(startCanvas.x, startCanvas.y);
+
+                let limit = snapping ? brushPoints.length - 1 : brushPoints.length;
+
+                for (let i = 1; i < limit; i++) {
+                    const ptCanvas = v2disposSight2v2canvas(brushPoints[i]);
+                    ctx.lineTo(ptCanvas.x, ptCanvas.y);
+                }
+                if (snapping) {
+                    let snapP = snappingPos(mousePos);
+                    let targetPos = snapP != null ? snapP : mousePos;
+                    const targetCanvas = v2disposSight2v2canvas(targetPos);
+                    ctx.lineTo(targetCanvas.x, targetCanvas.y);
+                }
+
+                ctx.strokeStyle = el("outlineCheckBox").checked ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.5)";
+                ctx.lineWidth = brushRadiusPixel * 2;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+                ctx.stroke();
+
+                ctx.lineCap = "butt";
+                ctx.lineJoin = "miter";
+                ctx.lineWidth = getLineWidth(1);
+            }
+
+            if (!isDrawingBrush) {
+                ctx.beginPath();
+                ctx.arc(mousePosCanvas.x, mousePosCanvas.y, brushRadiusPixel, 0, 2 * Math.PI, false);
+                ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+                ctx.lineWidth = getLineWidth(1);
+                ctx.stroke();
+            }
+
+            if (snapping) {
+                drawCircle(mousePosCanvas.x, mousePosCanvas.y, 20);
+            }
+            break;
     }
     if (tool === "select" && selectionRect && isSelecting) {
         const from = v2disposSight2v2canvas({ x: selectionRect.startX, y: selectionRect.startY });
@@ -655,55 +706,60 @@ function drawArrows() {
 
     for (let i = 0; i < arrowHitboxes.length; i++) {
         const hitbox = arrowHitboxes[i];
-
-        if (mousePosWindow.x > hitbox.x1 && mousePosWindow.y > hitbox.y1
-            && mousePosWindow.x < hitbox.x2 && mousePosWindow.y < hitbox.y2)
-            hoveredArrowHitbox = i;
+        if (hitbox.type === 'rect') {
+            if (mousePosWindow.x > hitbox.x1 && mousePosWindow.y > hitbox.y1 &&
+                mousePosWindow.x < hitbox.x2 && mousePosWindow.y < hitbox.y2) {
+                hoveredArrowHitbox = i;
+            }
+        } else if (hitbox.type === 'circle') {
+            const dist = Math.hypot(mousePosWindow.x - hitbox.x, mousePosWindow.y - hitbox.y);
+            if (dist <= hitbox.r) {
+                hoveredArrowHitbox = i;
+            }
+        }
     }
 
     let hoveredSource = null;
     let hoveredAxis = null;
 
     if (hoveredArrowHitbox != null) {
-        hoveredSource = Math.floor(hoveredArrowHitbox / 2);
-        hoveredAxis = hoveredArrowHitbox - (hoveredSource * 2);
+        hoveredSource = Math.floor(hoveredArrowHitbox / 3);
+        hoveredAxis = hoveredArrowHitbox % 3;
     }
 
     for (let i = 0; i < arrowSources.length; i++) {
         const pos = arrowSources[i];
 
         ctx.lineWidth = getLineWidth(5);
-
         const size100 = getLineWidth(100);
         const size80 = getLineWidth(80);
         const size10 = getLineWidth(10);
+        const size15 = getLineWidth(15);
+
+        // Центральный кружок
+        ctx.fillStyle = (hoveredSource === i && hoveredAxis === 2) ? "rgba(0, 0, 0, 0.8)" : "rgba(0, 0, 0, 0.4)";
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, size15, 0, Math.PI * 2);
+        ctx.fill();
 
         // X
         ctx.strokeStyle = (hoveredSource === i && hoveredAxis === 0) ? "rgb(128, 0, 0, 1)" : "rgb(255, 0, 0, 1)";
         ctx.beginPath();
-
-        ctx.moveTo(pos.x, pos.y);
+        ctx.moveTo(pos.x + size15, pos.y)
         ctx.lineTo(pos.x + size100, pos.y);
-
         ctx.moveTo(pos.x + size80, pos.y - size10);
         ctx.lineTo(pos.x + size100, pos.y);
         ctx.lineTo(pos.x + size80, pos.y + size10);
-
-
         ctx.stroke();
 
         // Y
         ctx.strokeStyle = (hoveredSource === i && hoveredAxis === 1) ? "rgb(0, 128, 0, 1)" : "rgb(0, 255, 0, 1)";
         ctx.beginPath();
-
-        ctx.moveTo(pos.x, pos.y);
+        ctx.moveTo(pos.x, pos.y - size15);
         ctx.lineTo(pos.x, pos.y - size100);
-
         ctx.moveTo(pos.x - size10, pos.y - size80);
         ctx.lineTo(pos.x, pos.y - size100);
         ctx.lineTo(pos.x + size10, pos.y - size80);
-
-
         ctx.stroke();
     }
 
@@ -711,30 +767,36 @@ function drawArrows() {
 }
 
 function getArrowHitboxes() {
-    // pos1x, pos1y, pos2x, pos2y etc.
-    if (selectedId == null) return null;
+    if (selectedId == null) return [];
     const object = objects.get(selectedId);
-
     const arrowSources = getArrowSources(object);
     const arrowHitboxes = [];
 
     const hitboxSize = ('ontouchstart' in window) ? 30 : 10;
+    const size100 = getLineWidth(100);
 
     for (const src of arrowSources) {
         arrowHitboxes.push({
+            type: 'rect',
             x1: src.x - hitboxSize,
             y1: src.y - hitboxSize,
-            x2: src.x + 100 + hitboxSize,
+            x2: src.x + size100 + hitboxSize,
             y2: src.y + hitboxSize
         });
         arrowHitboxes.push({
+            type: 'rect',
             x1: src.x - hitboxSize,
-            y1: src.y - 100 - hitboxSize,
+            y1: src.y - size100 - hitboxSize,
             x2: src.x + hitboxSize,
             y2: src.y + hitboxSize
         });
+        arrowHitboxes.push({
+            type: 'circle',
+            x: src.x,
+            y: src.y,
+            r: getLineWidth(15) + hitboxSize
+        });
     }
-
     return arrowHitboxes;
 }
 
@@ -993,40 +1055,46 @@ canvas.onpointerdown = (e) => {
 
         if (selectedId != null && hoveredArrowHitbox != null) // Arrow pulling
         {
-            arrowPulling = true;
-            posPulled = hoveredArrowHitbox;
+            const hSource = Math.floor(hoveredArrowHitbox / 3);
+            const hAxis = hoveredArrowHitbox % 3;
 
-            // Pull the pos
-            const object = objects.get(selectedId);
-            let prevValue;
-
-            switch (object.type) {
-                case "line":
-                    switch (posPulled) {
-                        case 0: prevValue = object.start.x; break;
-                        case 1: prevValue = object.start.y; break;
-                        case 2: prevValue = object.end.x; break;
-                        case 3: prevValue = object.end.y; break;
-                    }
-
-                    break;
-
-                case "quad":
-                    switch (posPulled) {
-                        case 0: prevValue = object.pos1.x; break;
-                        case 1: prevValue = object.pos1.y; break;
-                        case 2: prevValue = object.pos2.x; break;
-                        case 3: prevValue = object.pos2.y; break;
-                        case 4: prevValue = object.pos3.x; break;
-                        case 5: prevValue = object.pos3.y; break;
-                        case 6: prevValue = object.pos4.x; break;
-                        case 7: prevValue = object.pos4.y; break;
-                    }
-
-                    break;
+            if (hAxis === 2) {
+                isPullingCenter = true;
+                centerPullSource = hSource;
+                const object = objects.get(selectedId);
+                centerPullStartData = getObjectMoveData(object);
             }
+            else {
+                arrowPulling = true;
+                posPulled = hSource * 2 + hAxis;
 
-            pushEvent("move", { id: selectedId, posPulled: posPulled, prevValue: prevValue });
+                const object = objects.get(selectedId);
+                let prevValue;
+
+                switch (object.type) {
+                    case "line":
+                        switch (posPulled) {
+                            case 0: prevValue = object.start.x; break;
+                            case 1: prevValue = object.start.y; break;
+                            case 2: prevValue = object.end.x; break;
+                            case 3: prevValue = object.end.y; break;
+                        }
+                        break;
+                    case "quad":
+                        switch (posPulled) {
+                            case 0: prevValue = object.pos1.x; break;
+                            case 1: prevValue = object.pos1.y; break;
+                            case 2: prevValue = object.pos2.x; break;
+                            case 3: prevValue = object.pos2.y; break;
+                            case 4: prevValue = object.pos3.x; break;
+                            case 5: prevValue = object.pos3.y; break;
+                            case 6: prevValue = object.pos4.x; break;
+                            case 7: prevValue = object.pos4.y; break;
+                        }
+                        break;
+                }
+                pushEvent("move", { id: selectedId, posPulled: posPulled, prevValue: prevValue });
+            }
         } else if (tool === "text") {
             const clickCanvas = getMousePos(e.offsetX, e.offsetY);
             let clickPos = v2canvas2v2disposSight(clickCanvas);
@@ -1072,16 +1140,13 @@ canvas.onpointerdown = (e) => {
             const clickCanvas = getMousePos(e.offsetX, e.offsetY);
             const clickWorld = v2canvas2v2disposSight(clickCanvas);
 
-            // Проверяем, кликнули ли по выделенному объекту
             if (selectedObjectsSet.size > 0) {
                 let clickedOnSelected = false;
 
                 for (const id of selectedObjectsSet) {
                     const obj = objects.get(id);
                     if (obj) {
-                        // Проверяем попадание в объект
                         if (obj.type === "line") {
-                            // Проверяем, близка ли точка к линии
                             const dist = distanceToLine(clickWorld, obj.start, obj.end);
                             const hitRadius = 15 / screenZoom / getBaseScale();
                             if (dist < hitRadius) {
@@ -1098,11 +1163,9 @@ canvas.onpointerdown = (e) => {
                 }
 
                 if (clickedOnSelected) {
-                    // Начинаем перетаскивание всех выделенных объектов
                     isDraggingSelected = true;
                     dragStartPos = clickWorld;
 
-                    // Сохраняем начальные позиции для undo
                     dragObjectsData = [];
                     for (const id of selectedObjectsSet) {
                         const obj = objects.get(id);
@@ -1169,6 +1232,20 @@ canvas.onpointerdown = (e) => {
                     }
                 }
                 curvePoints.push(clickPos);
+            } else if (tool === "brush") {
+                const clickCanvas = getMousePos(e.offsetX, e.offsetY);
+                let clickPos = v2canvas2v2disposSight(clickCanvas);
+
+                isDrawingBrush = true;
+                brushPoints = [];
+
+                if (snapping) {
+                    const snapPos = snappingPos(clickPos);
+                    if (snapPos != null) {
+                        brushPoints.push(snapPos);
+                    }
+                }
+                brushPoints.push(clickPos);
             }
             else {
                 if (!snapping)
@@ -1260,7 +1337,19 @@ canvas.onpointermove = (e) => {
     if (dragging) {
         screenPos = v2add(screenPos, v2inv(sightMovement));
     }
+    if (isPullingCenter && selectedId != null) {
+        const object = objects.get(selectedId);
 
+        if (object.type === "line") {
+            if (centerPullSource === 0) { object.start.x += pullMovement.x; object.start.y += pullMovement.y; }
+            else if (centerPullSource === 1) { object.end.x += pullMovement.x; object.end.y += pullMovement.y; }
+        } else if (object.type === "quad") {
+            if (centerPullSource === 0) { object.pos1.x += pullMovement.x; object.pos1.y += pullMovement.y; }
+            else if (centerPullSource === 1) { object.pos2.x += pullMovement.x; object.pos2.y += pullMovement.y; }
+            else if (centerPullSource === 2) { object.pos3.x += pullMovement.x; object.pos3.y += pullMovement.y; }
+            else if (centerPullSource === 3) { object.pos4.x += pullMovement.x; object.pos4.y += pullMovement.y; }
+        }
+    }
     if (arrowPulling) {
         if (selectedId == null) {
             arrowPulling = false;
@@ -1322,6 +1411,12 @@ canvas.onpointermove = (e) => {
         selectionRect.endX = mouseWorld.x;
         selectionRect.endY = mouseWorld.y;
         updateSelectionFromRect();
+    } if (tool === "brush" && isDrawingBrush) {
+        let mousePos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
+        let lastPoint = brushPoints[brushPoints.length - 1];
+        if (v2sqrmag(mousePos, lastPoint) > 0.0000001) {
+            brushPoints.push(mousePos);
+        }
     }
 };
 
@@ -1341,6 +1436,21 @@ canvas.onpointerup = (e) => {
         if (arrowPulling === true) {
             arrowPulling = false;
             showInfo(selectedId);
+        } if (isPullingCenter) {
+            isPullingCenter = false;
+            const object = objects.get(selectedId);
+
+            pushEvent("move_multiple", {
+                objectsData: [{
+                    id: selectedId,
+                    prevData: centerPullStartData,
+                    newData: getObjectMoveData(object)
+                }]
+            });
+            showInfo(selectedId);
+        } else if (arrowPulling === true) {
+            arrowPulling = false;
+            showInfo(selectedId);
         } else if (tool === "curve" && isDrawingCurve) {
             isDrawingCurve = false;
 
@@ -1352,6 +1462,17 @@ canvas.onpointerup = (e) => {
             }
 
             finishCurve();
+        } else if (tool === "brush" && isDrawingBrush) {
+            isDrawingBrush = false;
+
+            if (snapping) {
+                const snapP = snappingPos(mousePos);
+                if (snapP != null) {
+                    brushPoints[brushPoints.length - 1] = snapP;
+                }
+            }
+
+            finishBrush();
         }
         else {
             if (!snapping)

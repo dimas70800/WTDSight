@@ -43,7 +43,7 @@ const ru =
     quad: "Четырёхугольник",
 
     hintsText: "[ПКМ] - Двигать холст, [ЛКМ] - Рисовать, [СКМ] - Выбрать объект, [Ctrl] - Приклеить курсор к существующей вершине<br>" +
-        "[Колёсико] - Масштабирование, [Ctrl+Z] - Отмена, [Ctrl+Y] - Вернуть, [Ctrl+A] - Сброс выбора объекта, [Delete] - Удалить выбранный объект, [Q/E] - Поворот холста, " + 
+        "[Колёсико] - Масштабирование, [Ctrl+Z] - Отмена, [Ctrl+Y] - Вернуть, [Ctrl+A] - Сброс выбора объекта, [Delete] - Удалить выбранный объект, [Q/E] - Поворот холста, " +
         "[Ctrl+S] - Сохранить",
 
     massLabel: "Преобразование рисунка",
@@ -205,7 +205,13 @@ const ru =
     selectedTextInfo: "Выбран : ",
     loadingErrorTextInfo: "Ошибка загрузки!",
     couldntLoadFontTextInfo: "Не удалось загрузить шрифт: ",
-    loadingFontErrorTextInfo: "Ошибка загрузки шрифта: "
+    loadingFontErrorTextInfo: "Ошибка загрузки шрифта: ",
+
+    brushTitleText: "Кисть",
+    brushDescription: "Зажмите и рисуйте произвольную линию. При отпускании она конвертируется в обычные четырёхугольники",
+    brushThicknessLabel: "Толщина",
+    brushSimplificationLabel: "Упрощение",
+    brushSmoothingLabel: "Сглаживание"
 };
 
 const en =
@@ -253,7 +259,7 @@ const en =
     quad: "Quad",
 
     hintsText: "[RMB] - Move canvas, [LMB] - Draw, [MMB] - Select object, [Ctrl] - Snap to vertices<br>" +
-        "[Mouse Wheel] - Zoom, [Ctrl+Z] - Undo, [Ctrl+Y] - Redo, [Ctrl+A] - Clear selection, [Delete] - Delete selected object, [Q/E] - Rotate canvas, " + 
+        "[Mouse Wheel] - Zoom, [Ctrl+Z] - Undo, [Ctrl+Y] - Redo, [Ctrl+A] - Clear selection, [Delete] - Delete selected object, [Q/E] - Rotate canvas, " +
         "[Ctrl+S] - Save",
 
     massLabel: "Drawing transform",
@@ -416,7 +422,13 @@ const en =
     selectedTextInfo: "Selected: ",
     loadingErrorTextInfo: "Loading error!",
     couldntLoadFontTextInfo: "Couldn't load font: ",
-    loadingFontErrorTextInfo: "Font loading error: "
+    loadingFontErrorTextInfo: "Font loading error: ",
+
+    brushTitleText: "Brush",
+    brushDescription: "Click and drag to draw a freehand line. It will be converted into quads upon release",
+    brushThicknessLabel: "Thickness",
+    brushSimplificationLabel: "Simplification",
+    brushSmoothingLabel: "Smoothing"
 };
 
 const langDependent =
@@ -585,7 +597,13 @@ const langDependent =
         "fontSizeLabel",
         "simplifyLabel",
         "textCreateBtn",
-        "textCancelBtn"
+        "textCancelBtn",
+
+        "brushTitleText",
+        "brushDescription",
+        "brushThicknessLabel",
+        "brushSimplificationLabel",
+        "brushSmoothingLabel"
     ];
 
 function changeLang(to) {

@@ -491,7 +491,9 @@ document.onkeydown = (e) => {
 document.onkeyup = (e) => {
     if (e.code === "ControlLeft") {
         snapping = false;
-        showInfo(null);
+        if (!arrowPulling && !isPullingCenter) {
+            showInfo(null);
+        }
     }
 };
 

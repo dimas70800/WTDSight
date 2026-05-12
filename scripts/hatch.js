@@ -19,7 +19,7 @@ function startHatchDrawing(pos) {
 
 function addHatchPoint(pos, isDragging = false) {
     if (!isDrawingHatch) return;
-    
+
     const roundedPos = {
         x: Math.round(pos.x * 1000000) / 1000000,
         y: Math.round(pos.y * 1000000) / 1000000
@@ -27,17 +27,17 @@ function addHatchPoint(pos, isDragging = false) {
 
     if (hatchPoints.length > 0) {
         const last = hatchPoints[hatchPoints.length - 1];
-        if (Math.abs(roundedPos.x - last.x) < 0.000001 && 
+        if (Math.abs(roundedPos.x - last.x) < 0.000001 &&
             Math.abs(roundedPos.y - last.y) < 0.000001) return;
     }
     if (hatchPoints.length > 1) {
         const prevLast = hatchPoints[hatchPoints.length - 2];
-        if (Math.abs(roundedPos.x - prevLast.x) < 0.000001 && 
+        if (Math.abs(roundedPos.x - prevLast.x) < 0.000001 &&
             Math.abs(roundedPos.y - prevLast.y) < 0.000001) return;
     }
 
     let existingIndex = -1;
-    let radius = 0.001;
+    let radius = 10 / screenZoom / getBaseScale();
 
     for (let i = 0; i < hatchPoints.length; i++) {
         if (Math.abs(roundedPos.x - hatchPoints[i].x) < radius &&
@@ -49,7 +49,7 @@ function addHatchPoint(pos, isDragging = false) {
 
     if (snapping) {
         const finalPos = (existingIndex !== -1) ? hatchPoints[existingIndex] : roundedPos;
-        
+
         hatchPoints.push({ x: finalPos.x, y: finalPos.y });
         updateHatchPreview();
         return;
