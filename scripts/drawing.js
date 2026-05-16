@@ -439,6 +439,11 @@ document.onkeydown = (e) => {
         if (e.code === "Escape") activeElem.blur();
         return;
     }
+    if (isAnimatingDrawing) {
+        if (e.code === "Escape") stopDrawingAnimation();
+        return;
+    }
+
     if (e.ctrlKey && e.code === "KeyS") {
         e.preventDefault();
         forcedSave();

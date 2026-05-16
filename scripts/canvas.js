@@ -44,6 +44,12 @@ let isPullingCenter = false;
 let centerPullSource = null;
 let centerPullStartData = null;
 
+let isAnimatingDrawing = false;
+let animatedObjectsList = [];
+let animationProgress = 0;
+let animationSpeed = 1;
+let animationSpeedMultiplier = 1;
+
 let gridSize = 0.1; // Size of grid cell in sight scale
 
 let mousePos = { x: 0, y: 0 };
@@ -301,11 +307,27 @@ function drawStuff() {
         }
     }
 
-    for (const [id, object] of objects) {
-        const color = !object.selected ? "rgba(0, 0, 0, " + opacity + ")" : "rgba(0, 0, 255, " + timeSin.toString() + ")";
-        const width = !object.selected ? 1 : 3;
+    if (isAnimatingDrawing) {
+        let count = 0;
+        for (const object of animatedObjectsList) {
+            if (count > animationProgress) break;
 
-        drawStuffObject(object, color, width, (point, x, y, r, sx, sy) => { return point; });
+            const color = "rgba(0, 0, 0, " + opacity + ")";
+            drawStuffObject(object, color, 1, (point, x, y, r, sx, sy) => { return point; });
+            count++;
+        }
+
+        animationProgress += animationSpeed;
+        if (animationProgress >= animatedObjectsList.length + (60 * animationSpeed)) {
+            stopDrawingAnimation();
+        }
+    } else {
+        for (const [id, object] of objects) {
+            const color = !object.selected ? "rgba(0, 0, 0, " + opacity + ")" : "rgba(0, 0, 255, " + timeSin.toString() + ")";
+            const width = !object.selected ? 1 : 3;
+
+            drawStuffObject(object, color, width, (point, x, y, r, sx, sy) => { return point; });
+        }
     }
 
     if (drawMassGhost) {
@@ -1010,6 +1032,112 @@ function deleteSelectedObjects() {
     showInfo(null);
 }
 
+function distanceToLine(point, lineStart, lineEnd) {
+    const dx = lineEnd.x - lineStart.x;
+    const dy = lineEnd.y - lineStart.y;
+    const lengthSq = dx * dx + dy * dy;
+
+    if (lengthSq === 0) {
+        return Math.sqrt((point.x - lineStart.x) ** 2 + (point.y - lineStart.y) ** 2);
+    }
+
+    let t = ((point.x - lineStart.x) * dx + (point.y - lineStart.y) * dy) / lengthSq;
+    t = Math.max(0, Math.min(1, t));
+
+    const projX = lineStart.x + t * dx;
+    const projY = lineStart.y + t * dy;
+
+    return Math.sqrt((point.x - projX) ** 2 + (point.y - projY) ** 2);
+}
+
+function isPointInQuad(point, quad) {
+    const corners = [quad.pos1, quad.pos2, quad.pos3, quad.pos4];
+    let inside = false;
+
+    for (let i = 0, j = corners.length - 1; i < corners.length; j = i++) {
+        const xi = corners[i].x, yi = corners[i].y;
+        const xj = corners[j].x, yj = corners[j].y;
+
+        const intersect = ((yi > point.y) !== (yj > point.y)) &&
+            (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+
+        if (intersect) inside = !inside;
+    }
+
+    return inside;
+}
+
+function getObjectMoveData(obj) {
+    if (obj.type === "line") {
+        return {
+            type: "line",
+            start: { x: obj.start.x, y: obj.start.y },
+            end: { x: obj.end.x, y: obj.end.y }
+        };
+    } else if (obj.type === "quad") {
+        return {
+            type: "quad",
+            pos1: { x: obj.pos1.x, y: obj.pos1.y },
+            pos2: { x: obj.pos2.x, y: obj.pos2.y },
+            pos3: { x: obj.pos3.x, y: obj.pos3.y },
+            pos4: { x: obj.pos4.x, y: obj.pos4.y }
+        };
+    }
+    return null;
+}
+
+function moveObject(obj, delta) {
+    if (obj.type === "line") {
+        obj.start.x += delta.x;
+        obj.start.y += delta.y;
+        obj.end.x += delta.x;
+        obj.end.y += delta.y;
+    } else if (obj.type === "quad") {
+        obj.pos1.x += delta.x;
+        obj.pos1.y += delta.y;
+        obj.pos2.x += delta.x;
+        obj.pos2.y += delta.y;
+        obj.pos3.x += delta.x;
+        obj.pos3.y += delta.y;
+        obj.pos4.x += delta.x;
+        obj.pos4.y += delta.y;
+    }
+}
+
+function toggleDrawingAnimation() {
+    const btn = document.getElementById("playAnimationBtn");
+    
+    if (isAnimatingDrawing) {
+        stopDrawingAnimation();
+        return;
+    }
+    
+    if (objects.size === 0) return;
+
+    unselectAnyObjects(); 
+    
+    isAnimatingDrawing = true;
+    animatedObjectsList = Array.from(objects.values());
+    animationProgress = 0;
+    
+    animationSpeed = animationSpeedMultiplier;
+
+    if (btn) {
+        btn.innerHTML = lang.stopAnimationBtn;
+        btn.style.background = "#eb3b3b";
+    }
+}
+
+function stopDrawingAnimation() {
+    isAnimatingDrawing = false;
+    animatedObjectsList = [];
+    const btn = document.getElementById("playAnimationBtn");
+    if (btn) {
+        btn.innerHTML = lang.playAnimationBtn;
+        btn.style.background = "var(--input-bg)";
+    }
+}
+
 // Canvas interaction
 
 let canvasHover = false;
@@ -1036,6 +1164,8 @@ let arrowPulling = false;
 let posPulled = null;
 
 canvas.onpointerdown = (e) => {
+
+    if (window.isAnimatingDrawing && e.button !== 2) return;
 
     lastMousePosCanvas = getMousePos(e.offsetX, e.offsetY);
 
@@ -1538,75 +1668,3 @@ onwheel = (e) => {
 
     //console.log("Zoom: " + screenZoom);
 };
-
-function distanceToLine(point, lineStart, lineEnd) {
-    const dx = lineEnd.x - lineStart.x;
-    const dy = lineEnd.y - lineStart.y;
-    const lengthSq = dx * dx + dy * dy;
-
-    if (lengthSq === 0) {
-        return Math.sqrt((point.x - lineStart.x) ** 2 + (point.y - lineStart.y) ** 2);
-    }
-
-    let t = ((point.x - lineStart.x) * dx + (point.y - lineStart.y) * dy) / lengthSq;
-    t = Math.max(0, Math.min(1, t));
-
-    const projX = lineStart.x + t * dx;
-    const projY = lineStart.y + t * dy;
-
-    return Math.sqrt((point.x - projX) ** 2 + (point.y - projY) ** 2);
-}
-
-function isPointInQuad(point, quad) {
-    const corners = [quad.pos1, quad.pos2, quad.pos3, quad.pos4];
-    let inside = false;
-
-    for (let i = 0, j = corners.length - 1; i < corners.length; j = i++) {
-        const xi = corners[i].x, yi = corners[i].y;
-        const xj = corners[j].x, yj = corners[j].y;
-
-        const intersect = ((yi > point.y) !== (yj > point.y)) &&
-            (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
-
-        if (intersect) inside = !inside;
-    }
-
-    return inside;
-}
-
-function getObjectMoveData(obj) {
-    if (obj.type === "line") {
-        return {
-            type: "line",
-            start: { x: obj.start.x, y: obj.start.y },
-            end: { x: obj.end.x, y: obj.end.y }
-        };
-    } else if (obj.type === "quad") {
-        return {
-            type: "quad",
-            pos1: { x: obj.pos1.x, y: obj.pos1.y },
-            pos2: { x: obj.pos2.x, y: obj.pos2.y },
-            pos3: { x: obj.pos3.x, y: obj.pos3.y },
-            pos4: { x: obj.pos4.x, y: obj.pos4.y }
-        };
-    }
-    return null;
-}
-
-function moveObject(obj, delta) {
-    if (obj.type === "line") {
-        obj.start.x += delta.x;
-        obj.start.y += delta.y;
-        obj.end.x += delta.x;
-        obj.end.y += delta.y;
-    } else if (obj.type === "quad") {
-        obj.pos1.x += delta.x;
-        obj.pos1.y += delta.y;
-        obj.pos2.x += delta.x;
-        obj.pos2.y += delta.y;
-        obj.pos3.x += delta.x;
-        obj.pos3.y += delta.y;
-        obj.pos4.x += delta.x;
-        obj.pos4.y += delta.y;
-    }
-}

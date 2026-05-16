@@ -211,7 +211,11 @@ const ru =
     brushDescription: "Зажмите и рисуйте произвольную линию. При отпускании она конвертируется в обычные четырёхугольники",
     brushThicknessLabel: "Толщина",
     brushSimplificationLabel: "Упрощение",
-    brushSmoothingLabel: "Сглаживание"
+    brushSmoothingLabel: "Сглаживание",
+     
+    playAnimationBtn: "▶ Анимация рисования",
+    stopAnimationBtn: "⏹ Остановить анимацию",
+    speedAnimationLabel: "Скорость"
 };
 
 const en =
@@ -428,7 +432,11 @@ const en =
     brushDescription: "Click and drag to draw a freehand line. It will be converted into quads upon release",
     brushThicknessLabel: "Thickness",
     brushSimplificationLabel: "Simplification",
-    brushSmoothingLabel: "Smoothing"
+    brushSmoothingLabel: "Smoothing",
+
+    playAnimationBtn: "▶ Drawing animation",
+    stopAnimationBtn: "⏹ Stop animation",
+    speedAnimationLabel: "Speed"
 };
 
 const langDependent =
@@ -603,7 +611,10 @@ const langDependent =
         "brushDescription",
         "brushThicknessLabel",
         "brushSimplificationLabel",
-        "brushSmoothingLabel"
+        "brushSmoothingLabel",
+
+        "playAnimationBtn",
+        "speedAnimationLabel"
     ];
 
 function changeLang(to) {
