@@ -212,10 +212,18 @@ const ru =
     brushThicknessLabel: "Толщина",
     brushSimplificationLabel: "Упрощение",
     brushSmoothingLabel: "Сглаживание",
-     
+
     playAnimationBtn: "▶ Анимация рисования",
     stopAnimationBtn: "⏹ Остановить анимацию",
-    speedAnimationLabel: "Скорость"
+    speedAnimationLabel: "Скорость",
+
+    fillTitleText: "Заливка",
+    fillDescription: "Кликайте по холсту, чтобы создать контур (мин. 3 точки)",
+    fillPointsCount: "Точек",
+    fillQuadsCount: "Четырёхугольников",
+    fillCreateBtn: "Создать",
+    fillCancelBtn: "Отмена"
+
 };
 
 const en =
@@ -436,7 +444,14 @@ const en =
 
     playAnimationBtn: "▶ Drawing animation",
     stopAnimationBtn: "⏹ Stop animation",
-    speedAnimationLabel: "Speed"
+    speedAnimationLabel: "Speed",
+
+    fillTitleText: "Fill",
+    fillDescription: "Click on the canvas to create a contour (min. 3 points)",
+    fillPointsCount: "Points",
+    fillQuadsCount: "Quads",
+    fillCreateBtn: "Create",
+    fillCancelBtn: "Cancel"
 };
 
 const langDependent =
@@ -614,7 +629,14 @@ const langDependent =
         "brushSmoothingLabel",
 
         "playAnimationBtn",
-        "speedAnimationLabel"
+        "speedAnimationLabel",
+
+        "fillTitleText",
+        "fillDescription",
+        "fillPointsCount",
+        "fillQuadsCount",
+        "fillCreateBtn",
+        "fillCancelBtn"
     ];
 
 function changeLang(to) {

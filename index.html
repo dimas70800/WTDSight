@@ -59,11 +59,14 @@
                     <button id="toolsHatchButton" class="tab-button" data-target="hatch">
                         <img src="images/hatchTool.svg" alt="Hatch">
                     </button>
-                    <button id="toolsTextButton" class="tab-button" data-target="text">
-                        <img src="images/textTool.svg" alt="Text">
+                    <button id="toolsFillButton" class="tab-button" data-target="fill">
+                        <img src="images/fillTool.svg" alt="Fill">
                     </button>
                     <button id="toolsSelectButton" class="tab-button" data-target="select">
                         <img src="images/selectTool.png" alt="Select">
+                    </button>
+                    <button id="toolsTextButton" class="tab-button" data-target="text">
+                        <img src="images/textTool.svg" alt="Text">
                     </button>
                     <button id="toolsVectorizeButton" class="tab-button" data-target="vectorize">
                         <img src="images/vectorizeTool.png" alt="Vectorize">
@@ -445,6 +448,27 @@
                             </div>
                         </div>
 
+                        <div id="panel-fill" class="panel-content">
+                            <h2 class="panel-title" id="fillTitleText">Заливка</h2>
+                            <p style="font-size: 13px; color: #aaa;" id="fillDescription">Кликайте по холсту, чтобы
+                                создать контур для заполнения четырёхугольниками (мин. 3 точки)</p>
+                            <div class="block-with-elem">
+                                <div
+                                    style="font-size: 14px; text-align: center; display: flex; justify-content: space-around;">
+                                    <div><span id="fillPointsCount">Точек:</span> <span id="fillPointsNum"
+                                            style="color: var(--text-white); font-weight: bold;">0</span></div>
+                                    <div><span id="fillQuadsCount">Четырёхугольников:</span> <span id="fillQuadsNum"
+                                            style="color: var(--text-white); font-weight: bold;">0</span></div>
+                                </div>
+                                <div style="display: flex; gap: 8px; margin-top: 5px;">
+                                    <button id="fillCreateBtn"
+                                        style="background: #228025; color: white; flex-grow: 1;">Создать</button>
+                                    <button id="fillCancelBtn"
+                                        style="background: #eb3b3b; color: white; flex-grow: 1;">Отмена</button>
+                                </div>
+                            </div>
+                        </div>
+
                         <div id="shared-drawing-tools"
                             style="display: none; flex-direction: column; gap: 15px; margin-top: 20px; border-top: 1px solid var(--border-col); padding-top: 15px;">
                             <div class="panel-with-elem" id="panel-with-refOpacityShared">
@@ -762,6 +786,7 @@
     <script src="scripts/opentype.min.js"></script>
     <script src="scripts/text-tool.js"></script>
     <script src="scripts/brush.js"></script>
+    <script src="scripts/fill.js"></script>
 </body>
 
 </html>

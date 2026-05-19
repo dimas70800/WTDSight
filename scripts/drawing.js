@@ -449,6 +449,7 @@ document.onkeydown = (e) => {
         forcedSave();
         showNotification(lang.savedNotificationText)
     }
+
     if (e.code === "KeyQ") {
         changeVisualRotation(-15);
     }
@@ -502,7 +503,7 @@ document.onkeyup = (e) => {
     }
 };
 
-function snappingPos(mouse, maxPixelRadius = Infinity) {
+function snappingPos(mouse, maxPixelRadius = Infinity, ignoreId = null) {
     let closestPos = null;
     let closestSqrMag = Infinity;
 
@@ -521,6 +522,8 @@ function snappingPos(mouse, maxPixelRadius = Infinity) {
     }
 
     for (const [id, obj] of objects) {
+        if (id === ignoreId) continue;
+
         switch (obj.type) {
             case "line":
                 comp(obj.start);

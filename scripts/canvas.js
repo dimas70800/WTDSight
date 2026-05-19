@@ -640,6 +640,41 @@ function drawGhost() {
                 drawCircle(mousePosCanvas.x, mousePosCanvas.y, 20);
             }
             break;
+        case "fill":
+            if (fillPoints.length > 0) {
+                for (let i = 0; i < fillPoints.length; i++) {
+                    const pointCanvas = v2disposSight2v2canvas(fillPoints[i]);
+                    drawCircle(pointCanvas.x, pointCanvas.y, 6);
+                    if (i > 0) {
+                        const prevCanvas = v2disposSight2v2canvas(fillPoints[i - 1]);
+                        drawLine(prevCanvas.x, prevCanvas.y, pointCanvas.x, pointCanvas.y);
+                    }
+                }
+                if (fillPoints.length >= 3) {
+                    const firstCanvas = v2disposSight2v2canvas(fillPoints[0]);
+                    const lastCanvas = v2disposSight2v2canvas(fillPoints[fillPoints.length - 1]);
+                    drawLine(lastCanvas.x, lastCanvas.y, firstCanvas.x, firstCanvas.y);
+                }
+            }
+            if (previewFillQuads && previewFillQuads.length > 0) {
+                ctx.save();
+                ctx.globalAlpha = 0.6;
+                ctx.fillStyle = "rgba(100, 150, 255, 0.4)";
+                ctx.strokeStyle = "rgba(100, 150, 255, 0.8)";
+                ctx.lineWidth = getLineWidth(2);
+                for (const q of previewFillQuads) {
+                    const p1 = v2disposSight2v2canvas(q[0]), p2 = v2disposSight2v2canvas(q[1]);
+                    const p3 = v2disposSight2v2canvas(q[2]), p4 = v2disposSight2v2canvas(q[3]);
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+                    ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
+                    ctx.closePath();
+                    ctx.fill(); ctx.stroke();
+                }
+                ctx.restore();
+            }
+            if (snapping) drawCircle(mousePosCanvas.x, mousePosCanvas.y, 20);
+            break;
     }
     if (tool === "select" && selectionRect && isSelecting) {
         const from = v2disposSight2v2canvas({ x: selectionRect.startX, y: selectionRect.startY });
@@ -1106,20 +1141,20 @@ function moveObject(obj, delta) {
 
 function toggleDrawingAnimation() {
     const btn = document.getElementById("playAnimationBtn");
-    
+
     if (isAnimatingDrawing) {
         stopDrawingAnimation();
         return;
     }
-    
+
     if (objects.size === 0) return;
 
-    unselectAnyObjects(); 
-    
+    unselectAnyObjects();
+
     isAnimatingDrawing = true;
     animatedObjectsList = Array.from(objects.values());
     animationProgress = 0;
-    
+
     animationSpeed = animationSpeedMultiplier;
 
     if (btn) {
@@ -1149,6 +1184,7 @@ canvas.onpointerover = (e) => {
 canvas.onpointerleave = (e) => {
     canvasHover = false;
     isHatchDragging = false;
+    isFillDragging = false;
     if (tool !== "hatch" || !isDrawingHatch) {
         clearDrawing();
     }
@@ -1348,6 +1384,19 @@ canvas.onpointerdown = (e) => {
                 }
                 isHatchDragging = true;
             }
+            else if (tool === "fill") {
+                const clickCanvas = getMousePos(e.offsetX, e.offsetY);
+                let clickPos = v2canvas2v2disposSight(clickCanvas);
+
+                if (snapping) {
+                    const snapPos = snappingPos(clickPos, 40);
+                    if (snapPos != null) clickPos = snapPos;
+                }
+
+                if (!isDrawingFill) startFillDrawing(clickPos);
+                else addFillPoint(clickPos, false);
+                isFillDragging = true;
+            }
             else if (tool === "curve") {
                 const clickCanvas = getMousePos(e.offsetX, e.offsetY);
                 let clickPos = v2canvas2v2disposSight(clickCanvas);
@@ -1431,6 +1480,10 @@ canvas.onpointermove = (e) => {
             addHatchPoint(snapPos, true);
         }
     }
+    if (tool === "fill" && isDrawingFill && isFillDragging && snapping) {
+        const snapPos = snappingPos(mousePos, 40);
+        if (snapPos != null) addFillPoint(snapPos, true);
+    }
     const sightMovement = v2pixel2v2sight(exactMovement);
     const pullMovement = v2pixel2v2sight(exactMovement);
     if (tool === "text" && textToolState.action) {
@@ -1470,14 +1523,29 @@ canvas.onpointermove = (e) => {
     if (isPullingCenter && selectedId != null) {
         const object = objects.get(selectedId);
 
-        if (object.type === "line") {
-            if (centerPullSource === 0) { object.start.x += pullMovement.x; object.start.y += pullMovement.y; }
-            else if (centerPullSource === 1) { object.end.x += pullMovement.x; object.end.y += pullMovement.y; }
-        } else if (object.type === "quad") {
-            if (centerPullSource === 0) { object.pos1.x += pullMovement.x; object.pos1.y += pullMovement.y; }
-            else if (centerPullSource === 1) { object.pos2.x += pullMovement.x; object.pos2.y += pullMovement.y; }
-            else if (centerPullSource === 2) { object.pos3.x += pullMovement.x; object.pos3.y += pullMovement.y; }
-            else if (centerPullSource === 3) { object.pos4.x += pullMovement.x; object.pos4.y += pullMovement.y; }
+        if (snapping) {
+            const snapP = snappingPos(mousePos, 100, selectedId);
+            const targetPos = snapP != null ? snapP : mousePos;
+
+            if (object.type === "line") {
+                if (centerPullSource === 0) { object.start.x = targetPos.x; object.start.y = targetPos.y; }
+                else if (centerPullSource === 1) { object.end.x = targetPos.x; object.end.y = targetPos.y; }
+            } else if (object.type === "quad") {
+                if (centerPullSource === 0) { object.pos1.x = targetPos.x; object.pos1.y = targetPos.y; }
+                else if (centerPullSource === 1) { object.pos2.x = targetPos.x; object.pos2.y = targetPos.y; }
+                else if (centerPullSource === 2) { object.pos3.x = targetPos.x; object.pos3.y = targetPos.y; }
+                else if (centerPullSource === 3) { object.pos4.x = targetPos.x; object.pos4.y = targetPos.y; }
+            }
+        } else {
+            if (object.type === "line") {
+                if (centerPullSource === 0) { object.start.x = mousePos.x; object.start.y = mousePos.y; }
+                else if (centerPullSource === 1) { object.end.x = mousePos.x; object.end.y = mousePos.y; }
+            } else if (object.type === "quad") {
+                if (centerPullSource === 0) { object.pos1.x = mousePos.x; object.pos1.y = mousePos.y; }
+                else if (centerPullSource === 1) { object.pos2.x = mousePos.x; object.pos2.y = mousePos.y; }
+                else if (centerPullSource === 2) { object.pos3.x = mousePos.x; object.pos3.y = mousePos.y; }
+                else if (centerPullSource === 3) { object.pos4.x = mousePos.x; object.pos4.y = mousePos.y; }
+            }
         }
     }
     if (arrowPulling) {
@@ -1562,6 +1630,7 @@ canvas.onpointerup = (e) => {
             textToolState.action = null;
         }
         isHatchDragging = false;
+        isFillDragging = false;
 
         if (arrowPulling === true) {
             arrowPulling = false;
