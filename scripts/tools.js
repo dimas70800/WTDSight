@@ -28,7 +28,7 @@ function switchTool(targetId) {
         if (typeof selectionRect !== 'undefined') selectionRect = null;
         if (typeof isSelecting !== 'undefined') isSelecting = false;
     } else {
-        if (typeof selectedObjectsSet !== 'undefined') selectedObjectsSet.clear();
+        if (typeof selectedObjectsSet !== 'undefined')  clearSelection();
     }
     if (targetId === "hatch" && typeof cancelHatch === 'function') cancelHatch();
     if (targetId === "fill" && typeof cancelFill === 'function') cancelFill();
