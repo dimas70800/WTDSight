@@ -74,6 +74,7 @@ const ru =
     exportFontSizeMult: "Масштаб текста и цифр",
     exportLineSizeMult: "Толщина линий",
     exportMaxDist: "Максимальная дистанция",
+    exportTextPosLabel: "Смещение текста дальности",
     exportDrawCentralLineVert: "Вертикальная линия",
     exportDrawCentralLineHorz: "Горизонтальная линия",
     exportCdhsa1: "Длина делений на центральной линии",
@@ -177,6 +178,7 @@ const ru =
     dashPreviewText: "Деления",
     spacingPreviewText: "Расстояние",
     maxDistPreviewText: "Макс. дистанция",
+    textPosPreviewText: "Сдвиг текста",
     screenshotPreviewText: "Сделать скриншот",
 
     curveTitleText: "Кривая",
@@ -302,6 +304,7 @@ const en =
     exportFontSizeMult: "Text and numbers scale",
     exportLineSizeMult: "Line thickness",
     exportMaxDist: "Max distance",
+    exportTextPosLabel: "Range text offset",
     exportDrawCentralLineVert: "Vertical line",
     exportDrawCentralLineHorz: "Horizontal line",
     exportCdhsa1: "Center line tick length",
@@ -406,6 +409,7 @@ const en =
     dashPreviewText: "Dashes",
     spacingPreviewText: "Spacing",
     maxDistPreviewText: "Max distance",
+    textPosPreviewText: "Text offset",
     screenshotPreviewText: "Take screenshot",
 
     curveTitleText: "Curve",
@@ -510,6 +514,7 @@ const langDependent =
         "exportFontSizeMult",
         "exportLineSizeMult",
         "exportMaxDist",
+        "exportTextPosLabel",
         "exportDrawCentralLineVert",
         "exportDrawCentralLineHorz",
         "exportCdhsa1",
@@ -600,6 +605,7 @@ const langDependent =
         "dashPreviewText",
         "spacingPreviewText",
         "maxDistPreviewText",
+        "textPosPreviewText",
         "screenshotPreviewText",
 
         "curveTitleText",

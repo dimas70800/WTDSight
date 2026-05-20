@@ -128,7 +128,7 @@ function toggleTheme() {
 function toggleHints(show) {
     const hintsEl = document.getElementById('hints');
     const hintsCheckBox = document.getElementById('hintsCheckBox');
-    
+
     if (hintsEl) {
         hintsEl.style.display = show ? 'block' : 'none';
     }
@@ -183,7 +183,7 @@ function drawPreview() {
 
     pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
 
-    const maxDist = parseInt(el('previewMaxDist').value) || 6000;
+    const maxDist = parseInt(document.getElementById('previewMaxDist')?.value) || 6000;
 
     const drawVert = document.getElementById('previewDrawCentralLineVert').checked;
     const drawHorz = document.getElementById('previewDrawCentralLineHorz').checked;
@@ -221,18 +221,31 @@ function drawPreview() {
     }
 
     if (drawTicks) {
-        pCtx.lineWidth = (pCanvas.height / 2160) * 2;
+        pCtx.lineWidth = (pCanvas.height / 2160) * 1.5;
+        pCtx.fillStyle = "rgba(0, 0, 0, 0.8)";
 
-        const val_cdhsa1 = parseFloat(document.getElementById('exp_cdhsa1')?.value) * 2 || 0.005;
-        const val_cdhsa2 = parseFloat(document.getElementById('exp_cdhsa2')?.value) * 2 || 0.003;
+        pCtx.textAlign = "center";
+        pCtx.textBaseline = "middle";
+        const fontSize = Math.round(22 * (pCanvas.height / 2160));
+        pCtx.font = `bold ${fontSize}px Arial`;
+
+        const val_cdhsa1 = parseFloat(document.getElementById('exp_cdhsa1')?.value) || 0.005;
+        const val_cdhsa2 = parseFloat(document.getElementById('exp_cdhsa2')?.value) || 0.003;
+
+        const val_cdhsm1 = parseFloat(document.getElementById('exp_cdhsm1')?.value) || 0;
+        const val_cdhsm2 = parseFloat(document.getElementById('exp_cdhsm2')?.value) || 0;
+
+        const textPosX = parseFloat(document.getElementById('previewTextPosX')?.value) || 0;
 
         const baseSpacing = tickSpacingRaw * baseScale * 0.01;
-
         const stretching = 1;
 
         let currentY = cy;
+        let lastTextY = -Infinity;
 
-        const maxDist = parseInt(document.getElementById('previewMaxDist')?.value) || 6000;
+        const minTextGap = fontSize * 0.9;
+
+        const textCanvasX = cx + (textPosX - 0.16 - (val_cdhsm1 / 6)) * baseScale;
 
         for (let d = 200; d <= maxDist; d += 200) {
             const multiplier = 1 + (d / 2000) * stretching;
@@ -240,14 +253,33 @@ function drawPreview() {
 
             if (currentY > pCanvas.height) break;
 
-            const isMajor = (d % 400 === 0);
-            const lenCentral = isMajor ? val_cdhsa1 : val_cdhsa2;
+            const hasText = (d % 400 === 0);
+            const textValue = d / 100;
+
+            const lenCentral = hasText ? val_cdhsa1 : val_cdhsa2;
             const lenCentralPx = lenCentral * baseScale;
 
             pCtx.beginPath();
-            pCtx.moveTo(cx - lenCentralPx / 2, currentY);
-            pCtx.lineTo(cx + lenCentralPx / 2, currentY);
+            pCtx.moveTo(cx - lenCentralPx, currentY);
+            pCtx.lineTo(cx + lenCentralPx, currentY);
             pCtx.stroke();
+
+            const lenLeft = hasText ? val_cdhsm1 : val_cdhsm2;
+            const lenLeftPx = lenLeft * baseScale;
+
+            const leftScaleX = cx - (0.1425 * baseScale);
+
+            pCtx.beginPath();
+            pCtx.moveTo(leftScaleX - lenLeftPx / 2, currentY);
+            pCtx.lineTo(leftScaleX + lenLeftPx / 2, currentY);
+            pCtx.stroke();
+
+            if (hasText) {
+                if (currentY >= lastTextY + minTextGap) {
+                    pCtx.fillText(textValue.toString(), textCanvasX, currentY);
+                    lastTextY = currentY;
+                }
+            }
         }
     }
 
@@ -338,3 +370,34 @@ function toggleThermalMode() {
         bgImg.src = 'images/preview.png';
     }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const expMaxDist = document.getElementById('exp_maxDist');
+    const prevMaxDist = document.getElementById('previewMaxDist');
+    const prevTextPos = document.getElementById('previewTextPosX');
+    const expTextPos = document.getElementById('exp_textPosX');
+
+    if (expMaxDist && prevMaxDist) {
+        expMaxDist.addEventListener('input', (e) => {
+            prevMaxDist.value = e.target.value;
+        });
+
+        prevMaxDist.addEventListener('input', (e) => {
+            expMaxDist.value = e.target.value;
+            drawPreview();
+            saveExportSettings();
+        });
+    }
+
+    if (expTextPos && prevTextPos) {
+        expTextPos.addEventListener('input', (e) => {
+            prevTextPos.value = e.target.value;
+        });
+
+        prevTextPos.addEventListener('input', (e) => {
+            expTextPos.value = e.target.value;
+            drawPreview();
+            saveExportSettings();
+        });
+    }
+});

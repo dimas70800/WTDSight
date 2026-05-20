@@ -1676,6 +1676,12 @@ canvas.onpointermove = (e) => {
         updateTextPreview();
     }
     if (tool === "select" && transformState.active && transformState.action && transformState.initialBox) {
+
+        if (!transformState.box) {
+            transformState.active = false;
+            transformState.action = null;
+            return;
+        }
         const action = transformState.action;
         const initialBox = transformState.initialBox;
 

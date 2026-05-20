@@ -663,6 +663,11 @@
                     <label id="exportMaxDist">Макс. дистанция</label>
                     <input type="number" id="exp_maxDist" value="6000" step="200" min="200" style="width: 70px;">
                 </div>
+                <div class="export-row">
+                    <span id="exportTextPosLabel">Смещение текста дальности</span>
+                    <input type="number" id="exp_textPosX" value="0.14" step="0.01" style="width: 80px;">
+                </div>
+
                 <div class="export-row"><label id="exportDrawCentralLineVert">Вертикальная линия</label><input
                         type="checkbox" id="exp_drawCentralLineVert" checked></div>
                 <div class="export-row"><label id="exportDrawCentralLineHorz">Горизонтальная линия</label><input
@@ -758,7 +763,10 @@
                         style="width: 60px; background: var(--input-bg); color: var(--text-white); border: 1px solid var(--border-col); border-radius: 4px; padding: 2px 5px;"
                         oninput="this.value = Math.round(this.value / 200) * 200; drawPreview();">
                 </label>
-
+                <label>
+                    <span id="textPosPreviewText">Сдвиг текста</span>
+                    <input type="number" id="previewTextPosX" value="0.14" step="0.01" style="width: 60px; background: var(--input-bg); color: var(--text-white); border: 1px solid var(--border-col); border-radius: 4px; padding: 2px 5px;">
+                </label>
                 <button onclick="takePreviewScreenshot()" class="preview-screenshot-btn">
                     <span id="screenshotPreviewText">Сделать скриншот</span>
                 </button>

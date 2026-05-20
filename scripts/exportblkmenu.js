@@ -49,7 +49,12 @@ function loadExportSettings() {
         if (s.rangefinderHorizontalOffset) document.getElementById('exp_rangefinderHorizontalOffset').value = s.rangefinderHorizontalOffset;
         if (s.fontSizeMult) document.getElementById('exp_fontSizeMult').value = s.fontSizeMult;
         if (s.lineSizeMult) document.getElementById('exp_lineSizeMult').value = s.lineSizeMult;
-
+        if (s.textPosX) {
+            document.getElementById('exp_textPosX').value = s.textPosX;
+            if (document.getElementById('prev_textPosX')) {
+                document.getElementById('prev_textPosX').value = s.textPosX;
+            }
+        }
         // Чекбоксы
         if (s.drawCentralLineVert !== undefined) document.getElementById('exp_drawCentralLineVert').checked = s.drawCentralLineVert;
         if (s.drawCentralLineHorz !== undefined) document.getElementById('exp_drawCentralLineHorz').checked = s.drawCentralLineHorz;
@@ -106,6 +111,7 @@ function saveExportSettings() {
         fontSizeMult: document.getElementById('exp_fontSizeMult').value,
         lineSizeMult: document.getElementById('exp_lineSizeMult').value,
         maxDist: document.getElementById('exp_maxDist').value,
+        textPosX: document.getElementById('exp_textPosX').value,
 
         // Чекбоксы
         drawCentralLineVert: document.getElementById('exp_drawCentralLineVert').checked,
@@ -156,6 +162,7 @@ function generateBlkContent(settings) {
     blk += `crosshairLightColor:c = ${color4.r}, ${color4.g}, ${color4.b}, ${settings.color4.a}\n`;
     blk += `crosshairDistHorSizeMain:p2 = ${settings.cdhsm1}, ${settings.cdhsm2}\n`;
     blk += `crosshairDistHorSizeAdditional:p2 = ${settings.cdhsa1}, ${settings.cdhsa2}\n`;
+    blk += `textPos:p2 = ${settings.textPosX}, 0\n`;
     blk += `distanceCorrectionPos:p2 = ${settings.dcp1}, ${settings.dcp2}\n`;
     blk += `drawDistanceCorrection:b = ${settings.drawDistanceCorrection ? 'yes' : 'no'}\n`;
     blk += `useSmoothEdge:b = ${settings.useSmoothEdge ? 'yes' : 'no'}\n`;
