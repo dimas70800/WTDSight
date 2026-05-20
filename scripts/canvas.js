@@ -36,6 +36,70 @@ let selectionRect = null;      // { startX, startY, endX, endY } в мировы
 let isSelecting = false;
 let selectedObjectsSet = new Set();
 
+let transformState = {
+    active: false,
+    action: null,
+    box: null,
+    initialBox: null,
+    initialMousePos: null,
+    initialData: [],
+    startAngle: 0,
+    selectedIdsHash: "",
+    boxStartCx: 0,
+    boxStartCy: 0
+};
+
+function updateTransformBoxFromSelection() {
+    if (selectedObjectsSet.size === 0) {
+        transformState.box = null;
+        transformState.selectedIdsHash = "";
+        return;
+    }
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const id of selectedObjectsSet) {
+        const obj = objects.get(id);
+        if (!obj) continue;
+        const pts = obj.type === 'line' ? [obj.start, obj.end] : [obj.pos1, obj.pos2, obj.pos3, obj.pos4];
+        for (let p of pts) {
+            if (p.x < minX) minX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y > maxY) maxY = p.y;
+        }
+    }
+    const w = Math.max(maxX - minX, 0.01);
+    const h = Math.max(maxY - minY, 0.01);
+
+    transformState.box = {
+        cx: minX + w / 2, cy: minY + h / 2,
+        w: w, h: h, angle: 0
+    };
+    transformState.selectedIdsHash = Array.from(selectedObjectsSet).sort().join(',');
+}
+
+function getTransformHandles(box) {
+    if (!box) return [];
+    const { cx, cy, w, h, angle } = box;
+    const cos = Math.cos(angle), sin = Math.sin(angle);
+
+    const localPts = {
+        scale_tl: { x: -w / 2, y: -h / 2 },
+        scale_t: { x: 0, y: -h / 2 },
+        scale_tr: { x: w / 2, y: -h / 2 },
+        scale_r: { x: w / 2, y: 0 },
+        scale_br: { x: w / 2, y: h / 2 },
+        scale_b: { x: 0, y: h / 2 },
+        scale_bl: { x: -w / 2, y: h / 2 },
+        scale_l: { x: -w / 2, y: 0 },
+        rotate: { x: 0, y: -h / 2 - 30 / screenZoom / getBaseScale() }
+    };
+
+    return Object.entries(localPts).map(([id, pt]) => ({
+        id: id,
+        p: { x: cx + pt.x * cos - pt.y * sin, y: cy + pt.x * sin + pt.y * cos }
+    }));
+}
+
 let isDraggingSelected = false;
 let dragStartPos = null;
 let dragObjectsData = null;
@@ -689,6 +753,69 @@ function drawGhost() {
         ctx.strokeRect(from.x, from.y, to.x - from.x, to.y - from.y);
         ctx.restore();
     }
+    if (tool === "select" && selectedObjectsSet.size > 0 && !selectionRect) {
+        const currentHash = Array.from(selectedObjectsSet).sort().join(',');
+
+        if (!transformState.box || transformState.selectedIdsHash !== currentHash) {
+            if (!transformState.active && !isDraggingSelected) updateTransformBoxFromSelection();
+        }
+
+        const box = transformState.box;
+        if (box) {
+            ctx.save();
+            ctx.strokeStyle = "rgba(0, 120, 215, 0.8)";
+            ctx.fillStyle = "rgba(255, 255, 255, 1)";
+            ctx.lineWidth = getLineWidth(1.5);
+
+            const cos = Math.cos(box.angle), sin = Math.sin(box.angle);
+
+            const corners = [
+                { x: -box.w / 2, y: -box.h / 2 }, { x: box.w / 2, y: -box.h / 2 },
+                { x: box.w / 2, y: box.h / 2 }, { x: -box.w / 2, y: box.h / 2 }
+            ].map(pt => v2disposSight2v2canvas({
+                x: box.cx + pt.x * cos - pt.y * sin,
+                y: box.cy + pt.x * sin + pt.y * cos
+            }));
+
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(corners[0].x, corners[0].y);
+            corners.forEach(c => ctx.lineTo(c.x, c.y));
+            ctx.closePath();
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            const handles = getTransformHandles(box);
+            const tHandle = handles.find(h => h.id === 'scale_t').p;
+            const rotHandle = handles.find(h => h.id === 'rotate').p;
+
+            const tScreen = v2disposSight2v2canvas(tHandle);
+            const rotScreen = v2disposSight2v2canvas(rotHandle);
+            ctx.beginPath();
+            ctx.moveTo(tScreen.x, tScreen.y);
+            ctx.lineTo(rotScreen.x, rotScreen.y);
+            ctx.stroke();
+
+            function drawCircleHandle(worldPos, radiusPx) {
+                const canvasPos = v2disposSight2v2canvas(worldPos);
+                ctx.beginPath();
+                ctx.arc(canvasPos.x, canvasPos.y, radiusPx, 0, Math.PI * 2);
+                ctx.fill(); ctx.stroke();
+            }
+
+            const normalRadius = getLineWidth(8);
+            const rotateRadius = getLineWidth(12);
+
+            handles.forEach(h => {
+                drawCircleHandle(h.p, h.id === 'rotate' ? rotateRadius : normalRadius);
+            });
+
+            ctx.restore();
+        }
+    } else if (selectedObjectsSet.size === 0) {
+        transformState.box = null;
+    }
+
 }
 
 function drawReference(index) {
@@ -1306,6 +1433,32 @@ canvas.onpointerdown = (e) => {
             const clickCanvas = getMousePos(e.offsetX, e.offsetY);
             const clickWorld = v2canvas2v2disposSight(clickCanvas);
 
+            if (selectedObjectsSet.size > 0 && !selectionRect && transformState.box) {
+                const handles = getTransformHandles(transformState.box);
+                const hitRadius = 8 / screenZoom / getBaseScale();
+                const dist = (p1, p2) => Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
+
+                let hitHandle = handles.find(h => {
+                    const radiusMod = h.id === 'rotate' ? 1.8 : 1.5;
+                    return dist(clickWorld, h.p) < hitRadius * radiusMod;
+                });
+
+                if (hitHandle) {
+                    transformState.active = true;
+                    transformState.action = hitHandle.id;
+                    transformState.initialBox = JSON.parse(JSON.stringify(transformState.box));
+                    transformState.initialMousePos = clickWorld;
+                    transformState.startAngle = Math.atan2(clickWorld.y - transformState.box.cy, clickWorld.x - transformState.box.cx);
+
+                    transformState.initialData = [];
+                    for (const id of selectedObjectsSet) {
+                        const obj = objects.get(id);
+                        transformState.initialData.push({ id: id, object: obj, startData: getObjectMoveData(obj) });
+                    }
+                    return;
+                }
+            }
+
             if (selectedObjectsSet.size > 0) {
                 let clickedOnSelected = false;
 
@@ -1331,6 +1484,11 @@ canvas.onpointerdown = (e) => {
                 if (clickedOnSelected) {
                     isDraggingSelected = true;
                     dragStartPos = clickWorld;
+
+                    if (transformState.box) {
+                        transformState.boxStartCx = transformState.box.cx;
+                        transformState.boxStartCy = transformState.box.cy;
+                    }
 
                     dragObjectsData = [];
                     for (const id of selectedObjectsSet) {
@@ -1517,6 +1675,118 @@ canvas.onpointermove = (e) => {
         }
         updateTextPreview();
     }
+    if (tool === "select" && transformState.active && transformState.action && transformState.initialBox) {
+        const action = transformState.action;
+        const initialBox = transformState.initialBox;
+
+        if (action === 'rotate') {
+            const currentAngle = Math.atan2(mousePos.y - initialBox.cy, mousePos.x - initialBox.cx);
+            let deltaAngle = currentAngle - transformState.startAngle;
+
+            if (e.shiftKey) {
+                const step = Math.PI / 12;
+                deltaAngle = Math.round(deltaAngle / step) * step;
+            }
+
+            transformState.box.angle = initialBox.angle + deltaAngle;
+
+            const cos = Math.cos(deltaAngle), sin = Math.sin(deltaAngle);
+
+            for (const item of transformState.initialData) {
+                const obj = item.object;
+                const initPts = item.startData.type === 'line' ? [item.startData.start, item.startData.end] : [item.startData.pos1, item.startData.pos2, item.startData.pos3, item.startData.pos4];
+
+                const newPts = initPts.map(p => {
+                    const rx = p.x - initialBox.cx, ry = p.y - initialBox.cy;
+                    return { x: initialBox.cx + rx * cos - ry * sin, y: initialBox.cy + rx * sin + ry * cos };
+                });
+
+                if (obj.type === 'line') { obj.start.x = newPts[0].x; obj.start.y = newPts[0].y; obj.end.x = newPts[1].x; obj.end.y = newPts[1].y; }
+                else { obj.pos1.x = newPts[0].x; obj.pos1.y = newPts[0].y; obj.pos2.x = newPts[1].x; obj.pos2.y = newPts[1].y; obj.pos3.x = newPts[2].x; obj.pos3.y = newPts[2].y; obj.pos4.x = newPts[3].x; obj.pos4.y = newPts[3].y; }
+            }
+        } else {
+            const dx = mousePos.x - initialBox.cx, dy = mousePos.y - initialBox.cy;
+
+            const localX = dx * Math.cos(initialBox.angle) + dy * Math.sin(initialBox.angle);
+            const localY = -dx * Math.sin(initialBox.angle) + dy * Math.cos(initialBox.angle);
+
+            const dir = action.split('_')[1] || '';
+
+            const isLeft = dir.includes('l'), isRight = dir.includes('r');
+            const isTop = dir.includes('t'), isBottom = dir.includes('b');
+            const isCorner = ['tl', 'tr', 'bl', 'br'].includes(dir);
+
+            const signX = isRight ? 1 : (isLeft ? -1 : 0);
+            const signY = isBottom ? 1 : (isTop ? -1 : 0);
+
+            const isCenterScale = e.shiftKey && !isCorner;
+
+            let originLocalX = signX === 1 ? -initialBox.w / 2 : (signX === -1 ? initialBox.w / 2 : 0);
+            let originLocalY = signY === 1 ? -initialBox.h / 2 : (signY === -1 ? initialBox.h / 2 : 0);
+
+            let newW = initialBox.w, newH = initialBox.h;
+
+            if (isCenterScale) {
+                originLocalX = 0;
+                originLocalY = 0;
+                if (signX !== 0) newW = Math.max(0.001, localX * signX * 2);
+                if (signY !== 0) newH = Math.max(0.001, localY * signY * 2);
+            } else {
+                if (signX !== 0) newW = Math.max(0.001, (localX - originLocalX) * signX);
+                if (signY !== 0) newH = Math.max(0.001, (localY - originLocalY) * signY);
+            }
+
+            if (e.shiftKey && isCorner) {
+                const s = Math.max(newW / initialBox.w, newH / initialBox.h);
+                newW = initialBox.w * s;
+                newH = initialBox.h * s;
+            }
+
+            transformState.box.w = newW;
+            transformState.box.h = newH;
+
+            let newLocalCx = 0, newLocalCy = 0;
+            if (isCenterScale) {
+                newLocalCx = 0;
+                newLocalCy = 0;
+            } else {
+                newLocalCx = originLocalX + (signX !== 0 ? (newW / 2) * signX : 0);
+                newLocalCy = originLocalY + (signY !== 0 ? (newH / 2) * signY : 0);
+            }
+
+            transformState.box.cx = initialBox.cx + newLocalCx * Math.cos(initialBox.angle) - newLocalCy * Math.sin(initialBox.angle);
+            transformState.box.cy = initialBox.cy + newLocalCx * Math.sin(initialBox.angle) + newLocalCy * Math.cos(initialBox.angle);
+
+            const originWorldX = initialBox.cx + originLocalX * Math.cos(initialBox.angle) - originLocalY * Math.sin(initialBox.angle);
+            const originWorldY = initialBox.cy + originLocalX * Math.sin(initialBox.angle) + originLocalY * Math.cos(initialBox.angle);
+
+            const sxFactor = signX !== 0 ? (newW / initialBox.w) : 1;
+            const syFactor = signY !== 0 ? (newH / initialBox.h) : 1;
+
+            for (const item of transformState.initialData) {
+                const obj = item.object;
+                const initPts = item.startData.type === 'line' ? [item.startData.start, item.startData.end] : [item.startData.pos1, item.startData.pos2, item.startData.pos3, item.startData.pos4];
+
+                const newPts = initPts.map(p => {
+                    const pdx = p.x - initialBox.cx, pdy = p.y - initialBox.cy;
+                    const pLocalX = pdx * Math.cos(initialBox.angle) + pdy * Math.sin(initialBox.angle);
+                    const pLocalY = -pdx * Math.sin(initialBox.angle) + pdy * Math.cos(initialBox.angle);
+
+                    const scaledLocalX = (pLocalX - originLocalX) * sxFactor;
+                    const scaledLocalY = (pLocalY - originLocalY) * syFactor;
+
+                    return {
+                        x: originWorldX + scaledLocalX * Math.cos(initialBox.angle) - scaledLocalY * Math.sin(initialBox.angle),
+                        y: originWorldY + scaledLocalX * Math.sin(initialBox.angle) + scaledLocalY * Math.cos(initialBox.angle)
+                    };
+                });
+
+                if (obj.type === 'line') { obj.start.x = newPts[0].x; obj.start.y = newPts[0].y; obj.end.x = newPts[1].x; obj.end.y = newPts[1].y; }
+                else { obj.pos1.x = newPts[0].x; obj.pos1.y = newPts[0].y; obj.pos2.x = newPts[1].x; obj.pos2.y = newPts[1].y; obj.pos3.x = newPts[2].x; obj.pos3.y = newPts[2].y; obj.pos4.x = newPts[3].x; obj.pos4.y = newPts[3].y; }
+            }
+        }
+        return;
+    }
     if (dragging) {
         screenPos = v2add(screenPos, v2inv(sightMovement));
     }
@@ -1593,6 +1863,13 @@ canvas.onpointermove = (e) => {
             y: currentWorld.y - dragStartPos.y
         };
         dragStartPos = currentWorld;
+
+        if (transformState.box && transformState.boxStartCx !== undefined) {
+            transformState.boxStartCx += delta.x;
+            transformState.boxStartCy += delta.y;
+            transformState.box.cx = transformState.boxStartCx;
+            transformState.box.cy = transformState.boxStartCy;
+        }
 
         for (const item of dragObjectsData) {
             const obj = item.object;
@@ -1715,6 +1992,24 @@ canvas.onpointerup = (e) => {
                 updateSelectionInfo();
             }
             selectionRect = null;
+        }
+        if (tool === "select" && transformState.active) {
+            pushEvent("move_multiple", {
+                objectsData: transformState.initialData.map(item => ({
+                    id: item.id,
+                    prevData: item.startData,
+                    newData: getObjectMoveData(item.object)
+                }))
+            });
+
+            transformState.active = false;
+            transformState.action = null;
+            transformState.initialData = [];
+
+            if (transformState.box) {
+                transformState.selectedIdsHash = Array.from(selectedObjectsSet).sort().join(',');
+            }
+            return;
         }
         //console.log("drawing end");
     }
