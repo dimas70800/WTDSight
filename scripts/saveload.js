@@ -223,7 +223,7 @@ function addCurrentSightToArchive() {
         
         let baseName = el("saveFileName").value;
         if (!baseName || baseName.trim() === "") baseName = "sight";
-        const fileName = baseName.endsWith(".blk") ? baseName : baseName + ".blk";
+        const fileName = baseName.endsWith(".blk") ? baseName.trim().replaceAll(" ", '_') : baseName.trim().replaceAll(" ", '_') + ".blk";
         
         const existingIndex = archiveFilesQueue.findIndex(f => f.name === fileName);
         if (existingIndex !== -1) {
