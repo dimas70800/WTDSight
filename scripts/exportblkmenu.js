@@ -252,9 +252,10 @@ function saveBlkFile(content, fileName) {
             saver.style.display = 'none';
             document.body.appendChild(saver);
         }
+        
 
         saver.href = url;
-        saver.download = fileName + '.blk';
+        saver.download = fileName.trim().replaceAll(" ", '_') + '.blk';
         saver.click();
 
         setTimeout(() => {

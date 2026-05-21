@@ -224,7 +224,13 @@ const ru =
     fillPointsCount: "Точек",
     fillQuadsCount: "Четырёхугольников",
     fillCreateBtn: "Создать",
-    fillCancelBtn: "Отмена"
+    fillCancelBtn: "Отмена",
+
+    archiveNameTitle: "Название архива",
+    archiveFileNamePlaceholder: "Название архива",
+    addCurrentSightBtn: "Добавить текущий прицел",
+    addFilesToArchiveBtn: "Добавить файл",
+    createArchiveBtn: "Создать архив"
 
 };
 
@@ -455,7 +461,13 @@ const en =
     fillPointsCount: "Points",
     fillQuadsCount: "Quads",
     fillCreateBtn: "Create",
-    fillCancelBtn: "Cancel"
+    fillCancelBtn: "Cancel",
+
+    archiveNameTitle: "Archive name",
+    archiveFileNamePlaceholder: "Archive name",
+    addCurrentSightBtn: "Add current sight",
+    addFilesToArchiveBtn: "Add file",
+    createArchiveBtn: "Create archive"
 };
 
 const langDependent =
@@ -642,7 +654,12 @@ const langDependent =
         "fillPointsCount",
         "fillQuadsCount",
         "fillCreateBtn",
-        "fillCancelBtn"
+        "fillCancelBtn",
+
+        "archiveNameTitle",
+        "addCurrentSightBtn",
+        "addFilesToArchiveBtn",
+        "createArchiveBtn"
     ];
 
 function changeLang(to) {
@@ -674,6 +691,9 @@ function changeLang(to) {
 
     const refUrlInput = el("refUrl");
     if (refUrlInput) refUrlInput.placeholder = lang.refUrlPlaceholder;
+
+    const archiveFileNameInput = el("archiveFileName");
+    if (archiveFileNameInput) archiveFileNameInput.placeholder = lang.archiveFileNamePlaceholder;
 
     showInfo(selectedId);
 

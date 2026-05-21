@@ -154,3 +154,165 @@ el("loadBlkInput").onchange = () => {
     };
     fr.readAsText(file);
 };
+
+let archiveFilesQueue = [];
+
+function updateArchiveListUI() {
+    const list = el("archiveFilesList");
+    if (!list) return;
+    
+    list.innerHTML = "";
+    
+    archiveFilesQueue.forEach((file, index) => {
+        const itemDiv = document.createElement("div");
+        itemDiv.style.display = "flex";
+        itemDiv.style.justify = "space-between";
+        itemDiv.style.alignItems = "center";
+        itemDiv.style.padding = "4px 2px";
+        itemDiv.style.paddingLeft = "6px";
+        itemDiv.style.borderRadius = "4px";
+        itemDiv.style.background = "rgba(255, 255, 255, 0.03)";
+        itemDiv.style.fontSize = "14px";
+        
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        nameSpan.title = file.name;
+        nameSpan.style.overflow = "hidden";
+        nameSpan.style.textOverflow = "ellipsis";
+        nameSpan.style.whiteSpace = "nowrap";
+        nameSpan.style.maxWidth = "85%";
+        nameSpan.style.flex = "1";
+        nameSpan.style.marginRight = "8px";
+        
+        const deleteBtn = document.createElement("span");
+        deleteBtn.innerHTML = "<img src='images/trashIcon.svg' alt='Trash'>";
+        deleteBtn.style.cursor = "pointer";
+        deleteBtn.style.opacity = "0";
+        deleteBtn.style.transition = "opacity 0.15s ease";
+        deleteBtn.style.fontSize = "13px";
+        deleteBtn.style.width = "1.5em";
+        deleteBtn.style.height = "1.5em";
+        deleteBtn.style.margin = "4px";
+        
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            archiveFilesQueue.splice(index, 1);
+            updateArchiveListUI();
+        };
+        
+        itemDiv.onmouseenter = () => {
+            itemDiv.style.background = "rgba(255, 255, 255, 0.08)";
+            deleteBtn.style.opacity = "1";
+        };
+        itemDiv.onmouseleave = () => {
+            itemDiv.style.background = "rgba(255, 255, 255, 0.03)";
+            deleteBtn.style.opacity = "0";
+        };
+        
+        itemDiv.appendChild(nameSpan);
+        itemDiv.appendChild(deleteBtn);
+        list.appendChild(itemDiv);
+    });
+}
+
+function addCurrentSightToArchive() {
+    try {
+        const settings = saveExportSettings();
+        let blkContent = generateBlkContent(settings);
+        blkContent = addDrawingObjectsToBlk(blkContent);
+        
+        let baseName = el("saveFileName").value;
+        if (!baseName || baseName.trim() === "") baseName = "sight";
+        const fileName = baseName.endsWith(".blk") ? baseName : baseName + ".blk";
+        
+        const existingIndex = archiveFilesQueue.findIndex(f => f.name === fileName);
+        if (existingIndex !== -1) {
+            archiveFilesQueue[existingIndex].content = blkContent;
+        } else {
+            archiveFilesQueue.push({ name: fileName, content: blkContent });
+        }
+        
+        updateArchiveListUI();
+        
+        if (typeof showNotification === 'function') {
+            showNotification(typeof lang !== 'undefined' && lang === en ? "Sight added to archive!" : "Прицел добавлен в архив!");
+        }
+    } catch (error) {
+        console.error("Ошибка добавления прицела:", error);
+        alert("Не удалось сгенерировать прицел: " + error.message);
+    }
+}
+
+const archiveFileInput = el("archiveFileInput");
+if (archiveFileInput) {
+    archiveFileInput.addEventListener("change", (e) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        Array.from(files).forEach(file => {
+            const existingIndex = archiveFilesQueue.findIndex(f => f.name === file.name);
+            
+            const fileData = { 
+                name: file.name, 
+                content: file
+            };
+
+            if (existingIndex !== -1) {
+                archiveFilesQueue[existingIndex] = fileData;
+            } else {
+                archiveFilesQueue.push(fileData);
+            }
+            updateArchiveListUI();
+        });
+        
+        archiveFileInput.value = "";
+    });
+}
+
+async function createZipArchive() {
+    if (archiveFilesQueue.length === 0) {
+        alert(typeof lang !== 'undefined' && lang === en ? "The file list is empty!" : "Список файлов пуст!");
+        return;
+    }
+
+    if (typeof JSZip === 'undefined') {
+        alert("Библиотека JSZip не найдена");
+        return;
+    }
+
+    try {
+        const zip = new JSZip();
+        
+        const folder = zip.folder("UserSights").folder("all_tanks");
+        
+        archiveFilesQueue.forEach(file => {
+            const isBinary = file.content instanceof Blob || file.content instanceof File;
+            
+            folder.file(file.name, file.content, { binary: isBinary });
+        });
+        
+        let archiveName = el("archiveFileName").value;
+        if (!archiveName || archiveName.trim() === "") archiveName = "MySights";
+        if (!archiveName.endsWith(".zip")) archiveName += ".zip";
+        
+        const blobContent = await zip.generateAsync({ type: "blob" });
+        
+        const url = window.URL.createObjectURL(blobContent);
+        const tempLink = document.createElement('a');
+        tempLink.style.display = 'none';
+        tempLink.href = url;
+        tempLink.download = archiveName;
+        
+        document.body.appendChild(tempLink);
+        tempLink.click();
+        
+        setTimeout(() => {
+            document.body.removeChild(tempLink);
+            window.URL.revokeObjectURL(url);
+        }, 100);
+        
+    } catch (error) {
+        console.error("Ошибка архивации:", error);
+        alert("Ошибка при создании архива: " + error.message);
+    }
+}
