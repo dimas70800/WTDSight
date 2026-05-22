@@ -1,4 +1,5 @@
 let hatchPoints = [];
+let lastHatchPoints = [];
 let isDrawingHatch = false;
 let isHatchDragging = false;
 let previewHatchLines = [];
@@ -158,6 +159,8 @@ function finalizeHatch() {
         return;
     }
 
+    lastHatchPoints = [...hatchPoints];
+
     let newObjects = [];
 
     for (const line of finalLines) {
@@ -199,6 +202,16 @@ function cancelHatch() {
     if (countEl) countEl.innerText = "0";
 }
 
+function restoreLastHatch() {
+    if (!lastHatchPoints || lastHatchPoints.length === 0) {
+        alert(lang === ru ? "Предыдущая зона отсутствует!" : "No previous zone found!");
+        return;
+    }
+    hatchPoints = [...lastHatchPoints];
+    isDrawingHatch = true;
+    updateHatchPreview();
+}
+
 function clearHatchState() {
     cancelHatch();
 }
@@ -209,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const phaseInput = document.getElementById('hatchPhaseInput');
     const createBtn = document.getElementById('hatchCreateBtn');
     const cancelBtn = document.getElementById('hatchCancelBtn');
+    const restoreBtn = document.getElementById('hatchRestoreBtn');
     const value = Number((hatchDensity * 2.5).toFixed(6));
     document.getElementById('middleLineForHatch').innerHTML = `50% = ${value} ↑`;
 
@@ -246,4 +260,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (createBtn) createBtn.onclick = () => finalizeHatch();
     if (cancelBtn) cancelBtn.onclick = () => cancelHatch();
+    if (restoreBtn) restoreBtn.onclick = () => restoreLastHatch();
 });

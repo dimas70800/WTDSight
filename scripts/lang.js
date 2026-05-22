@@ -230,7 +230,9 @@ const ru =
     archiveFileNamePlaceholder: "Название архива",
     addCurrentSightBtn: "Добавить текущий прицел",
     addFilesToArchiveBtn: "Добавить файл",
-    createArchiveBtn: "Создать архив"
+    createArchiveBtn: "Создать архив",
+
+    hatchRestoreBtn: "Предыдущая зона"
 
 };
 
@@ -467,7 +469,9 @@ const en =
     archiveFileNamePlaceholder: "Archive name",
     addCurrentSightBtn: "Add current sight",
     addFilesToArchiveBtn: "Add file",
-    createArchiveBtn: "Create archive"
+    createArchiveBtn: "Create archive",
+
+    hatchRestoreBtn: "Previous zone"
 };
 
 const langDependent =
@@ -659,7 +663,9 @@ const langDependent =
         "archiveNameTitle",
         "addCurrentSightBtn",
         "addFilesToArchiveBtn",
-        "createArchiveBtn"
+        "createArchiveBtn",
+        
+        "hatchRestoreBtn"
     ];
 
 function changeLang(to) {
