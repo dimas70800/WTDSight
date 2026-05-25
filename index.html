@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WTDSight</title>
     <meta name="description"
         content="WTDSight - это удобный онлайн редактор для создания пользовательских прицелов для War Thunder!" />
@@ -83,8 +84,17 @@
 
             <div class="panel-container">
                 <div class="toggle-btn" onclick="togglePanel()" id="arrow">◀</div>
+                <div id="fullscreenBtn" class="toggle-btn" onclick="toggleFullScreen()">
+                    ⛶
+                </div>
+                <div id="undoBtn" class="toggle-btn" onclick="popEvent()" style="top: 140px; display: none;">
+                    ↩
+                </div>
+                <div id="redoBtn" class="toggle-btn" onclick="popRedo()" style="top: 200px; display: none;">
+                    ↪
+                </div>
                 <div class="toggle-btn" onclick="toggleSightPreview()" id="sightPreviewBtn" style="top: 75px;">
-                    <img src="images/preview-btn.svg" alt="preview button" style="height: 50%;">
+                    <img src="images/preview-btn.svg" alt="preview button" style="height: 60%;">
                 </div>
 
                 <main class="main-content-panel">
@@ -95,7 +105,7 @@
                             <div class="block-with-elem">
                                 <div>
                                     <span id="refUrlTitle">URL картинки</span>:
-                                    <div style="display: flex; gap: 5px; margin-top: 5px;">
+                                    <div style="display: flex; gap: 5px; margin-top: 5px; box-sizing: border-box;">
                                         <input type="text" id="refUrl" value="" placeholder="Ссылка"
                                             style="flex-grow: 1; max-width: 64%">
                                         <button id="loadRefButton" onclick="setReference()">Загрузить</button>
@@ -187,8 +197,7 @@
                             <div class="block-with-elem">
                                 <div>
                                     <span id="archiveNameTitle">Название архива</span>:<br>
-                                    <input type="text" id="archiveFileName" value="Sight"
-                                        placeholder="Название архива"
+                                    <input type="text" id="archiveFileName" value="Sight" placeholder="Название архива"
                                         style="width: 100%; margin-top: 5px; box-sizing: border-box;">
                                 </div>
 
@@ -559,7 +568,8 @@
         </div>
     </div>
 
-    <div id="objectsMenu"> <button id="objectsToggleBtn" onclick="toggleObjectsMenu()">▶</button>
+    <div id="objectsMenu">
+        <button id="objectsToggleBtn" onclick="toggleObjectsMenu()">▶</button>
 
         <div id="objectsMenuIsland" class="menuIsland">
             <div id="objectsMenuDragger" class="dragger">
@@ -758,7 +768,7 @@
             <canvas id="previewCanvas"></canvas>
 
             <div class="toggle-btn preview-close-btn" onclick="toggleSightPreview()">
-                <img src="images/preview-btn.svg" alt="preview button" style="height: 50%;">
+                <img src="images/preview-btn.svg" alt="preview button" style="height: 60%;">
             </div>
 
             <div class="preview-controls">

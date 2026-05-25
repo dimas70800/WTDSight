@@ -1326,11 +1326,79 @@ let dragging = false;
 let arrowPulling = false;
 let posPulled = null;
 
+let activeTouches = new Map();
+let longPressTimeout = null;
+let isTouchGesturing = false;
+let initialPinchDist = 0;
+let lastPinchCenter = null;
+let lastTouchZoom = 1;
+
 canvas.onpointerdown = (e) => {
 
     if (window.isAnimatingDrawing && e.button !== 2) return;
 
     lastMousePosCanvas = getMousePos(e.offsetX, e.offsetY);
+
+    if (e.pointerType === 'touch') {
+        activeTouches.set(e.pointerId, {
+            startX: e.clientX, startY: e.clientY,
+            offsetX: e.offsetX, offsetY: e.offsetY,
+            clientX: e.clientX, clientY: e.clientY
+        });
+
+        if (activeTouches.size === 1) {
+            isTouchGesturing = false;
+            longPressTimeout = setTimeout(() => {
+                if (!isTouchGesturing) {
+                    const mousePos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
+
+                    const prevSelectedId = typeof selectedId !== 'undefined' ? selectedId : null;
+                    const wasInMultiSelect = typeof selectedObjectsSet !== 'undefined' && prevSelectedId !== null ? selectedObjectsSet.has(prevSelectedId) : false;
+
+                    clearSelection();
+                    selectNearest(mousePos);
+
+                    if (selectedId !== null) {
+                        if (prevSelectedId === selectedId || wasInMultiSelect) {
+                            clearSelection();
+                            showInfo(null);
+                        }
+
+                        if (navigator.vibrate) navigator.vibrate(50);
+                    } else { showInfo(null);
+                    }
+
+                    updateSelectionInfo();
+                    refreshObjectsList();
+
+                    isTouchGesturing = true;
+                }
+            }, 500);
+        } else if (activeTouches.size === 2) {
+            isTouchGesturing = true;
+            clearTimeout(longPressTimeout);
+
+            if (drawing && typeof clearDrawing === 'function') clearDrawing();
+            if (typeof isHatchDragging !== 'undefined') isHatchDragging = false;
+            if (typeof isFillDragging !== 'undefined') isFillDragging = false;
+
+            const touches = Array.from(activeTouches.values());
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            initialPinchDist = Math.sqrt(dx * dx + dy * dy);
+
+            lastPinchCenter = getMousePos(
+                (touches[0].offsetX + touches[1].offsetX) / 2,
+                (touches[0].offsetY + touches[1].offsetY) / 2
+            );
+            lastTouchZoom = screenZoom;
+            return;
+        } else {
+            return;
+        }
+
+        if (isTouchGesturing) return;
+    }
 
     if (e.button === 2) {
         dragging = true;
@@ -1612,6 +1680,52 @@ canvas.onpointerdown = (e) => {
 // let canvasPullSensitivity = 1.5;
 
 canvas.onpointermove = (e) => {
+    if (e.pointerType === 'touch') {
+        if (activeTouches.has(e.pointerId)) {
+            const touchData = activeTouches.get(e.pointerId);
+            touchData.offsetX = e.offsetX;
+            touchData.offsetY = e.offsetY;
+            touchData.clientX = e.clientX;
+            touchData.clientY = e.clientY;
+
+            if (activeTouches.size === 1 && !isTouchGesturing) {
+                const dist = Math.hypot(e.clientX - touchData.startX, e.clientY - touchData.startY);
+                if (dist > 10) clearTimeout(longPressTimeout);
+            }
+        }
+
+        if (activeTouches.size === 2) {
+            const touches = Array.from(activeTouches.values());
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            const centerOffsetX = (touches[0].offsetX + touches[1].offsetX) / 2;
+            const centerOffsetY = (touches[0].offsetY + touches[1].offsetY) / 2;
+            const currentCenter = getMousePos(centerOffsetX, centerOffsetY);
+
+            if (initialPinchDist > 0) {
+                const zoomFactor = dist / initialPinchDist;
+                screenZoom = Math.max(0.1, lastTouchZoom * zoomFactor);
+            }
+
+            if (lastPinchCenter) {
+                const exactMovement = {
+                    x: currentCenter.x - lastPinchCenter.x,
+                    y: currentCenter.y - lastPinchCenter.y
+                };
+                const sightMovement = v2pixel2v2sight(exactMovement);
+                screenPos = v2add(screenPos, v2inv(sightMovement));
+            }
+
+            lastPinchCenter = currentCenter;
+            lastMousePosCanvas = currentCenter;
+            return;
+        }
+
+        if (isTouchGesturing) return;
+    }
+
     const currentMousePosCanvas = getMousePos(e.offsetX, e.offsetY);
 
     const exactMovement = {
@@ -1902,6 +2016,18 @@ canvas.onpointermove = (e) => {
 };
 
 canvas.onpointerup = (e) => {
+    if (e.pointerType === 'touch') {
+        activeTouches.delete(e.pointerId);
+        clearTimeout(longPressTimeout);
+
+        if (isTouchGesturing) {
+            if (activeTouches.size === 0) {
+                setTimeout(() => isTouchGesturing = false, 50);
+            }
+            return;
+        }
+    }
+
     if (e.button === 2) {
         dragging = false;
         //console.log("drag end");
@@ -2018,6 +2144,14 @@ canvas.onpointerup = (e) => {
             return;
         }
         //console.log("drawing end");
+    }
+};
+
+canvas.onpointercancel = (e) => {
+    if (e.pointerType === 'touch') {
+        activeTouches.delete(e.pointerId);
+        clearTimeout(longPressTimeout);
+        if (activeTouches.size === 0) isTouchGesturing = false;
     }
 };
 

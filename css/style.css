@@ -54,6 +54,7 @@ html {
     left: 0;
     top: 0;
     z-index: 0;
+    touch-action: none;
 }
 
 .interface-wrapper {
@@ -261,7 +262,7 @@ html {
     right: 1em;
     width: 260px;
     height: 350px;
-    z-index: 10;
+    z-index: 1;
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
@@ -432,6 +433,10 @@ input[type="range"] {
     right: 1em;
     max-height: 500px;
     width: 280px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
 }
 
 .dragger {
@@ -524,6 +529,8 @@ input[type="range"] {
     height: 80%;
     border: 1px solid var(--border-col);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
 }
 
 .settings-modal-header {
@@ -532,6 +539,7 @@ input[type="range"] {
     align-items: center;
     padding: 20px;
     border-bottom: 1px solid var(--border-col);
+    flex-shrink: 0;
 }
 
 .settings-modal-header h2 {
@@ -551,7 +559,8 @@ input[type="range"] {
 
 .settings-body {
     padding: 15px;
-    max-height: 90%;
+    flex-grow: 1;
+    max-height: none;
     overflow-y: auto;
     overflow-x: hidden;
 }
@@ -576,6 +585,7 @@ input[type="range"] {
     align-items: center;
     justify-content: center;
     pointer-events: auto;
+    backdrop-filter: blur(3px);
 }
 
 .export-modal-content {
@@ -663,7 +673,7 @@ input[type="range"] {
     background-color: #5865F2;
 }
 
-#discord-server-btn:hover{
+#discord-server-btn:hover {
     background-color: #4e59cc;
 }
 
@@ -686,7 +696,7 @@ input[type="range"] {
     max-width: 177.78vh;
     background: #000;
     overflow: hidden;
-    box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
 }
 
 #previewBackground {
@@ -755,4 +765,215 @@ option {
 
 option:checked {
     background-color: var(--input-bg);
+}
+
+#fullscreenBtn {
+    top: 90px;
+    display: none;
+}
+
+@media screen and (max-width: 950px) {
+    :root {
+        --sidebar-width: 50px;
+        --main-panel-width: calc(45vw - var(--sidebar-width));
+    }
+
+    * {
+        font-size: 0.9rem;
+    }
+
+    #fullscreenBtn {
+        display: flex;
+        top: 60px !important;
+    }
+
+    #undoBtn, #redoBtn {
+        display: flex !important;
+    }
+    
+    #undoBtn {
+        top: 105px !important;
+    }
+    
+    #redoBtn {
+        top: 150px !important;
+    }
+    
+    #sightPreviewBtn {
+        top: 195px !important;
+    }
+
+    #objectsList {
+        margin: 0px 5px
+    }
+
+    #objectsToggleBtn{
+        width: 35px;
+        height: 35px;
+        left: -45px;
+        border-radius: 10px;
+    }
+
+    #clearButton {
+        margin: 5px
+    }
+
+    .icon-bar {
+        padding: 5px 0;
+    }
+
+    .tool-menu {
+        flex-shrink: 1;
+        min-height: 0;
+        overflow-y: auto;
+        gap: 5px;
+        padding: 5px 0;
+    }
+
+    .logo-container {
+        margin-bottom: 5px;
+    }
+
+    .logo {
+        width: 35px;
+        height: 35px;
+    }
+
+    .nav-static {
+        gap: 5px;
+        padding-bottom: 5px;
+    }
+
+    .settings-section {
+        padding-top: 5px;
+    }
+
+    .tab-button {
+        width: 38px;
+        height: 38px;
+        min-height: 38px;
+        padding: 6px;
+        border-radius: 10px;
+    }
+
+    #shell:not(.collapsed) .tab-button.active:not(.no-stick) {
+        width: calc(var(--sidebar-width) - 4px);
+        margin-right: -8px;
+    }
+
+    .toggle-btn {
+        width: 35px;
+        height: 35px;
+        right: -45px;
+        top: 15px;
+        font-size: 14px;
+        border-radius: 10px;
+    }
+
+    #objectsMenu {
+        top: 10px;
+        right: 10px;
+        width: 160px;
+        height: 40%;
+        max-height: 45vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #infoMenu {
+        bottom: 10px;
+        right: 10px;
+        width: 160px;
+        height: auto;
+        max-height: 45vh
+    }
+
+    #visualRotationInput {
+        max-width: 60%;
+    }
+
+    .dragger {
+        padding: 5px;
+        font-size: 11px;
+    }
+
+    .preview-controls{
+        max-width: 20vw;
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+
+    .menuContent {
+        padding: 4px;
+        gap: 3px;
+        overflow-y: auto;
+    }
+
+    .objectRow {
+        font-size: 11px;
+        padding: 2px 4px;
+    }
+
+    #infoTable td {
+        font-size: 10px;
+        padding: 1px;
+    }
+
+    #infoTable input {
+        padding: 0px 2px;
+        font-size: 10px;
+        height: 16px;
+        border-radius: 3px;
+    }
+
+    #infoDeleteButton {
+        margin-top: 4px !important;
+        padding: 4px !important;
+        font-size: 10px !important;
+    }
+
+    .settings-modal-content,
+    .export-modal-content {
+        max-height: none;
+        width: 95%;
+        height: 90%;
+    }
+
+    .settings-modal-header h2,
+    .export-header h2 {
+        font-size: 14px;
+    }
+
+    .export-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+        padding: 6px;
+    }
+
+    .export-row>div {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+@media screen and (max-height: 500px) and (orientation: landscape) {
+
+    #objectsMenu,
+    #infoMenu {
+        max-height: 45vh !important;
+    }
+
+    .tool-menu {
+        flex-shrink: 1;
+        min-height: 0;
+    }
+
+    #objectsMenu {
+        width: 140px;
+    }
+
+    #infoMenu {
+        width: 140px;
+    }
 }
