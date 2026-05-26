@@ -432,11 +432,20 @@ function deleteObject(id) {
 }
 
 let snapping = false;
+let mobileSnappingActive = false;
+
+function toggleMobileSnapping() {
+    mobileSnappingActive = !mobileSnappingActive;
+    const btn = document.getElementById("snapBtn");
+    if (btn) {
+        btn.style.background = mobileSnappingActive ? "#228025" : "var(--bg-main-panel)";
+    }
+}
 
 document.onkeydown = (e) => {
     const activeElem = document.activeElement;
     if (activeElem.tagName === 'INPUT' || activeElem.tagName === 'TEXTAREA') {
-        if (e.code === "Escape") activeElem.blur();
+        if (e.code === "Escape" || e.ctrlKey) activeElem.blur();
         return;
     }
     if (isAnimatingDrawing) {

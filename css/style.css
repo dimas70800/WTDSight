@@ -787,7 +787,7 @@ option:checked {
         top: 60px !important;
     }
 
-    #undoBtn, #redoBtn {
+    #undoBtn, #redoBtn, #snapBtn {
         display: flex !important;
     }
     
@@ -799,8 +799,12 @@ option:checked {
         top: 150px !important;
     }
     
-    #sightPreviewBtn {
+    #snapBtn {
         top: 195px !important;
+    }
+
+    #sightPreviewBtn {
+        top: 240px !important;
     }
 
     #objectsList {
@@ -885,11 +889,15 @@ option:checked {
         right: 10px;
         width: 160px;
         height: auto;
-        max-height: 45vh
+        max-height: 45vh;
     }
 
     #visualRotationInput {
         max-width: 60%;
+    }
+
+    #infoDeleteButton{
+        margin: 0px 5px 5px;
     }
 
     .dragger {

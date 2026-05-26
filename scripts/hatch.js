@@ -7,11 +7,20 @@ let hatchAngle = 45;
 let hatchDensity = 0.03;
 let hatchPhase = 0;
 
+let lastHatchAction = null;
+let lastAddedHatchPointTime = 0;
+let lastHatchRemovedIndex = -1;
+let lastHatchRemovedPoint = null;
+
 function startHatchDrawing(pos) {
     hatchPoints = [{
         x: Math.round(pos.x * 1000000) / 1000000,
         y: Math.round(pos.y * 1000000) / 1000000
     }];
+
+    lastHatchAction = 'start';
+    lastAddedHatchPointTime = Date.now();
+
     isDrawingHatch = true;
     previewHatchLines = [];
     hatchPhase = el("hatchPhaseInput").value ? parseFloat(el("hatchPhaseInput").value) : 0;
@@ -38,7 +47,8 @@ function addHatchPoint(pos, isDragging = false) {
     }
 
     let existingIndex = -1;
-    let radius = 10 / screenZoom / getBaseScale();
+    let isTouch = ('ontouchstart' in window);
+    let radius = (isTouch ? 20 : 10) / screenZoom / getBaseScale();
 
     for (let i = 0; i < hatchPoints.length; i++) {
         if (Math.abs(roundedPos.x - hatchPoints[i].x) < radius &&
@@ -48,8 +58,11 @@ function addHatchPoint(pos, isDragging = false) {
         }
     }
 
-    if (snapping) {
+    if (snapping || mobileSnappingActive) {
         const finalPos = (existingIndex !== -1) ? hatchPoints[existingIndex] : roundedPos;
+
+        lastHatchAction = 'add';
+        lastAddedHatchPointTime = Date.now();
 
         hatchPoints.push({ x: finalPos.x, y: finalPos.y });
         updateHatchPreview();
@@ -58,6 +71,11 @@ function addHatchPoint(pos, isDragging = false) {
 
     if (existingIndex !== -1) {
         if (!isDragging) {
+            lastHatchAction = 'remove';
+            lastHatchRemovedIndex = existingIndex;
+            lastHatchRemovedPoint = hatchPoints[existingIndex];
+            lastAddedHatchPointTime = Date.now();
+
             hatchPoints.splice(existingIndex, 1);
             if (hatchPoints.length === 0) cancelHatch();
             else updateHatchPreview();
@@ -65,6 +83,8 @@ function addHatchPoint(pos, isDragging = false) {
         return;
     }
 
+    lastHatchAction = 'add';
+    lastAddedHatchPointTime = Date.now();
     hatchPoints.push(roundedPos);
     updateHatchPreview();
 }

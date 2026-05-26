@@ -559,7 +559,8 @@ function drawGhost() {
             if (hatchPoints.length > 0) {
                 for (let i = 0; i < hatchPoints.length; i++) {
                     const pointCanvas = v2disposSight2v2canvas(hatchPoints[i]);
-                    drawCircle(pointCanvas.x, pointCanvas.y, 6);
+                    let pointRadius = (window.innerWidth <= 950 || ('ontouchstart' in window)) ? 12 : 6;
+                    drawCircle(pointCanvas.x, pointCanvas.y, pointRadius);
 
                     if (i > 0) {
                         const prevCanvas = v2disposSight2v2canvas(hatchPoints[i - 1]);
@@ -708,7 +709,8 @@ function drawGhost() {
             if (fillPoints.length > 0) {
                 for (let i = 0; i < fillPoints.length; i++) {
                     const pointCanvas = v2disposSight2v2canvas(fillPoints[i]);
-                    drawCircle(pointCanvas.x, pointCanvas.y, 6);
+                    let pointRadius = (window.innerWidth <= 950 || ('ontouchstart' in window)) ? 12 : 6;
+                    drawCircle(pointCanvas.x, pointCanvas.y, pointRadius);
                     if (i > 0) {
                         const prevCanvas = v2disposSight2v2canvas(fillPoints[i - 1]);
                         drawLine(prevCanvas.x, prevCanvas.y, pointCanvas.x, pointCanvas.y);
@@ -911,14 +913,16 @@ function drawArrows() {
         hoveredAxis = hoveredArrowHitbox % 3;
     }
 
+    let mobileMult = (window.innerWidth <= 950 || ('ontouchstart' in window)) ? 2 : 1;
+
     for (let i = 0; i < arrowSources.length; i++) {
         const pos = arrowSources[i];
 
-        ctx.lineWidth = getLineWidth(5);
-        const size100 = getLineWidth(100);
-        const size80 = getLineWidth(80);
-        const size10 = getLineWidth(10);
-        const size15 = getLineWidth(15);
+        ctx.lineWidth = getLineWidth(5 * mobileMult);
+        const size100 = getLineWidth(100 * mobileMult);
+        const size80 = getLineWidth(80 * mobileMult);
+        const size10 = getLineWidth(10 * mobileMult);
+        const size15 = getLineWidth(15 * mobileMult);
 
         // Центральный кружок
         ctx.fillStyle = (hoveredSource === i && hoveredAxis === 2) ? "rgba(0, 0, 0, 0.8)" : "rgba(0, 0, 0, 0.4)";
@@ -956,8 +960,14 @@ function getArrowHitboxes() {
     const arrowSources = getArrowSources(object);
     const arrowHitboxes = [];
 
-    const hitboxSize = ('ontouchstart' in window) ? 30 : 10;
-    const size100 = getLineWidth(100);
+    const isTouch = ('ontouchstart' in window);
+
+    const hitboxSize = isTouch ? 45 : 10;
+
+    let size100 = getLineWidth(100);
+    if (isTouch) {
+        size100 *= 1.4;
+    }
 
     for (const src of arrowSources) {
         arrowHitboxes.push({
@@ -1330,6 +1340,8 @@ let activeTouches = new Map();
 let longPressTimeout = null;
 let isTouchGesturing = false;
 let initialPinchDist = 0;
+let initialPinchAngle = undefined;
+let initialVisualRotation = 0;
 let lastPinchCenter = null;
 let lastTouchZoom = 1;
 
@@ -1365,7 +1377,8 @@ canvas.onpointerdown = (e) => {
                         }
 
                         if (navigator.vibrate) navigator.vibrate(50);
-                    } else { showInfo(null);
+                    } else {
+                        showInfo(null);
                     }
 
                     updateSelectionInfo();
@@ -1378,14 +1391,48 @@ canvas.onpointerdown = (e) => {
             isTouchGesturing = true;
             clearTimeout(longPressTimeout);
 
+            if (tool === "hatch" && typeof hatchPoints !== 'undefined' && lastAddedHatchPointTime) {
+                if (Date.now() - lastAddedHatchPointTime < 300) {
+                    if (lastHatchAction === 'add') {
+                        hatchPoints.pop();
+                    } else if (lastHatchAction === 'remove') {
+                        hatchPoints.splice(lastHatchRemovedIndex, 0, lastHatchRemovedPoint);
+                    } else if (lastHatchAction === 'start') {
+                        if (typeof cancelHatch === 'function') cancelHatch();
+                    }
+                    if (isDrawingHatch && typeof updateHatchPreview === 'function') updateHatchPreview();
+                }
+            }
+
+            if (tool === "fill" && typeof fillPoints !== 'undefined' && lastAddedFillPointTime) {
+                if (Date.now() - lastAddedFillPointTime < 300) {
+                    if (lastFillAction === 'add') {
+                        fillPoints.pop();
+                    } else if (lastFillAction === 'remove') {
+                        fillPoints.splice(lastFillRemovedIndex, 0, lastFillRemovedPoint);
+                    } else if (lastFillAction === 'start') {
+                        if (typeof cancelFill === 'function') cancelFill();
+                    }
+                    if (isDrawingFill && typeof updateFillPreview === 'function') updateFillPreview();
+                }
+            }
+
             if (drawing && typeof clearDrawing === 'function') clearDrawing();
             if (typeof isHatchDragging !== 'undefined') isHatchDragging = false;
             if (typeof isFillDragging !== 'undefined') isFillDragging = false;
+
+            isPullingCenter = false;
+            arrowPulling = false;
+            isDraggingSelected = false;
+            dragStartPos = null;
 
             const touches = Array.from(activeTouches.values());
             const dx = touches[0].clientX - touches[1].clientX;
             const dy = touches[0].clientY - touches[1].clientY;
             initialPinchDist = Math.sqrt(dx * dx + dy * dy);
+
+            initialPinchAngle = Math.atan2(dy, dx);
+            initialVisualRotation = globalVisualRotation;
 
             lastPinchCenter = getMousePos(
                 (touches[0].offsetX + touches[1].offsetX) / 2,
@@ -1413,6 +1460,25 @@ canvas.onpointerdown = (e) => {
     if (e.button === 0) {
         mousePos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
         mousePosWindow = getMousePos(e.offsetX, e.offsetY);
+
+        if (selectedId != null) {
+            const arrowHitboxes = getArrowHitboxes();
+            hoveredArrowHitbox = null;
+            for (let i = 0; i < arrowHitboxes.length; i++) {
+                const hitbox = arrowHitboxes[i];
+                if (hitbox.type === 'rect') {
+                    if (mousePosWindow.x > hitbox.x1 && mousePosWindow.y > hitbox.y1 &&
+                        mousePosWindow.x < hitbox.x2 && mousePosWindow.y < hitbox.y2) {
+                        hoveredArrowHitbox = i;
+                    }
+                } else if (hitbox.type === 'circle') {
+                    const dist = Math.hypot(mousePosWindow.x - hitbox.x, mousePosWindow.y - hitbox.y);
+                    if (dist <= hitbox.r) {
+                        hoveredArrowHitbox = i;
+                    }
+                }
+            }
+        }
 
         if (selectedId != null && hoveredArrowHitbox != null) // Arrow pulling
         {
@@ -1535,7 +1601,7 @@ canvas.onpointerdown = (e) => {
                     if (obj) {
                         if (obj.type === "line") {
                             const dist = distanceToLine(clickWorld, obj.start, obj.end);
-                            const hitRadius = 15 / screenZoom / getBaseScale();
+                            const hitRadius = ('ontouchstart' in window ? 35 : 15) / screenZoom / getBaseScale();
                             if (dist < hitRadius) {
                                 clickedOnSelected = true;
                                 break;
@@ -1598,27 +1664,22 @@ canvas.onpointerdown = (e) => {
                 const clickCanvas = getMousePos(e.offsetX, e.offsetY);
                 let clickPos = v2canvas2v2disposSight(clickCanvas);
 
-                if (snapping) {
+                if (snapping || mobileSnappingActive) {
                     const snapPos = snappingPos(clickPos, 40);
                     if (snapPos != null) clickPos = snapPos;
                 }
-
-                if (!isDrawingHatch) {
-                    startHatchDrawing(clickPos);
-                } else {
-                    addHatchPoint(clickPos, false);
-                }
+                if (!isDrawingHatch) startHatchDrawing(clickPos);
+                else addHatchPoint(clickPos, false);
                 isHatchDragging = true;
             }
             else if (tool === "fill") {
                 const clickCanvas = getMousePos(e.offsetX, e.offsetY);
                 let clickPos = v2canvas2v2disposSight(clickCanvas);
 
-                if (snapping) {
+                if (snapping || mobileSnappingActive) {
                     const snapPos = snappingPos(clickPos, 40);
                     if (snapPos != null) clickPos = snapPos;
                 }
-
                 if (!isDrawingFill) startFillDrawing(clickPos);
                 else addFillPoint(clickPos, false);
                 isFillDragging = true;
@@ -1630,7 +1691,7 @@ canvas.onpointerdown = (e) => {
                 isDrawingCurve = true;
                 curvePoints = [];
 
-                if (snapping) {
+                if (snapping || mobileSnappingActive) {
                     const snapPos = snappingPos(clickPos);
                     if (snapPos != null) {
                         curvePoints.push(snapPos);
@@ -1644,7 +1705,7 @@ canvas.onpointerdown = (e) => {
                 isDrawingBrush = true;
                 brushPoints = [];
 
-                if (snapping) {
+                if (snapping || mobileSnappingActive) {
                     const snapPos = snappingPos(clickPos);
                     if (snapPos != null) {
                         brushPoints.push(snapPos);
@@ -1653,7 +1714,7 @@ canvas.onpointerdown = (e) => {
                 brushPoints.push(clickPos);
             }
             else {
-                if (!snapping)
+                if (!(snapping || mobileSnappingActive))
                     startDrawing(mousePos);
                 else {
                     const snapPos = snappingPos(mousePos);
@@ -1699,6 +1760,20 @@ canvas.onpointermove = (e) => {
             const dx = touches[0].clientX - touches[1].clientX;
             const dy = touches[0].clientY - touches[1].clientY;
             const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (initialPinchAngle !== undefined) {
+                const currentAngle = Math.atan2(dy, dx);
+                let angleDiff = currentAngle - initialPinchAngle;
+                let degDiff = angleDiff * 180 / Math.PI;
+
+                if (degDiff > 180) degDiff -= 360;
+                if (degDiff < -180) degDiff += 360;
+
+                const rotationSensitivity = 0.8;
+                globalVisualRotation = initialVisualRotation + (degDiff * rotationSensitivity);
+                const visualInput = document.getElementById("visualRotationInput");
+                if (visualInput) visualInput.value = Math.round(globalVisualRotation);
+            }
 
             const centerOffsetX = (touches[0].offsetX + touches[1].offsetX) / 2;
             const centerOffsetY = (touches[0].offsetY + touches[1].offsetY) / 2;
@@ -1913,7 +1988,7 @@ canvas.onpointermove = (e) => {
     if (isPullingCenter && selectedId != null) {
         const object = objects.get(selectedId);
 
-        if (snapping) {
+        if (snapping || mobileSnappingActive) {
             const snapP = snappingPos(mousePos, 100, selectedId);
             const targetPos = snapP != null ? snapP : mousePos;
 
@@ -2062,8 +2137,9 @@ canvas.onpointerup = (e) => {
         } else if (tool === "curve" && isDrawingCurve) {
             isDrawingCurve = false;
 
-            if (snapping) {
-                const snapP = snappingPos(mousePos);
+            if (snapping || mobileSnappingActive) {
+                let snapRad = (mobileSnappingActive && !snapping) ? 40 : Infinity;
+                const snapP = snappingPos(mousePos, snapRad);
                 if (snapP != null) {
                     curvePoints[curvePoints.length - 1] = snapP;
                 }
@@ -2073,8 +2149,9 @@ canvas.onpointerup = (e) => {
         } else if (tool === "brush" && isDrawingBrush) {
             isDrawingBrush = false;
 
-            if (snapping) {
-                const snapP = snappingPos(mousePos);
+            if (snapping || mobileSnappingActive) {
+                let snapRad = (mobileSnappingActive && !snapping) ? 40 : Infinity;
+                const snapP = snappingPos(mousePos, snapRad);
                 if (snapP != null) {
                     brushPoints[brushPoints.length - 1] = snapP;
                 }
@@ -2083,10 +2160,11 @@ canvas.onpointerup = (e) => {
             finishBrush();
         }
         else {
-            if (!snapping)
+            if (!(snapping || mobileSnappingActive))
                 endDrawing(v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY)));
             else {
-                const snapPos = snappingPos(v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY)));
+                let snapRad = (mobileSnappingActive && !snapping) ? 40 : Infinity;
+                const snapPos = snappingPos(v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY)), snapRad);
                 if (snapPos != null)
                     endDrawing(snapPos);
                 else

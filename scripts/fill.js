@@ -3,11 +3,20 @@ let isDrawingFill = false;
 let isFillDragging = false;
 let previewFillQuads = [];
 
+let lastFillAction = null;
+let lastAddedFillPointTime = 0;
+let lastFillRemovedIndex = -1;
+let lastFillRemovedPoint = null;
+
 function startFillDrawing(pos) {
     fillPoints = [{
         x: Math.round(pos.x * 1000000) / 1000000,
         y: Math.round(pos.y * 1000000) / 1000000
     }];
+
+    lastFillAction = 'start';
+    lastAddedFillPointTime = Date.now();
+
     isDrawingFill = true;
     previewFillQuads = [];
     updateFillPreview();
@@ -31,7 +40,8 @@ function addFillPoint(pos, isDragging = false) {
     }
 
     let existingIndex = -1;
-    let radius = 10 / screenZoom / getBaseScale();
+    let isTouch = ('ontouchstart' in window);
+    let radius = (isTouch ? 20 : 10) / screenZoom / getBaseScale();
 
     for (let i = 0; i < fillPoints.length; i++) {
         if (Math.abs(roundedPos.x - fillPoints[i].x) < radius && Math.abs(roundedPos.y - fillPoints[i].y) < radius) {
@@ -40,8 +50,12 @@ function addFillPoint(pos, isDragging = false) {
         }
     }
 
-    if (snapping) {
+    if (snapping || mobileSnappingActive) {
         const finalPos = (existingIndex !== -1) ? fillPoints[existingIndex] : roundedPos;
+
+        lastFillAction = 'add';
+        lastAddedFillPointTime = Date.now();
+
         fillPoints.push({ x: finalPos.x, y: finalPos.y });
         updateFillPreview();
         return;
@@ -49,6 +63,11 @@ function addFillPoint(pos, isDragging = false) {
 
     if (existingIndex !== -1) {
         if (!isDragging) {
+            lastFillAction = 'remove';
+            lastFillRemovedIndex = existingIndex;
+            lastFillRemovedPoint = fillPoints[existingIndex];
+            lastAddedFillPointTime = Date.now();
+
             fillPoints.splice(existingIndex, 1);
             if (fillPoints.length === 0) cancelFill();
             else updateFillPreview();
@@ -56,6 +75,8 @@ function addFillPoint(pos, isDragging = false) {
         return;
     }
 
+    lastFillAction = 'add';
+    lastAddedFillPointTime = Date.now();
     fillPoints.push(roundedPos);
     updateFillPreview();
 }
