@@ -1,15 +1,13 @@
 const saver = el("saver");
 
-function formSaveData()
-{
+function formSaveData() {
     const data = Object.fromEntries(objects);
 
     return JSON.stringify(data);
 }
 
-async function save()
-{
-    const file = new Blob([formSaveData()], {type: "application/json"});
+async function save() {
+    const file = new Blob([formSaveData()], { type: "application/json" });
     saver.href = URL.createObjectURL(file);
 
     const name = el("saveFileName").value;
@@ -19,13 +17,12 @@ async function save()
     setTimeout(() => URL.revokeObjectURL(saver.href), 100);
 }
 
-el("loadButtonInput").onchange = () =>
-{
+el("loadButtonInput").onchange = () => {
     const fileInput = el("loadButtonInput");
     const file = fileInput.files[0];
-    
+
     if (!file) return;
-    
+
     const fr = new FileReader();
     fr.onload = (e) => {
         loadFromFile(e);
@@ -37,22 +34,19 @@ el("loadButtonInput").onchange = () =>
     fr.readAsText(file);
 };
 
-function loadFromFile(e)
-{
+function loadFromFile(e) {
     load(e.target.result);
 }
 
-function load(rawData)
-{
+function load(rawData) {
     objects = new Map(Object.entries(JSON.parse(rawData)));
     refreshObjectsList();
     unselectAnyObjects();
     clearEvents();
 }
 
-async function saveExport(data)
-{
-    const file = new Blob([data], {type: "text/plain"});
+async function saveExport(data) {
+    const file = new Blob([data], { type: "text/plain" });
     saver.href = URL.createObjectURL(file);
 
     const name = el("saveFileName").value;
@@ -87,7 +81,7 @@ function loadFromBlk(text) {
 
     const lineBlockPattern = /line\s*\{[^}]*\}/gi;
     const lineBlocks = linesBlock.match(lineBlockPattern) || [];
-    
+
     for (const block of lineBlocks) {
         const coordMatch = block.match(/line:p4\s*=\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i);
         if (coordMatch) {
@@ -103,13 +97,13 @@ function loadFromBlk(text) {
     }
 
     const quadBlocks = quadsBlock.match(/quad\s*\{[^}]*\}/gi) || [];
-    
+
     for (const block of quadBlocks) {
         const tlMatch = block.match(/tl:p2\s*=\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i);
         const trMatch = block.match(/tr:p2\s*=\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i);
         const brMatch = block.match(/br:p2\s*=\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i);
         const blMatch = block.match(/bl:p2\s*=\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i);
-        
+
         if (tlMatch && trMatch && brMatch && blMatch) {
             newObjects.set(String(idx), {
                 name: (typeof lang !== 'undefined' ? lang.quad : "Четырёхугольник") + " " + idx,
@@ -133,7 +127,7 @@ function loadFromBlk(text) {
     refreshObjectsList();
     unselectAnyObjects();
     clearEvents();
-    
+
     if (typeof showNotification === 'function') {
         showNotification(`${lang.loaded} ${newObjects.size} ${lang.objectsFromBLK}`);
     }
@@ -143,7 +137,7 @@ el("loadBlkInput").onchange = () => {
     const fileInput = el("loadBlkInput");
     const file = fileInput.files[0];
     if (!file) return;
-    
+
     const fr = new FileReader();
     fr.onload = (e) => {
         loadFromBlk(e.target.result);
@@ -160,9 +154,9 @@ let archiveFilesQueue = [];
 function updateArchiveListUI() {
     const list = el("archiveFilesList");
     if (!list) return;
-    
+
     list.innerHTML = "";
-    
+
     archiveFilesQueue.forEach((file, index) => {
         const itemDiv = document.createElement("div");
         itemDiv.style.display = "flex";
@@ -173,7 +167,7 @@ function updateArchiveListUI() {
         itemDiv.style.borderRadius = "4px";
         itemDiv.style.background = "rgba(255, 255, 255, 0.03)";
         itemDiv.style.fontSize = "14px";
-        
+
         const nameSpan = document.createElement("span");
         nameSpan.textContent = file.name;
         nameSpan.title = file.name;
@@ -183,7 +177,7 @@ function updateArchiveListUI() {
         nameSpan.style.maxWidth = "85%";
         nameSpan.style.flex = "1";
         nameSpan.style.marginRight = "8px";
-        
+
         const deleteBtn = document.createElement("span");
         deleteBtn.innerHTML = "<img src='images/trashIcon.svg' alt='Trash'>";
         deleteBtn.style.cursor = "pointer";
@@ -193,13 +187,13 @@ function updateArchiveListUI() {
         deleteBtn.style.width = "1.5em";
         deleteBtn.style.height = "1.5em";
         deleteBtn.style.margin = "4px";
-        
+
         deleteBtn.onclick = (e) => {
             e.stopPropagation();
             archiveFilesQueue.splice(index, 1);
             updateArchiveListUI();
         };
-        
+
         itemDiv.onmouseenter = () => {
             itemDiv.style.background = "rgba(255, 255, 255, 0.08)";
             deleteBtn.style.opacity = "1";
@@ -208,7 +202,7 @@ function updateArchiveListUI() {
             itemDiv.style.background = "rgba(255, 255, 255, 0.03)";
             deleteBtn.style.opacity = "0";
         };
-        
+
         itemDiv.appendChild(nameSpan);
         itemDiv.appendChild(deleteBtn);
         list.appendChild(itemDiv);
@@ -220,20 +214,20 @@ function addCurrentSightToArchive() {
         const settings = saveExportSettings();
         let blkContent = generateBlkContent(settings);
         blkContent = addDrawingObjectsToBlk(blkContent);
-        
+
         let baseName = el("saveFileName").value;
         if (!baseName || baseName.trim() === "") baseName = "sight";
         const fileName = baseName.endsWith(".blk") ? baseName.trim().replaceAll(" ", '_') : baseName.trim().replaceAll(" ", '_') + ".blk";
-        
+
         const existingIndex = archiveFilesQueue.findIndex(f => f.name === fileName);
         if (existingIndex !== -1) {
             archiveFilesQueue[existingIndex].content = blkContent;
         } else {
             archiveFilesQueue.push({ name: fileName, content: blkContent });
         }
-        
+
         updateArchiveListUI();
-        
+
         if (typeof showNotification === 'function') {
             showNotification(typeof lang !== 'undefined' && lang === en ? "Sight added to archive!" : "Прицел добавлен в архив!");
         }
@@ -251,9 +245,9 @@ if (archiveFileInput) {
 
         Array.from(files).forEach(file => {
             const existingIndex = archiveFilesQueue.findIndex(f => f.name === file.name);
-            
-            const fileData = { 
-                name: file.name, 
+
+            const fileData = {
+                name: file.name,
                 content: file
             };
 
@@ -264,7 +258,7 @@ if (archiveFileInput) {
             }
             updateArchiveListUI();
         });
-        
+
         archiveFileInput.value = "";
     });
 }
@@ -282,37 +276,174 @@ async function createZipArchive() {
 
     try {
         const zip = new JSZip();
-        
+
         const folder = zip.folder("UserSights").folder("all_tanks");
-        
+
         archiveFilesQueue.forEach(file => {
             const isBinary = file.content instanceof Blob || file.content instanceof File;
-            
+
             folder.file(file.name, file.content, { binary: isBinary });
         });
-        
+
         let archiveName = el("archiveFileName").value;
         if (!archiveName || archiveName.trim() === "") archiveName = "MySights";
         if (!archiveName.endsWith(".zip")) archiveName += ".zip";
-        
+
         const blobContent = await zip.generateAsync({ type: "blob" });
-        
+
         const url = window.URL.createObjectURL(blobContent);
         const tempLink = document.createElement('a');
         tempLink.style.display = 'none';
         tempLink.href = url;
         tempLink.download = archiveName;
-        
+
         document.body.appendChild(tempLink);
         tempLink.click();
-        
+
         setTimeout(() => {
             document.body.removeChild(tempLink);
             window.URL.revokeObjectURL(url);
         }, 100);
-        
+
     } catch (error) {
         console.error("Ошибка архивации:", error);
         alert("Ошибка при создании архива: " + error.message);
     }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const shareBtn = document.getElementById('shareSightBtn');
+    const copyBtn = document.getElementById('copyShareLinkBtn');
+
+    if (shareBtn) {
+        shareBtn.addEventListener('click', shareSight);
+    }
+
+    if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+            const input = document.getElementById('shareLinkInput');
+            if (input && input.value) {
+                navigator.clipboard.writeText(input.value);
+                if (typeof showNotification === 'function') {
+                    showNotification(typeof lang !== 'undefined' && lang === en ? "Copied!" : "Скопировано!");
+                }
+            }
+        });
+    }
+});
+
+async function shareSight() {
+    const shareBtn = el("shareSightBtn");
+    const linkContainer = el("shareLinkContainer");
+    const linkInput = el("shareLinkInput");
+
+    if (!shareBtn) return;
+
+    const originalText = shareBtn.innerHTML;
+    shareBtn.innerHTML = (typeof lang !== 'undefined' && lang === en) ? "⏳ Creating link..." : "⏳ Создание ссылки...";
+    shareBtn.disabled = true;
+    linkContainer.style.display = "none";
+
+    try {
+        const data = formSaveData();
+
+        const blob = new Blob([data], { type: "application/json" });
+        const formData = new FormData();
+
+        formData.append("reqtype", "fileupload");
+        formData.append("time", "1h"); //1h, 12h, 24h или 72h
+        formData.append("fileToUpload", blob, "sight.json");
+
+        const response = await fetch("https://litterbox.catbox.moe/resources/internals/api.php", {
+            method: "POST",
+            body: formData
+        });
+
+        if (!response.ok) throw new Error("Catbox returned error status");
+
+        const fileUrl = await response.text();
+
+        if (!fileUrl.startsWith("https://")) {
+            throw new Error("Invalid response from Catbox: " + fileUrl);
+        }
+
+        const baseUrl = window.location.origin + window.location.pathname;
+        const shareUrl = `${baseUrl}?share=${encodeURIComponent(fileUrl.trim())}`;
+
+        linkInput.value = shareUrl;
+        linkContainer.style.display = "flex";
+
+        try {
+            try {
+                await navigator.clipboard.writeText(shareUrl);
+                showNotification(typeof lang !== 'undefined' && lang === en ? "Link generated and copied!" : "Ссылка создана и скопирована!");
+            } catch (clipboardErr) {
+                try {
+                    linkInput.select();
+                    linkInput.setSelectionRange(0, 99999);
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        showNotification(typeof lang !== 'undefined' && lang === en ? "Link generated and copied!" : "Ссылка создана и скопирована!");
+                    }
+                } catch (err) {
+                    showNotification(typeof lang !== 'undefined' && lang === en ? "Link generated!" : "Ссылка создана!");
+                }
+            }
+            if (typeof showNotification === 'function') {
+                showNotification(typeof lang !== 'undefined' && lang === en
+                    ? "Link generated and copied!"
+                    : "Ссылка создана и скопирована!");
+            }
+        } catch (clipboardErr) {
+            if (typeof showNotification === 'function') {
+                showNotification(typeof lang !== 'undefined' && lang === en ? "Link generated!" : "Ссылка создана!");
+            }
+        }
+
+    } catch (e) {
+        console.error("Share error:", e);
+        if (typeof showNotification === 'function') {
+            showNotification(typeof lang !== 'undefined' && lang === en
+                ? "Error creating share link. Try again."
+                : "Ошибка создания ссылки. Попробуйте еще раз.", true);
+        }
+    } finally {
+        shareBtn.innerHTML = originalText;
+        shareBtn.disabled = false;
+    }
+}
+
+window.addEventListener('load', async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const fileUrl = urlParams.get('share');
+
+    if (fileUrl) {
+        try {
+            window.history.replaceState({}, document.title, window.location.pathname);
+
+            if (typeof showNotification === 'function') {
+                showNotification(typeof lang !== 'undefined' && lang === en ? "Loading sight..." : "Загрузка прицела...");
+            }
+
+            const response = await fetch(fileUrl);
+            if (!response.ok) throw new Error("File could not be fetched");
+
+            const loadedData = await response.text();
+
+            JSON.parse(loadedData);
+
+            load(loadedData);
+
+            if (typeof showNotification === 'function') {
+                showNotification(typeof lang !== 'undefined' && lang === en ? "Sight loaded successfully!" : "Прицел успешно загружен!");
+            }
+        } catch (e) {
+            console.error("Load shared sight error:", e);
+            if (typeof showNotification === 'function') {
+                showNotification(typeof lang !== 'undefined' && lang === en
+                    ? "Failed to load sight. Link might be expired or blocked."
+                    : "Не удалось загрузить прицел. Возможно, ссылка истекла или заблокирована.", true);
+            }
+        }
+    }
+});

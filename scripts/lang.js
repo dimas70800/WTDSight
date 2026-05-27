@@ -232,7 +232,10 @@ const ru =
     addFilesToArchiveBtn: "Добавить файл",
     createArchiveBtn: "Создать архив",
 
-    hatchRestoreBtn: "Предыдущая зона"
+    hatchRestoreBtn: "Предыдущая зона",
+
+    shareSightBtn: "Поделиться прицелом",
+    shareLinkTitle: "Ссылка на прицел (доступна 1 час)"
 
 };
 
@@ -471,7 +474,10 @@ const en =
     addFilesToArchiveBtn: "Add file",
     createArchiveBtn: "Create archive",
 
-    hatchRestoreBtn: "Previous zone"
+    hatchRestoreBtn: "Previous zone",
+
+    shareSightBtn: "Share the sight",
+    shareLinkTitle: "Link to the sight (available for 1 hour)"
 };
 
 const langDependent =
@@ -665,7 +671,10 @@ const langDependent =
         "addFilesToArchiveBtn",
         "createArchiveBtn",
         
-        "hatchRestoreBtn"
+        "hatchRestoreBtn",
+
+        "shareSightBtn",
+        "shareLinkTitle"
     ];
 
 function changeLang(to) {
