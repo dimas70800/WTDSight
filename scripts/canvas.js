@@ -724,10 +724,13 @@ function drawGhost() {
             }
             if (previewFillQuads && previewFillQuads.length > 0) {
                 ctx.save();
-                ctx.globalAlpha = 0.6;
-                ctx.fillStyle = "rgba(100, 150, 255, 0.4)";
-                ctx.strokeStyle = "rgba(100, 150, 255, 0.8)";
-                ctx.lineWidth = getLineWidth(2);
+                
+                const fillOpInput = document.getElementById("fillOpacityInput");
+                const fillOp = fillOpInput ? parseFloat(fillOpInput.value) : 0.4;
+                
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = `rgba(100, 150, 255, ${fillOp})`;
+                ctx.strokeStyle = `rgba(100, 150, 255, ${Math.min(1, fillOp + 0.4)})`;
                 for (const q of previewFillQuads) {
                     const p1 = v2disposSight2v2canvas(q[0]), p2 = v2disposSight2v2canvas(q[1]);
                     const p3 = v2disposSight2v2canvas(q[2]), p4 = v2disposSight2v2canvas(q[3]);
@@ -1660,12 +1663,14 @@ canvas.onpointerdown = (e) => {
             updateSelectionInfo();
         }
         else {
+            let snapRad = (mobileSnappingActive && !snapping) ? 40 : Infinity;
+
             if (tool === "hatch") {
                 const clickCanvas = getMousePos(e.offsetX, e.offsetY);
                 let clickPos = v2canvas2v2disposSight(clickCanvas);
 
                 if (snapping || mobileSnappingActive) {
-                    const snapPos = snappingPos(clickPos, 40);
+                    const snapPos = snappingPos(clickPos, snapRad);
                     if (snapPos != null) clickPos = snapPos;
                 }
                 if (!isDrawingHatch) startHatchDrawing(clickPos);
@@ -1677,7 +1682,7 @@ canvas.onpointerdown = (e) => {
                 let clickPos = v2canvas2v2disposSight(clickCanvas);
 
                 if (snapping || mobileSnappingActive) {
-                    const snapPos = snappingPos(clickPos, 40);
+                    const snapPos = snappingPos(clickPos, snapRad);
                     if (snapPos != null) clickPos = snapPos;
                 }
                 if (!isDrawingFill) startFillDrawing(clickPos);
@@ -1692,7 +1697,7 @@ canvas.onpointerdown = (e) => {
                 curvePoints = [];
 
                 if (snapping || mobileSnappingActive) {
-                    const snapPos = snappingPos(clickPos);
+                    const snapPos = snappingPos(clickPos, snapRad);
                     if (snapPos != null) {
                         curvePoints.push(snapPos);
                     }
@@ -1706,7 +1711,7 @@ canvas.onpointerdown = (e) => {
                 brushPoints = [];
 
                 if (snapping || mobileSnappingActive) {
-                    const snapPos = snappingPos(clickPos);
+                    const snapPos = snappingPos(clickPos, snapRad);
                     if (snapPos != null) {
                         brushPoints.push(snapPos);
                     }
@@ -1717,7 +1722,7 @@ canvas.onpointerdown = (e) => {
                 if (!(snapping || mobileSnappingActive))
                     startDrawing(mousePos);
                 else {
-                    const snapPos = snappingPos(mousePos);
+                    const snapPos = snappingPos(mousePos, snapRad);
                     if (snapPos != null)
                         startDrawing(snapPos);
                     else

@@ -225,6 +225,7 @@ const ru =
     fillQuadsCount: "Четырёхугольников",
     fillCreateBtn: "Создать",
     fillCancelBtn: "Отмена",
+    fillOpacityLabel: "Непрозрачность превью заливки",
 
     archiveNameTitle: "Название архива",
     archiveFileNamePlaceholder: "Название архива",
@@ -467,6 +468,7 @@ const en =
     fillQuadsCount: "Quads",
     fillCreateBtn: "Create",
     fillCancelBtn: "Cancel",
+    fillOpacityLabel: "Opacity of the fill preview",
 
     archiveNameTitle: "Archive name",
     archiveFileNamePlaceholder: "Archive name",
@@ -665,6 +667,7 @@ const langDependent =
         "fillQuadsCount",
         "fillCreateBtn",
         "fillCancelBtn",
+        "fillOpacityLabel",
 
         "archiveNameTitle",
         "addCurrentSightBtn",
