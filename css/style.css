@@ -677,6 +677,14 @@ input[type="range"] {
     background-color: #4e59cc;
 }
 
+#boosty-btn {
+    background-color: #f15f2c;
+}
+
+#boosty-btn:hover {
+    background-color: #d45527;
+}
+
 .preview-overlay {
     position: fixed;
     inset: 0;
