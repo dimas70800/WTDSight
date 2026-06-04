@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 800">
+  <defs>
+    <style>
+      .st0, .st1 {
+        fill: #777;
+      }
+
+      .st2 {
+        fill: none;
+        stroke-width: 40px;
+      }
+
+      .st2, .st1 {
+        stroke: #777;
+        stroke-miterlimit: 10;
+      }
+    </style>
+  </defs>
+  <rect class="st0" x="120" y="200" width="60" height="400"/>
+  <rect class="st0" x="620" y="200" width="60" height="400"/>
+  <rect class="st1" x="370" y="-50" width="60" height="400" transform="translate(250 550) rotate(-90)"/>
+  <rect class="st0" x="370" y="450" width="60" height="400" transform="translate(-250 1050) rotate(-90)"/>
+  <circle class="st2" cx="150" cy="650" r="60"/>
+  <circle class="st2" cx="150" cy="150" r="60"/>
+  <circle class="st2" cx="650" cy="150" r="60"/>
+  <circle class="st2" cx="650" cy="650" r="60"/>
+</svg>

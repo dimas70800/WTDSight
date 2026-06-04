@@ -553,35 +553,95 @@ function snappingPos(mouse, maxPixelRadius = Infinity, ignoreId = null) {
     } : null);
 }
 
+function pointToSegmentDistSqr(p, v, w) {
+    const l2 = v2sqrmag(v, w);
+    if (l2 === 0) return v2sqrmag(p, v);
+    let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+    t = Math.max(0, Math.min(1, t));
+    const proj = { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) };
+    return v2sqrmag(p, proj);
+}
+
+function getObjectDistanceSqr(mouse, obj) {
+    if (obj.type === "line") {
+        return pointToSegmentDistSqr(mouse, obj.start, obj.end);
+    } else if (obj.type === "quad") {
+        if (typeof isPointInQuad === "function" && isPointInQuad(mouse, obj)) {
+            return 0;
+        }
+        const d1 = pointToSegmentDistSqr(mouse, obj.pos1, obj.pos2);
+        const d2 = pointToSegmentDistSqr(mouse, obj.pos2, obj.pos3);
+        const d3 = pointToSegmentDistSqr(mouse, obj.pos3, obj.pos4);
+        const d4 = pointToSegmentDistSqr(mouse, obj.pos4, obj.pos1);
+        return Math.min(d1, d2, d3, d4);
+    }
+    return Infinity;
+}
+
 function selectNearest(mouse) {
-    let closestId = null;
-    let closestSqrMag = Infinity;
+    if (objects.size === 0) return;
 
-    function comp(pos, id) {
-        const sqrMag = v2sqrmag(mouse, pos);
-        if (sqrMag < closestSqrMag) {
-            closestId = id;
-            closestSqrMag = sqrMag;
+    const oldSelectionEl = document.getElementById('oldSelectionCheckBox');
+    const isOldMode = oldSelectionEl ? oldSelectionEl.checked : false;
+
+    if (isOldMode) {
+        let closestId = null;
+        let closestSqrMag = Infinity;
+
+        function compOld(pos, id) {
+            const sqrMag = v2sqrmag(mouse, pos);
+            if (sqrMag < closestSqrMag) {
+                closestId = id;
+                closestSqrMag = sqrMag;
+            }
         }
-    }
 
-    for (const [id, obj] of objects) {
-        switch (obj.type) {
-            case "line":
-                comp(v2avg([obj.start, obj.end]), id);
-
-                break;
-
-            case "quad":
-                comp(v2avg([obj.pos1, obj.pos2, obj.pos3, obj.pos4]), id);
-
-                break;
+        for (const [id, obj] of objects) {
+            switch (obj.type) {
+                case "line":
+                    compOld(v2avg([obj.start, obj.end]), id);
+                    break;
+                case "quad":
+                    compOld(v2avg([obj.pos1, obj.pos2, obj.pos3, obj.pos4]), id);
+                    break;
+            }
         }
+
+        if (closestId == null) return;
+
+        clearSelection();
+        showInfo(closestId);
+
+    } else {
+        let list = [];
+        for (const [id, obj] of objects) {
+            const distSqr = getObjectDistanceSqr(mouse, obj);
+            list.push({ id: id, distSqr: distSqr });
+        }
+
+        list.sort((a, b) => a.distSqr - b.distSqr);
+
+        const hitRadiusPixels = 20; 
+        const hitRadiusSight = hitRadiusPixels / (screenZoom * getBaseScale());
+        const thresholdSqr = hitRadiusSight * hitRadiusSight;
+
+        let overlappingItems = list.filter(item => item.distSqr <= thresholdSqr);
+
+        if (overlappingItems.length === 0) {
+            overlappingItems = [list[0]]; 
+        }
+
+        let targetId = overlappingItems[0].id;
+
+        if (selectedId !== null) {
+            const currentIndex = overlappingItems.findIndex(item => item.id === selectedId);
+            if (currentIndex !== -1) {
+                const nextIndex = (currentIndex + 1) % overlappingItems.length;
+                targetId = overlappingItems[nextIndex].id;
+            }
+        }
+
+        clearSelection();
+        showInfo(targetId);
     }
-
-    if (closestId == null) return;
-
-    clearSelection();
-
-    showInfo(closestId);
 }

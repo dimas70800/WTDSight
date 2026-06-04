@@ -414,6 +414,17 @@
                                 для удаления</p>
                             <div class="block-with-elem"
                                 style="display: flex; justify-content:space-evenly; flex-direction: row;">
+                                <button id="selShapeRect" onclick="setSelectionShape('rect')"
+                                    style="width: 60px; height: 60px;">
+                                    <img src="images/rectSelect.svg" style="height: 100%; width: 100%;">
+                                </button>
+                                <button id="selShapeLasso" onclick="setSelectionShape('lasso')"
+                                    style="width: 60px; height: 60px;">
+                                    <img src="images/lassoSelect.svg" style="height: 100%; width: 100%;">
+                                </button>
+                            </div>
+                            <div class="block-with-elem"
+                                style="display: flex; justify-content:space-evenly; flex-direction: row;">
                                 <button id="selModeAll" onclick="setSelectionMode('all')"
                                     style="width: 60px; height: 60px;">
                                     <img src="images/allSelectIcon.svg" alt="Все" style="height: 100%; width: 100%;">
@@ -638,6 +649,11 @@
             <div class="settings-modal-header">
                 <h2 id="settingsTitleText">Настройки</h2>
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                    <button onclick='window.open("https://boosty.to/dimas7080", "_blank")'
+                        style="display: flex; align-items: center; gap: 5px; font-size: 1em;" id="boosty-btn">
+                        <img src="images/boosty_icon.svg" alt="boosty" style="height: 2em;">
+                        <span id="boostyText">Boosty</span>
+                    </button>
                     <button onclick='window.open("https://discord.gg/TJWqaqf4TU", "_blank")'
                         style="display: flex; align-items: center; gap: 5px; font-size: 1em;" id="discord-server-btn">
                         <img src="images/discord_icon.svg" alt="discord" style="height: 2em;">
@@ -678,6 +694,10 @@
                     <input id="drawGridCheckBox" type="checkbox" onchange="toggleDrawGrid(this.checked)" checked
                         style="transform: scale(1.5);">
                 </div>
+                <label class="settings-row">
+                    <span id="oldSelectionLabel">Старый режим выделения</span>
+                    <input type="checkbox" id="oldSelectionCheckBox"style="transform: scale(1.5);">
+                </label>
             </div>
         </div>
     </div>

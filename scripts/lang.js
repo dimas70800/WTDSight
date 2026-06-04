@@ -236,7 +236,10 @@ const ru =
     hatchRestoreBtn: "Предыдущая зона",
 
     shareSightBtn: "Поделиться прицелом",
-    shareLinkTitle: "Ссылка на прицел (доступна 1 час)"
+    shareLinkTitle: "Ссылка на прицел (доступна 1 час)",
+
+    boostyText: "Мой Boosty",
+    oldSelectionLabel: "Старый режим выделения (по центру)"
 
 };
 
@@ -479,7 +482,10 @@ const en =
     hatchRestoreBtn: "Previous zone",
 
     shareSightBtn: "Share the sight",
-    shareLinkTitle: "Link to the sight (available for 1 hour)"
+    shareLinkTitle: "Link to the sight (available for 1 hour)",
+
+    boostyText: "My Boosty",
+    oldSelectionLabel: "Old selection mode (by center)"
 };
 
 const langDependent =
@@ -677,7 +683,10 @@ const langDependent =
         "hatchRestoreBtn",
 
         "shareSightBtn",
-        "shareLinkTitle"
+        "shareLinkTitle",
+
+        "boostyText",
+        "oldSelectionLabel"
     ];
 
 function changeLang(to) {

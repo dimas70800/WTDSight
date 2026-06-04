@@ -35,6 +35,8 @@ function getLineWidth(baseWidth) {
 let selectionRect = null;      // { startX, startY, endX, endY } в мировых координатах
 let isSelecting = false;
 let selectedObjectsSet = new Set();
+let selectionShapeMode = 'rect';
+let lassoPoints = [];
 
 let transformState = {
     active: false,
@@ -745,18 +747,40 @@ function drawGhost() {
             if (snapping) drawCircle(mousePosCanvas.x, mousePosCanvas.y, 20);
             break;
     }
-    if (tool === "select" && selectionRect && isSelecting) {
-        const from = v2disposSight2v2canvas({ x: selectionRect.startX, y: selectionRect.startY });
-        const to = v2disposSight2v2canvas({ x: selectionRect.endX, y: selectionRect.endY });
+    if (tool === "select" && isSelecting) {
+        if (selectionShapeMode === 'rect' && selectionRect) {
+            const from = v2disposSight2v2canvas({ x: selectionRect.startX, y: selectionRect.startY });
+            const to = v2disposSight2v2canvas({ x: selectionRect.endX, y: selectionRect.endY });
 
-        ctx.save();
-        ctx.globalAlpha = 0.3;
-        ctx.fillStyle = "rgba(0, 59, 185, 0.3)";
-        ctx.fillRect(from.x, from.y, to.x - from.x, to.y - from.y);
-        ctx.strokeStyle = "rgba(149, 183, 255, 0.8)";
-        ctx.lineWidth = getLineWidth(2);
-        ctx.strokeRect(from.x, from.y, to.x - from.x, to.y - from.y);
-        ctx.restore();
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = "rgba(0, 59, 185, 0.3)";
+            ctx.fillRect(from.x, from.y, to.x - from.x, to.y - from.y);
+            ctx.strokeStyle = "rgba(149, 183, 255, 0.8)";
+            ctx.lineWidth = getLineWidth(2);
+            ctx.strokeRect(from.x, from.y, to.x - from.x, to.y - from.y);
+            ctx.restore();
+        } 
+        else if (selectionShapeMode === 'lasso' && lassoPoints.length > 0) {
+            ctx.save();
+            ctx.beginPath();
+            const startCanvas = v2disposSight2v2canvas(lassoPoints[0]);
+            ctx.moveTo(startCanvas.x, startCanvas.y);
+            
+            for (let i = 1; i < lassoPoints.length; i++) {
+                const pt = v2disposSight2v2canvas(lassoPoints[i]);
+                ctx.lineTo(pt.x, pt.y);
+            }
+            ctx.closePath();
+            
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = "rgba(0, 59, 185, 0.3)";
+            ctx.fill("evenodd");
+            ctx.strokeStyle = "rgba(149, 183, 255, 0.8)";
+            ctx.lineWidth = getLineWidth(2);
+            ctx.stroke();
+            ctx.restore();
+        }
     }
     if (tool === "select" && selectedObjectsSet.size > 0 && !selectionRect) {
         const currentHash = Array.from(selectedObjectsSet).sort().join(',');
@@ -1054,6 +1078,69 @@ function isQuadIntersectsRect(quad, rectMinX, rectMinY, rectMaxX, rectMaxY) {
     return false;
 }
 
+function isPointInPolygon(point, polygon) {
+    let x = point.x, y = point.y;
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        let xi = polygon[i].x, yi = polygon[i].y;
+        let xj = polygon[j].x, yj = polygon[j].y;
+        let intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
+
+function doLineSegmentsIntersect(p1, p2, p3, p4) {
+    const ccw = (A, B, C) => (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x);
+    return (ccw(p1, p3, p4) !== ccw(p2, p3, p4)) && (ccw(p1, p2, p3) !== ccw(p1, p2, p4));
+}
+
+function isLineIntersectingPolygon(lineStart, lineEnd, polygon) {
+    if (isPointInPolygon(lineStart, polygon) || isPointInPolygon(lineEnd, polygon)) return true;
+    for (let i = 0; i < polygon.length; i++) {
+        let next = (i + 1) % polygon.length;
+        if (doLineSegmentsIntersect(lineStart, lineEnd, polygon[i], polygon[next])) return true;
+    }
+    return false;
+}
+
+function isQuadIntersectingPolygon(quad, polygon) {
+    const points = [quad.pos1, quad.pos2, quad.pos3, quad.pos4];
+    for (let p of points) {
+        if (isPointInPolygon(p, polygon)) return true;
+    }
+    const edges = [[points[0], points[1]], [points[1], points[2]], [points[2], points[3]], [points[3], points[0]]];
+    for (let edge of edges) {
+        if (isLineIntersectingPolygon(edge[0], edge[1], polygon)) return true;
+    }
+    if (polygon.length > 0 && isPointInQuad(polygon[0], quad)) return true;
+    return false;
+}
+
+function updateSelectionFromLasso() {
+    if (lassoPoints.length < 3) return;
+
+    selectedObjectsSet.clear();
+
+    for (const [id, obj] of objects) {
+        let intersects = false;
+
+        if (obj.type === "line" && (selectionFilterMode === 'all' || selectionFilterMode === 'lines')) {
+            intersects = isLineIntersectingPolygon(obj.start, obj.end, lassoPoints);
+        } else if (obj.type === "quad" && (selectionFilterMode === 'all' || selectionFilterMode === 'quads')) {
+            intersects = isQuadIntersectingPolygon(obj, lassoPoints);
+        }
+
+        if (intersects) {
+            selectedObjectsSet.add(id);
+            obj.selected = true;
+        } else {
+            obj.selected = false;
+        }
+    }
+    updateSelectionInfo();
+}
+
 function updateSelectionFromRect() {
     if (!selectionRect) return;
 
@@ -1125,6 +1212,30 @@ function setSelectionMode(mode) {
     updateSelectionFromRect();
 }
 setSelectionMode('all');
+
+function setSelectionShape(shape) {
+    selectionShapeMode = shape;
+
+    const btnRect = document.getElementById('selShapeRect');
+    const btnLasso = document.getElementById('selShapeLasso');
+
+    [btnRect, btnLasso].forEach(btn => {
+        if(!btn) return;
+        btn.style.background = 'transparent';
+        btn.style.color = 'inherit';
+        btn.style.border = '1px solid var(--border-col)';
+    });
+
+    let activeBtn = shape === 'rect' ? btnRect : btnLasso;
+    if (activeBtn) {
+        activeBtn.style.background = 'var(--input-bg)';
+        activeBtn.style.color = 'var(--text-white)';
+    }
+
+    clearSelection();
+    updateSelectionInfo();
+}
+setSelectionShape('rect');
 
 function clearSelection() {
     for (const [id, obj] of objects) {
@@ -1643,12 +1754,14 @@ canvas.onpointerdown = (e) => {
             }
 
             isSelecting = true;
-            selectionRect = {
-                startX: clickWorld.x,
-                startY: clickWorld.y,
-                endX: clickWorld.x,
-                endY: clickWorld.y
-            };
+            if (selectionShapeMode === 'rect') {
+                selectionRect = {
+                    startX: clickWorld.x, startY: clickWorld.y,
+                    endX: clickWorld.x, endY: clickWorld.y
+                };
+            } else {
+                lassoPoints = [clickWorld];
+            }
 
             for (const [id, obj] of objects) {
                 obj.selected = false;
@@ -1822,7 +1935,7 @@ canvas.onpointermove = (e) => {
         let mousePos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
 
         let lastPoint = curvePoints[curvePoints.length - 1];
-        if (v2sqrmag(mousePos, lastPoint) > 0.0000001) {
+        if (v2sqrmag(mousePos, lastPoint) > 0.00000005) {
             curvePoints.push(mousePos);
         }
     }
@@ -2081,16 +2194,20 @@ canvas.onpointermove = (e) => {
         }
         return;
     }
-    if (tool === "select" && isSelecting && selectionRect) {
+    if (tool === "select" && isSelecting) {
         const mouseWorld = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
-        selectionRect.endX = mouseWorld.x;
-        selectionRect.endY = mouseWorld.y;
-        updateSelectionFromRect();
-    } if (tool === "brush" && isDrawingBrush) {
-        let mousePos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
-        let lastPoint = brushPoints[brushPoints.length - 1];
-        if (v2sqrmag(mousePos, lastPoint) > 0.0000001) {
-            brushPoints.push(mousePos);
+        
+        if (selectionShapeMode === 'rect' && selectionRect) {
+            selectionRect.endX = mouseWorld.x;
+            selectionRect.endY = mouseWorld.y;
+            updateSelectionFromRect();
+        } 
+        else if (selectionShapeMode === 'lasso') {
+            const lastPt = lassoPoints[lassoPoints.length - 1];
+            if (v2sqrmag(mouseWorld, lastPt) > 0.0000001) {
+                lassoPoints.push(mouseWorld);
+                updateSelectionFromLasso(); 
+            }
         }
     }
 };
@@ -2200,13 +2317,25 @@ canvas.onpointerup = (e) => {
         }
         if (tool === "select" && isSelecting) {
             isSelecting = false;
-            if (selectionRect &&
-                Math.abs(selectionRect.endX - selectionRect.startX) < 0.002 &&
-                Math.abs(selectionRect.endY - selectionRect.startY) < 0.002) {
-                clearSelection();
-                updateSelectionInfo();
+            
+            if (selectionShapeMode === 'rect') {
+                if (selectionRect &&
+                    Math.abs(selectionRect.endX - selectionRect.startX) < 0.002 &&
+                    Math.abs(selectionRect.endY - selectionRect.startY) < 0.002) {
+                    clearSelection();
+                    updateSelectionInfo();
+                }
+                selectionRect = null;
+            } 
+            else if (selectionShapeMode === 'lasso') {
+                if (lassoPoints.length < 3) {
+                    clearSelection();
+                    updateSelectionInfo();
+                } else {
+                    updateSelectionFromLasso();
+                }
+                lassoPoints = [];
             }
-            selectionRect = null;
         }
         if (tool === "select" && transformState.active) {
             pushEvent("move_multiple", {

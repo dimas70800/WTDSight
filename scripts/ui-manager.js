@@ -17,7 +17,8 @@ function loadSettings() {
         hints: true,
         outline: false,
         canvasBgColor: '#c7c7c7',
-        drawGrid: true
+        drawGrid: true,
+        oldSelection: false
     };
 }
 
@@ -31,6 +32,7 @@ function saveAllSettings() {
         const outlineEl = document.getElementById('outlineCheckBox');
         const drawGridEl = document.getElementById('drawGridCheckBox');
         const canvasBgColorEl = document.getElementById('canvasBgColor');
+        const oldSelectionEl = document.getElementById('oldSelectionCheckBox');
 
         if (!hintsEl || !outlineEl || !drawGridEl || !canvasBgColorEl) return;
 
@@ -40,7 +42,8 @@ function saveAllSettings() {
             hints: hintsEl.checked,
             outline: outlineEl.checked,
             canvasBgColor: canvasBgColorEl.value,
-            drawGrid: drawGridEl.checked
+            drawGrid: drawGridEl.checked,
+            oldSelection: oldSelectionEl.checked
         };
 
         localStorage.setItem('wtdsight-settings', JSON.stringify(settings));
@@ -75,6 +78,12 @@ function applyAllSettings(settings) {
     // Сетка
     if (typeof toggleDrawGrid === 'function') {
         toggleDrawGrid(settings.drawGrid !== undefined ? settings.drawGrid : true);
+    }
+
+    const oldSelectionEl = document.getElementById('oldSelectionCheckBox');
+    if (oldSelectionEl) {
+        oldSelectionEl.checked = settings.oldSelection || false;
+        oldSelectionEl.addEventListener('change', saveAllSettings);
     }
 }
 
