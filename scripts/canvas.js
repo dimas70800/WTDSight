@@ -581,15 +581,31 @@ function drawGhost() {
                 ctx.save();
                 ctx.globalAlpha = 0.6;
                 ctx.strokeStyle = "rgba(100, 200, 100, 0.8)";
+                ctx.fillStyle = "rgba(100, 200, 100, 0.4)";
                 ctx.lineWidth = getLineWidth(2);
 
-                for (const line of previewHatchLines) {
-                    const from = v2disposSight2v2canvas(line.start);
-                    const to = v2disposSight2v2canvas(line.end);
-                    ctx.beginPath();
-                    ctx.moveTo(from.x, from.y);
-                    ctx.lineTo(to.x, to.y);
-                    ctx.stroke();
+                for (const item of previewHatchLines) {
+                    if (item.type === 'line' || !item.type) {
+                        const from = v2disposSight2v2canvas(item.start);
+                        const to = v2disposSight2v2canvas(item.end);
+                        ctx.beginPath();
+                        ctx.moveTo(from.x, from.y);
+                        ctx.lineTo(to.x, to.y);
+                        ctx.stroke();
+                    } else if (item.type === 'quad') {
+                        const p1 = v2disposSight2v2canvas(item.pos1);
+                        const p2 = v2disposSight2v2canvas(item.pos2);
+                        const p3 = v2disposSight2v2canvas(item.pos3);
+                        const p4 = v2disposSight2v2canvas(item.pos4);
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.lineTo(p3.x, p3.y);
+                        ctx.lineTo(p4.x, p4.y);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                    }
                 }
 
                 ctx.setLineDash([]);
@@ -726,10 +742,10 @@ function drawGhost() {
             }
             if (previewFillQuads && previewFillQuads.length > 0) {
                 ctx.save();
-                
+
                 const fillOpInput = document.getElementById("fillOpacityInput");
                 const fillOp = fillOpInput ? parseFloat(fillOpInput.value) : 0.4;
-                
+
                 ctx.globalAlpha = 1;
                 ctx.fillStyle = `rgba(100, 150, 255, ${fillOp})`;
                 ctx.strokeStyle = `rgba(100, 150, 255, ${Math.min(1, fillOp + 0.4)})`;
@@ -746,6 +762,62 @@ function drawGhost() {
             }
             if (snapping) drawCircle(mousePosCanvas.x, mousePosCanvas.y, 20);
             break;
+        case "shapes":
+            if (shapesToolState.active && shapesToolState.box) {
+                const box = shapesToolState.box;
+
+                ctx.save();
+                ctx.strokeStyle = el("outlineCheckBox").checked ? "rgba(124, 124, 124, 0.8)" : "rgba(0,0,0,0.8)";
+                ctx.lineWidth = getLineWidth(1);
+                previewShapeLines.forEach(line => {
+                    const from = v2disposSight2v2canvas(line.start);
+                    const to = v2disposSight2v2canvas(line.end);
+                    drawLine(from.x, from.y, to.x, to.y);
+                });
+                ctx.restore();
+                ctx.save();
+                ctx.strokeStyle = "rgba(0, 0, 0, 0.8)";
+                ctx.fillStyle = "rgba(255, 255, 255, 1)";
+                ctx.lineWidth = getLineWidth(2);
+
+                const cos = Math.cos(box.angle), sin = Math.sin(box.angle);
+                const corners = [
+                    { x: -box.w / 2, y: -box.h / 2 }, { x: box.w / 2, y: -box.h / 2 },
+                    { x: box.w / 2, y: box.h / 2 }, { x: -box.w / 2, y: box.h / 2 }
+                ].map(pt => v2disposSight2v2canvas({
+                    x: box.cx + pt.x * cos - pt.y * sin,
+                    y: box.cy + pt.x * sin + pt.y * cos
+                }));
+
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(corners[0].x, corners[0].y);
+                corners.forEach(c => ctx.lineTo(c.x, c.y));
+                ctx.closePath();
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                const handles = getShapesTransformHandles(box);
+                const tHandle = handles.find(h => h.id === 'scale_t').p;
+                const rotHandle = handles.find(h => h.id === 'rotate').p;
+
+                const tScreen = v2disposSight2v2canvas(tHandle);
+                const rotScreen = v2disposSight2v2canvas(rotHandle);
+                ctx.beginPath();
+                ctx.moveTo(tScreen.x, tScreen.y);
+                ctx.lineTo(rotScreen.x, rotScreen.y);
+                ctx.stroke();
+
+                handles.forEach(h => {
+                    const canvasPos = v2disposSight2v2canvas(h.p);
+                    ctx.beginPath();
+                    ctx.arc(canvasPos.x, canvasPos.y, h.id === 'rotate' ? getLineWidth(12) : getLineWidth(8), 0, Math.PI * 2);
+                    ctx.fill(); ctx.stroke();
+                });
+
+                ctx.restore();
+            }
+            break;
     }
     if (tool === "select" && isSelecting) {
         if (selectionShapeMode === 'rect' && selectionRect) {
@@ -760,19 +832,19 @@ function drawGhost() {
             ctx.lineWidth = getLineWidth(2);
             ctx.strokeRect(from.x, from.y, to.x - from.x, to.y - from.y);
             ctx.restore();
-        } 
+        }
         else if (selectionShapeMode === 'lasso' && lassoPoints.length > 0) {
             ctx.save();
             ctx.beginPath();
             const startCanvas = v2disposSight2v2canvas(lassoPoints[0]);
             ctx.moveTo(startCanvas.x, startCanvas.y);
-            
+
             for (let i = 1; i < lassoPoints.length; i++) {
                 const pt = v2disposSight2v2canvas(lassoPoints[i]);
                 ctx.lineTo(pt.x, pt.y);
             }
             ctx.closePath();
-            
+
             ctx.globalAlpha = 0.3;
             ctx.fillStyle = "rgba(0, 59, 185, 0.3)";
             ctx.fill("evenodd");
@@ -1220,7 +1292,7 @@ function setSelectionShape(shape) {
     const btnLasso = document.getElementById('selShapeLasso');
 
     [btnRect, btnLasso].forEach(btn => {
-        if(!btn) return;
+        if (!btn) return;
         btn.style.background = 'transparent';
         btn.style.color = 'inherit';
         btn.style.border = '1px solid var(--border-col)';
@@ -1677,6 +1749,44 @@ canvas.onpointerdown = (e) => {
                     updateTextPreview();
                 }
             }
+        } else if (tool === "shapes") {
+            const clickCanvas = getMousePos(e.offsetX, e.offsetY);
+            let clickPos = v2canvas2v2disposSight(clickCanvas);
+
+            if (!shapesToolState.active) {
+                shapesToolState.active = true;
+                shapesToolState.box.cx = clickPos.x;
+                shapesToolState.box.cy = clickPos.y;
+                shapesToolState.box.w = 0.1;
+                shapesToolState.box.h = 0.1;
+                shapesToolState.box.angle = 0;
+                updateShapesPreview();
+            } else {
+                const handles = getShapesTransformHandles(shapesToolState.box);
+                const hitRadius = 12 / screenZoom / getBaseScale();
+                const dist = (p1, p2) => Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
+
+                let hitHandle = handles.find(h => {
+                    const radiusMod = h.id === 'rotate' ? 1.8 : 1.5;
+                    return dist(clickPos, h.p) < hitRadius * radiusMod;
+                });
+
+                if (hitHandle) {
+                    shapesToolState.action = hitHandle.id;
+                    shapesToolState.startBox = JSON.parse(JSON.stringify(shapesToolState.box));
+                    shapesToolState.startMouse = clickPos;
+                    shapesToolState.startAngle = Math.atan2(clickPos.y - shapesToolState.box.cy, clickPos.x - shapesToolState.box.cx);
+                } else if (Math.abs(clickPos.x - shapesToolState.box.cx) < shapesToolState.box.w / 2 &&
+                    Math.abs(clickPos.y - shapesToolState.box.cy) < shapesToolState.box.h / 2) {
+                    shapesToolState.action = 'move';
+                    shapesToolState.offsetX = clickPos.x - shapesToolState.box.cx;
+                    shapesToolState.offsetY = clickPos.y - shapesToolState.box.cy;
+                } else {
+                    shapesToolState.box.cx = clickPos.x;
+                    shapesToolState.box.cy = clickPos.y;
+                    updateShapesPreview();
+                }
+            }
         } else if (tool === "select") {
             const clickCanvas = getMousePos(e.offsetX, e.offsetY);
             const clickWorld = v2canvas2v2disposSight(clickCanvas);
@@ -1982,6 +2092,73 @@ canvas.onpointermove = (e) => {
         }
         updateTextPreview();
     }
+    if (tool === "shapes" && shapesToolState.action) {
+        if (shapesToolState.action === 'move') {
+            shapesToolState.box.cx = mousePos.x - shapesToolState.offsetX;
+            shapesToolState.box.cy = mousePos.y - shapesToolState.offsetY;
+        } else if (shapesToolState.action === 'rotate') {
+            const currentAngle = Math.atan2(mousePos.y - shapesToolState.startBox.cy, mousePos.x - shapesToolState.startBox.cx);
+            let deltaAngle = currentAngle - shapesToolState.startAngle;
+            if (e.shiftKey) {
+                const step = Math.PI / 12;
+                deltaAngle = Math.round(deltaAngle / step) * step;
+            }
+            shapesToolState.box.angle = shapesToolState.startBox.angle + deltaAngle;
+        } else {
+            const action = shapesToolState.action;
+            const initialBox = shapesToolState.startBox;
+
+            const dx = mousePos.x - initialBox.cx, dy = mousePos.y - initialBox.cy;
+            const localX = dx * Math.cos(initialBox.angle) + dy * Math.sin(initialBox.angle);
+            const localY = -dx * Math.sin(initialBox.angle) + dy * Math.cos(initialBox.angle);
+
+            const dir = action.split('_')[1] || '';
+            const isLeft = dir.includes('l'), isRight = dir.includes('r');
+            const isTop = dir.includes('t'), isBottom = dir.includes('b');
+            const isCorner = ['tl', 'tr', 'bl', 'br'].includes(dir);
+
+            const signX = isRight ? 1 : (isLeft ? -1 : 0);
+            const signY = isBottom ? 1 : (isTop ? -1 : 0);
+
+            const isCenterScale = e.shiftKey && !isCorner;
+
+            let originLocalX = signX === 1 ? -initialBox.w / 2 : (signX === -1 ? initialBox.w / 2 : 0);
+            let originLocalY = signY === 1 ? -initialBox.h / 2 : (signY === -1 ? initialBox.h / 2 : 0);
+
+            let newW = initialBox.w, newH = initialBox.h;
+
+            if (isCenterScale) {
+                originLocalX = 0;
+                originLocalY = 0;
+                if (signX !== 0) newW = Math.max(0.01, localX * signX * 2);
+                if (signY !== 0) newH = Math.max(0.01, localY * signY * 2);
+            } else {
+                if (signX !== 0) newW = Math.max(0.01, (localX - originLocalX) * signX);
+                if (signY !== 0) newH = Math.max(0.01, (localY - originLocalY) * signY);
+            }
+            if (e.shiftKey && isCorner) {
+                const s = Math.max(newW / initialBox.w, newH / initialBox.h);
+                newW = initialBox.w * s;
+                newH = initialBox.h * s;
+            }
+
+            shapesToolState.box.w = newW;
+            shapesToolState.box.h = newH;
+
+            let newLocalCx = 0, newLocalCy = 0;
+            if (isCenterScale) {
+                newLocalCx = 0;
+                newLocalCy = 0;
+            } else {
+                newLocalCx = originLocalX + (signX !== 0 ? (newW / 2) * signX : 0);
+                newLocalCy = originLocalY + (signY !== 0 ? (newH / 2) * signY : 0);
+            }
+
+            shapesToolState.box.cx = initialBox.cx + newLocalCx * Math.cos(initialBox.angle) - newLocalCy * Math.sin(initialBox.angle);
+            shapesToolState.box.cy = initialBox.cy + newLocalCx * Math.sin(initialBox.angle) + newLocalCy * Math.cos(initialBox.angle);
+        }
+        updateShapesPreview();
+    }
     if (tool === "select" && transformState.active && transformState.action && transformState.initialBox) {
 
         if (!transformState.box) {
@@ -2196,17 +2373,17 @@ canvas.onpointermove = (e) => {
     }
     if (tool === "select" && isSelecting) {
         const mouseWorld = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
-        
+
         if (selectionShapeMode === 'rect' && selectionRect) {
             selectionRect.endX = mouseWorld.x;
             selectionRect.endY = mouseWorld.y;
             updateSelectionFromRect();
-        } 
+        }
         else if (selectionShapeMode === 'lasso') {
             const lastPt = lassoPoints[lassoPoints.length - 1];
             if (v2sqrmag(mouseWorld, lastPt) > 0.0000001) {
                 lassoPoints.push(mouseWorld);
-                updateSelectionFromLasso(); 
+                updateSelectionFromLasso();
             }
         }
     }
@@ -2234,6 +2411,9 @@ canvas.onpointerup = (e) => {
 
         if (tool === "text" && textToolState.action) {
             textToolState.action = null;
+        }
+        if (tool === "shapes" && shapesToolState.action) {
+            shapesToolState.action = null;
         }
         isHatchDragging = false;
         isFillDragging = false;
@@ -2317,7 +2497,7 @@ canvas.onpointerup = (e) => {
         }
         if (tool === "select" && isSelecting) {
             isSelecting = false;
-            
+
             if (selectionShapeMode === 'rect') {
                 if (selectionRect &&
                     Math.abs(selectionRect.endX - selectionRect.startX) < 0.002 &&
@@ -2326,7 +2506,7 @@ canvas.onpointerup = (e) => {
                     updateSelectionInfo();
                 }
                 selectionRect = null;
-            } 
+            }
             else if (selectionShapeMode === 'lasso') {
                 if (lassoPoints.length < 3) {
                     clearSelection();

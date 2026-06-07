@@ -239,8 +239,13 @@ const ru =
     shareLinkTitle: "Ссылка на прицел (доступна 1 час)",
 
     boostyText: "Мой Boosty",
-    oldSelectionLabel: "Старый режим выделения (по центру)"
+    oldSelectionLabel: "Старый режим выделения (по центру)",
 
+    shapesTitleText: "Фигуры",
+    shapesDescription: "Выберите фигуру и кликните по холсту для ее создания",
+    shapesCreateBtn: "Создать",
+    shapesCancelBtn: "Отмена",
+    hatchThicknessLabel: "Толщина"
 };
 
 const en =
@@ -485,7 +490,14 @@ const en =
     shareLinkTitle: "Link to the sight (available for 1 hour)",
 
     boostyText: "My Boosty",
-    oldSelectionLabel: "Old selection mode (by center)"
+    oldSelectionLabel: "Old selection mode (by center)",
+
+    shapesTitleText: "Shapes",
+    shapesDescription: "Select a shape and click on the canvas to create it",
+    shapesCreateBtn: "Create",
+    shapesCancelBtn: "Cancel",
+    hatchThicknessLabel: "Thickness"
+
 };
 
 const langDependent =
@@ -686,7 +698,13 @@ const langDependent =
         "shareLinkTitle",
 
         "boostyText",
-        "oldSelectionLabel"
+        "oldSelectionLabel",
+        
+        "shapesTitleText",
+        "shapesDescription",
+        "shapesCreateBtn",
+        "shapesCancelBtn",
+        "hatchThicknessLabel"
     ];
 
 function changeLang(to) {

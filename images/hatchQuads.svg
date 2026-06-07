@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 800">
+  <defs>
+    <style>
+      .st0 {
+        fill: none;
+        stroke: #777778;
+        stroke-miterlimit: 10;
+        stroke-width: 40px;
+      }
+
+      .st1 {
+        fill: #777778;
+      }
+    </style>
+  </defs>
+  <circle class="st0" cx="551.72" cy="121.07" r="37.5"/>
+  <g>
+    <rect class="st1" x="310.76" y="60.91" width="50" height="552.18" transform="translate(336.64 -138.71) rotate(45)"/>
+    <rect class="st1" x="436.19" y="191.04" width="50" height="550" transform="translate(464.62 -189.61) rotate(45)"/>
+    <rect class="st1" x="553.32" y="158.6" width="121.81" height="50" transform="translate(309.73 -380.54) rotate(45)"/>
+    <rect class="st1" x="123.06" y="588.34" width="119.33" height="50" transform="translate(487.22 50.44) rotate(45)"/>
+    <path class="st0" d="M94.56,578.21c-14.64-14.64-14.64-38.39,0-53.03,14.64-14.64,38.39-14.64,53.03,0,14.64,14.64,14.64,38.39,0,53.03-14.64,14.64-38.39,14.64-53.03,0"/>
+    <circle class="st0" cx="678.93" cy="248.31" r="37.5"/>
+    <path class="st0" d="M221.79,705.44c-14.64-14.64-14.64-38.39,0-53.03s38.39-14.64,53.03,0c14.64,14.64,14.64,38.39,0,53.03-14.64,14.64-38.39,14.64-53.03,0"/>
+  </g>
+</svg>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 800">
+  <defs>
+    <style>
+      .st0 {
+        fill: none;
+        stroke: #777;
+        stroke-linecap: round;
+        stroke-miterlimit: 32;
+        stroke-width: 40px;
+      }
+
+      .st1 {
+        fill: #777;
+      }
+    </style>
+  </defs>
+  <line class="st0" x1="602.5" y1="197.5" x2="199" y2="601"/>
+  <circle class="st1" cx="640" cy="160" r="64"/>
+  <circle class="st1" cx="160" cy="640" r="64"/>
+</svg>

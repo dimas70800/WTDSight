@@ -66,6 +66,9 @@
                     <button id="toolsSelectButton" class="tab-button" data-target="select">
                         <img src="images/selectTool.png" alt="Select">
                     </button>
+                    <button id="toolsShapesButton" class="tab-button" data-target="shapes">
+                        <img src="images/shapesTool.svg" alt="Shapes">
+                    </button>
                     <button id="toolsTextButton" class="tab-button" data-target="text">
                         <img src="images/textTool.svg" alt="Text">
                     </button>
@@ -315,6 +318,20 @@
                                 </div>
                             </div>
                             <button id="hatchRestoreBtn">Предыдущая зона</button>
+                            <div class="block-with-elem">
+                                <div style="display: flex; justify-content:space-evenly; flex-direction: row;">
+                                    <button id="hatchModeLinesBtn" onclick="setHatchMode('lines')" style="width: 60px; height: 60px; background: var(--input-bg); border-color: transparent;">
+                                        <img src="images/hatchLines.svg" style="height: 100%; width: 100%;">
+                                    </button>
+                                    <button id="hatchModeQuadsBtn" onclick="setHatchMode('quads')" style="width: 60px; height: 60px; background: transparent; border: 1px solid var(--border-col);">
+                                        <img src="images/hatchQuads.svg" style="height: 100%; width: 100%;">
+                                    </button>
+                                </div>
+                                <div id="hatchThicknessContainer" style="display: none; justify-content: space-between; align-items: center;">
+                                    <label id="hatchThicknessLabel">Толщина</label>
+                                    <input type="number" id="hatchThicknessInput" min="0.001" max="0.5" step="0.001" value="0.005" style="width: 100px;">
+                                </div>
+                            </div>
                         </div>
 
                         <div id="panel-vectorize" class="panel-content">
@@ -545,6 +562,32 @@
                             </div>
                         </div>
 
+                        <div id="panel-shapes" class="panel-content">
+                            <h2 class="panel-title" id="shapesTitleText">Фигуры</h2>
+                            <p style="font-size: 13px; color: #aaa; margin-top:0;" id="shapesDescription">Выберите
+                                фигуру и кликните по холсту для ее создания</p>
+
+                            <div class="block-with-elem">
+                                <div class="shapes-grid" id="shapesGrid">
+                                    <button class="shape-btn active" data-shape="square"><img src="images/squareShape.svg" alt="Square"></button>
+                                    <button class="shape-btn" data-shape="triangle"><img src="images/triangleShape.svg" alt="Triangle"></button>
+                                    <button class="shape-btn" data-shape="circle"><img src="images/circleShape.svg" alt="Circle"></button>
+                                    <button class="shape-btn" data-shape="star"><img src="images/starShape.svg" alt="Star"></button>
+                                    <button class="shape-btn" data-shape="animeStar"><img src="images/animeStarShape.svg" alt="Anime Star"></button>
+                                    <button class="shape-btn" data-shape="heart"><img src="images/heartShape.svg" alt="Heart"></button>
+                                    <button class="shape-btn" data-shape="checkmark"><img src="images/checkmarkShape.svg" alt="Checkmark"></button>
+                                    <button class="shape-btn" data-shape="cross"><img src="images/crossShape.svg" alt="Cross"></button>
+                                </div>
+
+                                <div style="display: flex; gap: 8px; margin-top: 15px;">
+                                    <button id="shapesCreateBtn"
+                                        style="background: #228025; color: white; flex-grow: 1;">Создать</button>
+                                    <button id="shapesCancelBtn"
+                                        style="background: #eb3b3b; color: white; flex-grow: 1;">Отмена</button>
+                                </div>
+                            </div>
+                        </div>
+
                         <div id="shared-drawing-tools"
                             style="display: none; flex-direction: column; gap: 15px; margin-top: 20px; border-top: 1px solid var(--border-col); padding-top: 15px;">
                             <div class="panel-with-elem" id="panel-with-refOpacityShared">
@@ -696,7 +739,7 @@
                 </div>
                 <label class="settings-row">
                     <span id="oldSelectionLabel">Старый режим выделения</span>
-                    <input type="checkbox" id="oldSelectionCheckBox"style="transform: scale(1.5);">
+                    <input type="checkbox" id="oldSelectionCheckBox" style="transform: scale(1.5);">
                 </label>
             </div>
         </div>
@@ -883,6 +926,7 @@
     <script src="scripts/text-tool.js"></script>
     <script src="scripts/brush.js"></script>
     <script src="scripts/fill.js"></script>
+    <script src="scripts/shapes.js"></script>
 </body>
 
 </html>

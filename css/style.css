@@ -779,6 +779,34 @@ option:checked {
     top: 90px;
     display: none;
 }
+.shapes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.shape-btn {
+    background: var(--input-bg);
+    border: 1px solid var(--border-col);
+    border-radius: 8px;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-white);
+}
+
+.shape-btn:hover {
+    background: rgba(128, 128, 128, 0.3);
+}
+
+.shape-btn.active {
+    background-color: var(--bg-main-panel);
+}
 
 @media screen and (max-width: 950px) {
     :root {

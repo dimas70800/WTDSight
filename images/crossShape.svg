@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 800">
+  <defs>
+    <style>
+      .st0 {
+        fill: none;
+        stroke: #777;
+        stroke-miterlimit: 10;
+        stroke-width: 40px;
+      }
+    </style>
+  </defs>
+  <polyline class="st0" points="456.7 387 647.91 576.92 577.2 647.63 386 456.42"/>
+  <polyline class="st0" points="342.27 413.2 152.94 223.37 223.65 152.65 414.29 343.13"/>
+  <polyline class="st0" points="386.08 343.2 576.78 152.51 647.49 223.22 461.2 410.82"/>
+  <polyline class="st0" points="414.26 456.45 223.22 647.49 152.51 576.78 343.33 385.96"/>
+</svg>

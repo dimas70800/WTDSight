@@ -7,10 +7,37 @@ let hatchAngle = 45;
 let hatchDensity = 0.03;
 let hatchPhase = 0;
 
+let hatchMode = 'lines';
+let hatchThickness = 0.005;
+
 let lastHatchAction = null;
 let lastAddedHatchPointTime = 0;
 let lastHatchRemovedIndex = -1;
 let lastHatchRemovedPoint = null;
+
+window.setHatchMode = function(mode) {
+    hatchMode = mode;
+    const btnLines = document.getElementById('hatchModeLinesBtn');
+    const btnQuads = document.getElementById('hatchModeQuadsBtn');
+    const thickCont = document.getElementById('hatchThicknessContainer');
+
+    if (btnLines && btnQuads) {
+        btnLines.style.background = 'transparent';
+        btnLines.style.border = '1px solid var(--border-col)';
+        btnQuads.style.background = 'transparent';
+        btnQuads.style.border = '1px solid var(--border-col)';
+
+        let activeBtn = mode === 'lines' ? btnLines : btnQuads;
+        activeBtn.style.background = 'var(--input-bg)';
+        activeBtn.style.borderColor = 'transparent';
+    }
+
+    if (thickCont) {
+        thickCont.style.display = mode === 'quads' ? 'flex' : 'none';
+    }
+    
+    if (typeof updateHatchPreview === 'function') updateHatchPreview();
+};
 
 function startHatchDrawing(pos) {
     hatchPoints = [{
@@ -96,16 +123,16 @@ function updateHatchPreview() {
     if (!isDrawingHatch || hatchPoints.length < 2) return;
 
     if (hatchPoints.length >= 3) {
-        previewHatchLines = generateHatchLines(hatchPoints, hatchAngle, hatchDensity, hatchPhase);
+        previewHatchLines = generateHatchData(hatchPoints, hatchAngle, hatchDensity, hatchPhase, hatchMode, hatchThickness);
     } else {
         previewHatchLines = [];
     }
 }
 
-function generateHatchLines(points, angleDeg, spacing, phase) {
-    const lines = [];
-    if (points.length < 3) return lines;
-    if (spacing <= 0) return lines;
+function generateHatchData(points, angleDeg, spacing, phase, mode, thickness) {
+    const results = [];
+    if (points.length < 3) return results;
+    if (spacing <= 0) return results;
 
     let normalizedAngle = angleDeg % 360;
     if (normalizedAngle < 0) normalizedAngle += 360;
@@ -123,45 +150,116 @@ function generateHatchLines(points, angleDeg, spacing, phase) {
     let maxProj = Math.max(...projValues);
 
     const base = 0;
-    const kMin = Math.floor((minProj - base - phase) / spacing);
-    const kMax = Math.ceil((maxProj - base - phase) / spacing);
+    const kMin = Math.floor((minProj - base - phase) / spacing) - 1;
+    const kMax = Math.ceil((maxProj - base - phase) / spacing) + 1;
 
     const maxLines = 5000;
     if (kMax - kMin + 1 > maxLines) {
-        console.warn(`Слишком много линий (${kMax - kMin + 1}), ограничено до ${maxLines}`);
-        return lines;
+        console.warn(`Слишком много элементов (${kMax - kMin + 1}), ограничено до ${maxLines}`);
+        return results;
     }
 
     for (let k = kMin; k <= kMax; k++) {
-        const proj = base + phase + k * spacing;
-        const intersections = [];
+        const baseProj = base + phase + k * spacing;
 
-        for (let i = 0; i < points.length; i++) {
-            const p1 = points[i];
-            const p2 = points[(i + 1) % points.length];
-            const proj1 = p1.x * perpX + p1.y * perpY;
-            const proj2 = p2.x * perpX + p2.y * perpY;
+        if (mode === 'lines' || !mode) {
+            const intersections = [];
+            for (let i = 0; i < points.length; i++) {
+                const p1 = points[i];
+                const p2 = points[(i + 1) % points.length];
+                const proj1 = p1.x * perpX + p1.y * perpY;
+                const proj2 = p2.x * perpX + p2.y * perpY;
 
-            if ((proj1 - proj) * (proj2 - proj) < 0) {
-                const t = (proj - proj1) / (proj2 - proj1);
-                const ix = p1.x + (p2.x - p1.x) * t;
-                const iy = p1.y + (p2.y - p1.y) * t;
-                const along = ix * lineDirX + iy * lineDirY;
-                intersections.push({ x: ix, y: iy, along: along });
+                if ((proj1 - baseProj) * (proj2 - baseProj) < 0) {
+                    const t = (baseProj - proj1) / (proj2 - proj1);
+                    const ix = p1.x + (p2.x - p1.x) * t;
+                    const iy = p1.y + (p2.y - p1.y) * t;
+                    const along = ix * lineDirX + iy * lineDirY;
+                    intersections.push({ x: ix, y: iy, along: along });
+                }
+            }
+
+            if (intersections.length < 2) continue;
+            intersections.sort((a, b) => a.along - b.along);
+
+            for (let i = 0; i < intersections.length - 1; i += 2) {
+                results.push({
+                    type: 'line',
+                    start: { x: intersections[i].x, y: intersections[i].y },
+                    end: { x: intersections[i + 1].x, y: intersections[i + 1].y }
+                });
+            }
+        } else if (mode === 'quads') {
+            const pStart = baseProj - thickness / 2;
+            const pEnd = baseProj + thickness / 2;
+
+            const uniqueProjs = [pStart, pEnd];
+
+            for (let i = 0; i < points.length; i++) {
+                const vProj = projValues[i];
+                if (vProj > pStart + 1e-9 && vProj < pEnd - 1e-9) {
+                    uniqueProjs.push(vProj);
+                }
+            }
+
+            uniqueProjs.sort((a, b) => a - b);
+            const intervals = [];
+            for (let i = 0; i < uniqueProjs.length; i++) {
+                if (i === 0 || uniqueProjs[i] - uniqueProjs[i - 1] > 1e-9) {
+                    intervals.push(uniqueProjs[i]);
+                }
+            }
+
+            for (let j = 0; j < intervals.length - 1; j++) {
+                const p_j = intervals[j];
+                const p_next = intervals[j + 1];
+                const p_mid = (p_j + p_next) / 2;
+
+                const crossingEdges = [];
+
+                for (let i = 0; i < points.length; i++) {
+                    const p1 = points[i];
+                    const p2 = points[(i + 1) % points.length];
+                    const proj1 = projValues[i];
+                    const proj2 = projValues[(i + 1) % points.length];
+
+                    if ((proj1 - p_mid) * (proj2 - p_mid) < 0) {
+                        const t_j = (p_j - proj1) / (proj2 - proj1);
+                        const ix_j = p1.x + (p2.x - p1.x) * t_j;
+                        const iy_j = p1.y + (p2.y - p1.y) * t_j;
+                        const along_j = ix_j * lineDirX + iy_j * lineDirY;
+
+                        const t_next = (p_next - proj1) / (proj2 - proj1);
+                        const ix_next = p1.x + (p2.x - p1.x) * t_next;
+                        const iy_next = p1.y + (p2.y - p1.y) * t_next;
+                        const along_next = ix_next * lineDirX + iy_next * lineDirY;
+
+                        crossingEdges.push({
+                            pt_j: { x: ix_j, y: iy_j },
+                            pt_next: { x: ix_next, y: iy_next },
+                            along_mid: (along_j + along_next) / 2
+                        });
+                    }
+                }
+                crossingEdges.sort((a, b) => a.along_mid - b.along_mid);
+
+                for (let i = 0; i < crossingEdges.length - 1; i += 2) {
+                    const edgeA = crossingEdges[i];
+                    const edgeB = crossingEdges[i + 1];
+
+                    
+                    results.push({
+                        type: 'quad',
+                        pos1: edgeA.pt_j,
+                        pos2: edgeB.pt_j,
+                        pos3: edgeB.pt_next,
+                        pos4: edgeA.pt_next
+                    });
+                }
             }
         }
-
-        if (intersections.length < 2) continue;
-        intersections.sort((a, b) => a.along - b.along);
-
-        for (let i = 0; i < intersections.length - 1; i += 2) {
-            lines.push({
-                start: { x: intersections[i].x, y: intersections[i].y },
-                end: { x: intersections[i + 1].x, y: intersections[i + 1].y }
-            });
-        }
     }
-    return lines;
+    return results;
 }
 
 function finalizeHatch() {
@@ -171,10 +269,10 @@ function finalizeHatch() {
         return;
     }
 
-    const finalLines = generateHatchLines(hatchPoints, hatchAngle, hatchDensity, hatchPhase);
+    const finalItems = generateHatchData(hatchPoints, hatchAngle, hatchDensity, hatchPhase, hatchMode, hatchThickness);
 
-    if (finalLines.length === 0) {
-        alert(lang === ru ? "Не удалось сгенерировать линии штриховки!" : "Failed to generate hatch lines!");
+    if (finalItems.length === 0) {
+        alert(lang === ru ? "Не удалось сгенерировать штриховку!" : "Failed to generate hatch lines!");
         cancelHatch();
         return;
     }
@@ -183,23 +281,37 @@ function finalizeHatch() {
 
     let newObjects = [];
 
-    for (const line of finalLines) {
+    for (const item of finalItems) {
         const objIdStr = nextId().toString();
-        const object = {
-            name: lang.line + " " + objIdStr,
-            type: "line",
-            start: {
-                x: Math.round(line.start.x * 1000000) / 1000000,
-                y: Math.round(line.start.y * 1000000) / 1000000
-            },
-            end: {
-                x: Math.round(line.end.x * 1000000) / 1000000,
-                y: Math.round(line.end.y * 1000000) / 1000000
-            },
-            selected: false
-        };
-        objects.set(objIdStr, object);
+        let object;
+        
+        if (item.type === 'line') {
+            object = {
+                name: lang.line + " " + objIdStr,
+                type: "line",
+                start: {
+                    x: Math.round(item.start.x * 1000000) / 1000000,
+                    y: Math.round(item.start.y * 1000000) / 1000000
+                },
+                end: {
+                    x: Math.round(item.end.x * 1000000) / 1000000,
+                    y: Math.round(item.end.y * 1000000) / 1000000
+                },
+                selected: false
+            };
+        } else if (item.type === 'quad') {
+            object = {
+                name: lang.quad + " " + objIdStr,
+                type: "quad",
+                pos1: { x: Math.round(item.pos1.x * 1000000) / 1000000, y: Math.round(item.pos1.y * 1000000) / 1000000 },
+                pos2: { x: Math.round(item.pos2.x * 1000000) / 1000000, y: Math.round(item.pos2.y * 1000000) / 1000000 },
+                pos3: { x: Math.round(item.pos3.x * 1000000) / 1000000, y: Math.round(item.pos3.y * 1000000) / 1000000 },
+                pos4: { x: Math.round(item.pos4.x * 1000000) / 1000000, y: Math.round(item.pos4.y * 1000000) / 1000000 },
+                selected: false
+            };
+        }
 
+        objects.set(objIdStr, object);
         newObjects.push({ id: objIdStr, object: object });
     }
 
@@ -243,6 +355,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const createBtn = document.getElementById('hatchCreateBtn');
     const cancelBtn = document.getElementById('hatchCancelBtn');
     const restoreBtn = document.getElementById('hatchRestoreBtn');
+    const thicknessInput = document.getElementById('hatchThicknessInput');
+
     const value = Number((hatchDensity * 2.5).toFixed(6));
     document.getElementById('middleLineForHatch').innerHTML = `50% = ${value} ↑`;
 
@@ -274,6 +388,17 @@ document.addEventListener('DOMContentLoaded', () => {
             let newPhase = parseFloat(phaseInput.value);
             if (isNaN(newPhase)) newPhase = 0;
             hatchPhase = newPhase;
+            updateHatchPreview();
+        };
+    }
+
+    if (thicknessInput) {
+        thicknessInput.oninput = (e) => {
+            let newThickness = parseFloat(thicknessInput.value);
+            if (isNaN(newThickness)) newThickness = 0.005;
+            if (newThickness < 0.001) newThickness = 0.001;
+            if (newThickness > 0.5) newThickness = 0.5;
+            hatchThickness = newThickness;
             updateHatchPreview();
         };
     }
