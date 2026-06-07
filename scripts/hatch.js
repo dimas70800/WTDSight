@@ -396,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
         thicknessInput.oninput = (e) => {
             let newThickness = parseFloat(thicknessInput.value);
             if (isNaN(newThickness)) newThickness = 0.005;
-            if (newThickness < 0.001) newThickness = 0.001;
+            if (newThickness < 0.0001) newThickness = 0.0001;
             if (newThickness > 0.5) newThickness = 0.5;
             hatchThickness = newThickness;
             updateHatchPreview();

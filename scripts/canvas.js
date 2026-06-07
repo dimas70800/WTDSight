@@ -2386,6 +2386,12 @@ canvas.onpointermove = (e) => {
                 updateSelectionFromLasso();
             }
         }
+    } if (tool === "brush" && isDrawingBrush) {
+        let mousePos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
+        let lastPoint = brushPoints[brushPoints.length - 1];
+        if (v2sqrmag(mousePos, lastPoint) > 0.0000001) {
+            brushPoints.push(mousePos);
+        }
     }
 };
 
