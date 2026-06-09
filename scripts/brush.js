@@ -1,5 +1,26 @@
 let brushPoints = [];
 let isDrawingBrush = false;
+let brushMode = 'flat';
+
+function setBrushMode(mode) {
+    brushMode = mode;
+    const btnFlat = document.getElementById('brushModeFlatBtn');
+    const btnRound = document.getElementById('brushModeRoundBtn');
+    
+    if (btnFlat && btnRound) {
+        if (mode === 'flat') {
+            btnFlat.style.background = 'var(--input-bg)';
+            btnFlat.style.borderColor = 'transparent';
+            btnRound.style.background = 'transparent';
+            btnRound.style.border = '1px solid var(--border-col)';
+        } else {
+            btnRound.style.background = 'var(--input-bg)';
+            btnRound.style.borderColor = 'transparent';
+            btnFlat.style.background = 'transparent';
+            btnFlat.style.border = '1px solid var(--border-col)';
+        }
+    }
+}
 
 function finishBrush() {
     if (brushPoints.length < 2) {
@@ -26,6 +47,8 @@ function finishBrush() {
     let newObjects = [];
     let leftPoints = [];
     let rightPoints = [];
+    let normals = []; 
+    let directions = [];
 
     for (let i = 0; i < simplified.length; i++) {
         let d1 = { x: 0, y: 0 };
@@ -49,6 +72,8 @@ function finishBrush() {
         if (len1 > 0) { d1.x /= len1; d1.y /= len1; }
         if (len2 > 0) { d2.x /= len2; d2.y /= len2; }
 
+        directions.push({d1: d1, d2: d2});
+
         let tangent = { x: d1.x + d2.x, y: d1.y + d2.y };
         let tLen = Math.hypot(tangent.x, tangent.y);
         if (tLen > 0.001) {
@@ -59,6 +84,7 @@ function finishBrush() {
         }
 
         let normal = { x: -tangent.y, y: tangent.x };
+        normals.push(normal);
         let n1 = { x: -d1.y, y: d1.x };
 
         let miter = normal.x * n1.x + normal.y * n1.y;
@@ -80,21 +106,81 @@ function finishBrush() {
         });
     }
 
-    for (let i = 0; i < simplified.length - 1; i++) {
+    const rnd = (v) => Math.round(v * 1000000) / 1000000;
+    const addQuad = (p1, p2, p3, p4) => {
         const objIdStr = nextId().toString();
-
         const object = {
             name: (typeof lang !== 'undefined' && lang.quad ? lang.quad : "Quad") + " " + objIdStr,
             type: "quad",
-            pos1: { x: Math.round(leftPoints[i].x * 1000000) / 1000000, y: Math.round(leftPoints[i].y * 1000000) / 1000000 },
-            pos2: { x: Math.round(rightPoints[i].x * 1000000) / 1000000, y: Math.round(rightPoints[i].y * 1000000) / 1000000 },
-            pos3: { x: Math.round(rightPoints[i + 1].x * 1000000) / 1000000, y: Math.round(rightPoints[i + 1].y * 1000000) / 1000000 },
-            pos4: { x: Math.round(leftPoints[i + 1].x * 1000000) / 1000000, y: Math.round(leftPoints[i + 1].y * 1000000) / 1000000 },
+            pos1: { x: rnd(p1.x), y: rnd(p1.y) },
+            pos2: { x: rnd(p2.x), y: rnd(p2.y) },
+            pos3: { x: rnd(p3.x), y: rnd(p3.y) },
+            pos4: { x: rnd(p4.x), y: rnd(p4.y) },
             selected: false
         };
-
         objects.set(objIdStr, object);
         newObjects.push({ id: objIdStr, object: object });
+    };
+
+    const numCapQuads = 3; 
+
+    if (brushMode === 'round') {
+        let C = simplified[0];
+        let n = normals[0];
+        let out = { x: -directions[0].d1.x, y: -directions[0].d1.y }; 
+        
+        for (let k = 0; k < numCapQuads; k++) {
+            let alpha0 = (k / numCapQuads) * Math.PI;
+            let alpha1 = ((k + 0.5) / numCapQuads) * Math.PI;
+            let alpha2 = ((k + 1) / numCapQuads) * Math.PI;
+            
+            let p0 = {
+                x: C.x + (Math.cos(alpha0) * n.x + Math.sin(alpha0) * out.x) * halfThick,
+                y: C.y + (Math.cos(alpha0) * n.y + Math.sin(alpha0) * out.y) * halfThick
+            };
+            let p1 = {
+                x: C.x + (Math.cos(alpha1) * n.x + Math.sin(alpha1) * out.x) * halfThick,
+                y: C.y + (Math.cos(alpha1) * n.y + Math.sin(alpha1) * out.y) * halfThick
+            };
+            let p2 = {
+                x: C.x + (Math.cos(alpha2) * n.x + Math.sin(alpha2) * out.x) * halfThick,
+                y: C.y + (Math.cos(alpha2) * n.y + Math.sin(alpha2) * out.y) * halfThick
+            };
+            
+            addQuad(C, p0, p1, p2);
+        }
+    }
+
+    for (let i = 0; i < simplified.length - 1; i++) {
+        addQuad(leftPoints[i], rightPoints[i], rightPoints[i + 1], leftPoints[i + 1]);
+    }
+
+    if (brushMode === 'round') {
+        let lastIdx = simplified.length - 1;
+        let C = simplified[lastIdx];
+        let n = normals[lastIdx];
+        let out = { x: directions[lastIdx].d2.x, y: directions[lastIdx].d2.y }; 
+        
+        for (let k = 0; k < numCapQuads; k++) {
+            let alpha0 = (k / numCapQuads) * Math.PI;
+            let alpha1 = ((k + 0.5) / numCapQuads) * Math.PI;
+            let alpha2 = ((k + 1) / numCapQuads) * Math.PI;
+            
+            let p0 = {
+                x: C.x + (-Math.cos(alpha0) * n.x + Math.sin(alpha0) * out.x) * halfThick,
+                y: C.y + (-Math.cos(alpha0) * n.y + Math.sin(alpha0) * out.y) * halfThick
+            };
+            let p1 = {
+                x: C.x + (-Math.cos(alpha1) * n.x + Math.sin(alpha1) * out.x) * halfThick,
+                y: C.y + (-Math.cos(alpha1) * n.y + Math.sin(alpha1) * out.y) * halfThick
+            };
+            let p2 = {
+                x: C.x + (-Math.cos(alpha2) * n.x + Math.sin(alpha2) * out.x) * halfThick,
+                y: C.y + (-Math.cos(alpha2) * n.y + Math.sin(alpha2) * out.y) * halfThick
+            };
+            
+            addQuad(C, p0, p1, p2);
+        }
     }
 
     if (newObjects.length > 0) {

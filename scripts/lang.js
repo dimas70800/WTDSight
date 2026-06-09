@@ -245,7 +245,15 @@ const ru =
     shapesDescription: "Выберите фигуру и кликните по холсту для ее создания",
     shapesCreateBtn: "Создать",
     shapesCancelBtn: "Отмена",
-    hatchThicknessLabel: "Толщина"
+    hatchThicknessLabel: "Толщина",
+
+    previewBgText: "Выбор фона",
+    bgStandardPreviewText: "Стандартный",
+    bgSinaiPreviewText: "Синай",
+    bgBreslauPreviewText: "Бреслау",
+    bgPolandPreviewText: "Поля Польши",
+    bgArdennesPreviewText: "Арденны",
+    bgTestDrivePreviewText: "Пробный выезд"
 };
 
 const en =
@@ -496,7 +504,15 @@ const en =
     shapesDescription: "Select a shape and click on the canvas to create it",
     shapesCreateBtn: "Create",
     shapesCancelBtn: "Cancel",
-    hatchThicknessLabel: "Thickness"
+    hatchThicknessLabel: "Thickness",
+
+    previewBgText: "Select background",
+    bgStandardPreviewText: "Standard",
+    bgSinaiPreviewText: "Sinai",
+    bgBreslauPreviewText: "Breslau",
+    bgPolandPreviewText: "Fields of Poland",
+    bgArdennesPreviewText: "Ardennes",
+    bgTestDrivePreviewText: "Test drive",
 
 };
 
@@ -704,7 +720,15 @@ const langDependent =
         "shapesDescription",
         "shapesCreateBtn",
         "shapesCancelBtn",
-        "hatchThicknessLabel"
+        "hatchThicknessLabel",
+
+        "previewBgText",
+        "bgStandardPreviewText",
+        "bgSinaiPreviewText",
+        "bgBreslauPreviewText",
+        "bgPolandPreviewText",
+        "bgArdennesPreviewText",
+        "bgTestDrivePreviewText",
     ];
 
 function changeLang(to) {

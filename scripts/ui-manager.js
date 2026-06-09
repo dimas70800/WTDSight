@@ -383,9 +383,54 @@ function takePreviewScreenshot() {
     }
 }
 
+function changePreviewBackground() {
+    const select = document.getElementById('previewBgSelect');
+    const bgImg = document.getElementById('previewBackground');
+    const thermalToggle = document.getElementById('previewThermalToggle');
+    const thermalRow = document.getElementById('previewThermalRow');
+
+    if (!select || !bgImg || !thermalToggle) return;
+
+    const selectedValue = select.value;
+    
+    const backgrounds = {
+        standard: 'images/preview.png',
+        sinai: 'images/sinaiPreview.png',
+        poland: 'images/fieldsOfPolandPreview.png',
+        breslau: 'images/breslauPreview.png',
+        ardennes: 'images/ardennesPreview.png',
+        testdrive: 'images/testDrivePreview.png'
+    };
+
+    if (selectedValue === 'standard') {
+        if (thermalRow) thermalRow.style.display = 'flex';
+        thermalToggle.disabled = false;
+        
+        if (thermalToggle.checked) {
+            bgImg.src = 'images/previewThermal.png';
+        } else {
+            bgImg.src = backgrounds['standard'];
+        }
+    } else {
+        thermalToggle.checked = false;
+        thermalToggle.disabled = true;
+        
+        if (thermalRow) thermalRow.style.display = 'none';
+        
+        if (backgrounds[selectedValue]) {
+            bgImg.src = backgrounds[selectedValue];
+        }
+    }
+}
+
 function toggleThermalMode() {
+    const select = document.getElementById('previewBgSelect');
     const isThermal = document.getElementById('previewThermalToggle').checked;
     const bgImg = document.getElementById('previewBackground');
+
+    if (select && select.value !== 'standard') {
+        return;
+    }
 
     if (isThermal) {
         bgImg.src = 'images/previewThermal.png';
