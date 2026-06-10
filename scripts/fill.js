@@ -42,6 +42,8 @@ function setFillRegionMode(mode) {
     }
 }
 
+setFillRegionMode('single');
+
 function changeFillRegion(dir) {
     if (fillRegions.length === 0) return;
     let newIdx = (currentFillRegionIndex + dir + fillRegions.length) % fillRegions.length;

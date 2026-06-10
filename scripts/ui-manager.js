@@ -72,7 +72,10 @@ function applyAllSettings(settings) {
 
     // Цвет фона
     if (typeof setBgColorCanvas === 'function') {
-        setBgColorCanvas(settings.canvasBgColor || '#c7c7c7');
+        const bgColor = settings.canvasBgColor || '#c7c7c7';
+        setBgColorCanvas(bgColor);
+        const canvasBgColorEl = document.getElementById('canvasBgColor');
+        if (canvasBgColorEl) canvasBgColorEl.value = bgColor;
     }
 
     // Сетка

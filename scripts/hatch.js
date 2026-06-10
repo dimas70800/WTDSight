@@ -49,6 +49,8 @@ function setHatchRegionMode(mode) {
     }
 };
 
+setHatchRegionMode('single');
+
 function changeHatchRegion(dir) {
     if (hatchRegions.length === 0) return;
 
