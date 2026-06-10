@@ -558,26 +558,41 @@ function drawGhost() {
 
             break;
         case "hatch":
-            if (hatchPoints.length > 0) {
-                for (let i = 0; i < hatchPoints.length; i++) {
-                    const pointCanvas = v2disposSight2v2canvas(hatchPoints[i]);
-                    let pointRadius = (window.innerWidth <= 950 || ('ontouchstart' in window)) ? 12 : 6;
-                    drawCircle(pointCanvas.x, pointCanvas.y, pointRadius);
+            let hRegions = (typeof isMultiRegionMode !== 'undefined' && isMultiRegionMode) ? hatchRegions : [hatchPoints];
+            if (!hRegions) hRegions = [];
 
+            for (let rIdx = 0; rIdx < hRegions.length; rIdx++) {
+                const rPoints = hRegions[rIdx];
+                if (!rPoints || rPoints.length === 0) continue;
+
+                const isActive = (rIdx === (typeof currentHatchRegionIndex !== 'undefined' ? currentHatchRegionIndex : 0));
+
+                ctx.strokeStyle = isActive ? "rgba(100, 200, 100, 0.4)" : "rgba(100, 200, 100, 0.8)";
+                
+                for (let i = 0; i < rPoints.length; i++) {
                     if (i > 0) {
-                        const prevCanvas = v2disposSight2v2canvas(hatchPoints[i - 1]);
+                        const prevCanvas = v2disposSight2v2canvas(rPoints[i - 1]);
+                        const pointCanvas = v2disposSight2v2canvas(rPoints[i]);
                         drawLine(prevCanvas.x, prevCanvas.y, pointCanvas.x, pointCanvas.y);
                     }
                 }
-
-                if (hatchPoints.length >= 3) {
-                    const firstCanvas = v2disposSight2v2canvas(hatchPoints[0]);
-                    const lastCanvas = v2disposSight2v2canvas(hatchPoints[hatchPoints.length - 1]);
+                
+                if (rPoints.length >= 3) {
+                    const firstCanvas = v2disposSight2v2canvas(rPoints[0]);
+                    const lastCanvas = v2disposSight2v2canvas(rPoints[rPoints.length - 1]);
                     drawLine(lastCanvas.x, lastCanvas.y, firstCanvas.x, firstCanvas.y);
+                }
+
+                if (isActive) {
+                    let pointRadius = (window.innerWidth <= 950 || ('ontouchstart' in window)) ? 12 : 6;
+                    for (let i = 0; i < rPoints.length; i++) {
+                        const pointCanvas = v2disposSight2v2canvas(rPoints[i]);
+                        drawCircle(pointCanvas.x, pointCanvas.y, pointRadius);
+                    }
                 }
             }
 
-            if (previewHatchLines && previewHatchLines.length > 0) {
+            if (typeof previewHatchLines !== 'undefined' && previewHatchLines && previewHatchLines.length > 0) {
                 ctx.save();
                 ctx.globalAlpha = 0.6;
                 ctx.strokeStyle = "rgba(100, 200, 100, 0.8)";
@@ -607,7 +622,6 @@ function drawGhost() {
                         ctx.stroke();
                     }
                 }
-
                 ctx.setLineDash([]);
                 ctx.restore();
             }
@@ -724,22 +738,40 @@ function drawGhost() {
             }
             break;
         case "fill":
-            if (fillPoints.length > 0) {
-                for (let i = 0; i < fillPoints.length; i++) {
-                    const pointCanvas = v2disposSight2v2canvas(fillPoints[i]);
-                    let pointRadius = (window.innerWidth <= 950 || ('ontouchstart' in window)) ? 12 : 6;
-                    drawCircle(pointCanvas.x, pointCanvas.y, pointRadius);
+            let fRegions = (typeof isFillMultiRegionMode !== 'undefined' && isFillMultiRegionMode) ? fillRegions : [fillPoints];
+            if (!fRegions) fRegions = [];
+
+            for (let rIdx = 0; rIdx < fRegions.length; rIdx++) {
+                const rPoints = fRegions[rIdx];
+                if (!rPoints || rPoints.length === 0) continue;
+
+                const isActive = (rIdx === (typeof currentFillRegionIndex !== 'undefined' ? currentFillRegionIndex : 0));
+
+                ctx.strokeStyle = isActive ? "rgba(100, 150, 255, 0.4)" : "rgba(100, 150, 255, 0.8)";
+                
+                for (let i = 0; i < rPoints.length; i++) {
                     if (i > 0) {
-                        const prevCanvas = v2disposSight2v2canvas(fillPoints[i - 1]);
+                        const prevCanvas = v2disposSight2v2canvas(rPoints[i - 1]);
+                        const pointCanvas = v2disposSight2v2canvas(rPoints[i]);
                         drawLine(prevCanvas.x, prevCanvas.y, pointCanvas.x, pointCanvas.y);
                     }
                 }
-                if (fillPoints.length >= 3) {
-                    const firstCanvas = v2disposSight2v2canvas(fillPoints[0]);
-                    const lastCanvas = v2disposSight2v2canvas(fillPoints[fillPoints.length - 1]);
+                
+                if (rPoints.length >= 3) {
+                    const firstCanvas = v2disposSight2v2canvas(rPoints[0]);
+                    const lastCanvas = v2disposSight2v2canvas(rPoints[rPoints.length - 1]);
                     drawLine(lastCanvas.x, lastCanvas.y, firstCanvas.x, firstCanvas.y);
                 }
+
+                if (isActive) {
+                    let pointRadius = (window.innerWidth <= 950 || ('ontouchstart' in window)) ? 12 : 6;
+                    for (let i = 0; i < rPoints.length; i++) {
+                        const pointCanvas = v2disposSight2v2canvas(rPoints[i]);
+                        drawCircle(pointCanvas.x, pointCanvas.y, pointRadius);
+                    }
+                }
             }
+
             if (previewFillQuads && previewFillQuads.length > 0) {
                 ctx.save();
 

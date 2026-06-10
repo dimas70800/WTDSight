@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 800">
+  <defs>
+    <style>
+      .st0, .st1 {
+        fill: #777;
+      }
+
+      .st2, .st3 {
+        fill: none;
+      }
+
+      .st4 {
+        fill: #777778;
+      }
+
+      .st1 {
+        opacity: .5;
+      }
+
+      .st1, .st3 {
+        stroke: #777778;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 32px;
+      }
+    </style>
+  </defs>
+  <line class="st2" x1="1095.46" y1="83.33" x2="1116.67" y2="104.54"/>
+  <line class="st2" x1="1215.46" y1="83.33" x2="1236.67" y2="104.54"/>
+  <line class="st2" x1="1335.46" y1="83.33" x2="1356.67" y2="104.54"/>
+  <g>
+    <circle class="st4" cx="239.56" cy="123.34" r="48"/>
+    <circle class="st4" cx="560.44" cy="123.34" r="48"/>
+    <circle class="st4" cx="718.05" cy="400" r="48"/>
+    <circle class="st4" cx="559.31" cy="676.66" r="48"/>
+    <circle class="st4" cx="239.56" cy="675.53" r="48"/>
+    <circle class="st4" cx="81.95" cy="398.87" r="48"/>
+    <path class="st0" d="M640.53,231.5"/>
+    <path class="st3" d="M719.29,400l-159.64,276.51H240.35L80.71,400,240.35,123.49h319.29l159.64,276.51h.01ZM476.11,268.17h-152.22l-76.11,131.83,76.11,131.83h152.22l76.11-131.83-76.11-131.83h0Z"/>
+  </g>
+  <path class="st1" d="M719.29,400l-159.64,276.51H240.35L80.71,400,240.35,123.49h319.29l159.64,276.51h.01ZM476.11,268.18h-152.22l-76.11,131.83,76.11,131.83h152.22l76.11-131.83-76.11-131.83h0Z"/>
+</svg>

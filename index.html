@@ -336,6 +336,30 @@
                                         value="0.005" style="width: 100px;">
                                 </div>
                             </div>
+                            <div class="block-with-elem" style="margin-top: 5px;">
+                                <span id="hatchAreaModeLabel" style="font-size: 13px; text-align: center;">Режим области</span>
+                                <div
+                                    style="display: flex; justify-content:space-evenly; flex-direction: row; gap: 5px;">
+                                    <button id="hatchRegionSingleBtn" onclick="setHatchRegionMode('single')"
+                                        style="width: 60px; height: 60px; flex: 1;"><img src="images/standardHatch.svg" style="height: 100%; width: 100%;"></button>
+                                    <button id="hatchRegionMultiBtn" onclick="setHatchRegionMode('multi')"
+                                        style="width: 60px; height: 60px; flex: 1;"><img src="images/multiHatch.svg" style="height: 100%; width: 100%;"></button>
+                                </div>
+
+                                <div id="hatchMultiControls"
+                                    style="display: none; align-items: center; justify-content: center; gap: 5px; margin-top: 8px; border-top: 1px solid var(--border-col); padding-top: 8px;">
+                                    <button onclick="changeHatchRegion(-1)"
+                                        style="width: 40px; height: 40px;">&lt;</button>
+                                    <input type="number" id="hatchRegionInput" value="1" min="1" step="1"
+                                        style="width: 60px; height: 40px; text-align: center;"
+                                        onchange="setHatchRegionFromInput()">
+                                    <button onclick="changeHatchRegion(1)"
+                                        style="width: 40px; height: 40px;">&gt;</button>
+                                    <button onclick="addHatchRegion()" style="width: 40px; height: 40px; align-items: center; justify-content: center;">+</button>
+                                    <button onclick="deleteHatchRegion()" style="width: 40px; height: 40px;"><img
+                                            src="images/trashIcon.svg" alt="Удалить зону"></button>
+                                </div>
+                            </div>
                         </div>
 
                         <div id="panel-vectorize" class="panel-content">
@@ -572,10 +596,34 @@
                                 <div style="display: flex; gap: 8px; margin-top: 5px;">
                                     <button id="fillCreateBtn"
                                         style="background: #228025; color: white; flex-grow: 1;">Создать</button>
-                                    <button id="fillCancelBtn"
+                                        <button id="fillCancelBtn"
                                         style="background: #eb3b3b; color: white; flex-grow: 1;">Отмена</button>
+                                    </div>
                                 </div>
-                            </div>
+                                <div class="block-with-elem" style="margin-top: 5px;">
+                                    <span id="fillAreaModeLabel" style="font-size: 13px; text-align: center;">Режим области</span>
+                                    <div
+                                        style="display: flex; justify-content:space-evenly; flex-direction: row; gap: 5px;">
+                                        <button id="fillRegionSingleBtn" onclick="setFillRegionMode('single')"
+                                            style="width: 60px; height: 60px; flex: 1;"><img src="images/standardFill.svg" style="height: 100%; width: 100%;"></button>
+                                        <button id="fillRegionMultiBtn" onclick="setFillRegionMode('multi')"
+                                            style="width: 60px; height: 60px; flex: 1;"><img src="images/multiFill.svg" style="height: 100%; width: 100%;"></button>
+                                    </div>
+    
+                                    <div id="fillMultiControls"
+                                        style="display: none; align-items: center; justify-content: center; gap: 5px; margin-top: 8px; border-top: 1px solid var(--border-col); padding-top: 8px;">
+                                        <button onclick="changeFillRegion(-1)"
+                                            style="width: 40px; height: 40px;">&lt;</button>
+                                        <input type="number" id="fillRegionInput" value="1" min="1" step="1"
+                                            style="width: 60px; height: 40px; text-align: center;"
+                                            onchange="setFillRegionFromInput()">
+                                        <button onclick="changeFillRegion(1)"
+                                            style="width: 40px; height: 40px;">&gt;</button>
+                                        <button onclick="addFillRegion()" style="width: 40px; height: 40px;">+</button>
+                                        <button onclick="deleteFillRegion()" style="width: 40px; height: 40px;"><img
+                                                src="images/trashIcon.svg"></button>
+                                    </div>
+                                </div>
                         </div>
 
                         <div id="panel-shapes" class="panel-content">

@@ -1,4 +1,8 @@
-let fillPoints = [];
+let fillRegions = [[]];
+let currentFillRegionIndex = 0;
+let isFillMultiRegionMode = false;
+let fillPoints = fillRegions[0];
+
 let isDrawingFill = false;
 let isFillDragging = false;
 let previewFillQuads = [];
@@ -8,17 +12,101 @@ let lastAddedFillPointTime = 0;
 let lastFillRemovedIndex = -1;
 let lastFillRemovedPoint = null;
 
+function setFillRegionMode(mode) {
+    isFillMultiRegionMode = (mode === 'multi');
+    const btnSingle = document.getElementById('fillRegionSingleBtn');
+    const btnMulti = document.getElementById('fillRegionMultiBtn');
+    const controls = document.getElementById('fillMultiControls');
+
+    if (btnSingle && btnMulti) {
+        btnSingle.style.background = mode === 'single' ? 'var(--input-bg)' : 'transparent';
+        btnSingle.style.border = mode === 'single' ? 'transparent' : '1px solid var(--border-col)';
+        btnMulti.style.background = mode === 'multi' ? 'var(--input-bg)' : 'transparent';
+        btnMulti.style.border = mode === 'multi' ? 'transparent' : '1px solid var(--border-col)';
+    }
+
+    if (controls) {
+        controls.style.display = mode === 'multi' ? 'flex' : 'none';
+    }
+
+    if (mode === 'single') {
+        if (fillRegions[currentFillRegionIndex]) {
+            fillRegions = [fillRegions[currentFillRegionIndex]];
+        } else {
+            fillRegions = [[]];
+        }
+        currentFillRegionIndex = 0;
+        fillPoints = fillRegions[0];
+        updateFillRegionUI();
+        updateFillPreview();
+    }
+}
+
+function changeFillRegion(dir) {
+    if (fillRegions.length === 0) return;
+    let newIdx = (currentFillRegionIndex + dir + fillRegions.length) % fillRegions.length;
+    currentFillRegionIndex = newIdx;
+    fillPoints = fillRegions[currentFillRegionIndex];
+    updateFillRegionUI();
+    updateFillPreview();
+}
+
+function setFillRegionFromInput() {
+    const input = document.getElementById('fillRegionInput');
+    if (!input) return;
+    let val = parseInt(input.value) - 1;
+    if (isNaN(val) || val < 0) val = 0;
+    if (val >= fillRegions.length) val = fillRegions.length - 1;
+    currentFillRegionIndex = val;
+    fillPoints = fillRegions[currentFillRegionIndex];
+    updateFillRegionUI();
+    updateFillPreview();
+}
+
+function addFillRegion() {
+    fillRegions.push([]);
+    currentFillRegionIndex = fillRegions.length - 1;
+    fillPoints = fillRegions[currentFillRegionIndex];
+    updateFillRegionUI();
+    updateFillPreview();
+}
+
+function deleteFillRegion() {
+    fillRegions.splice(currentFillRegionIndex, 1);
+    if (fillRegions.length === 0) {
+        fillRegions.push([]);
+        isDrawingFill = false;
+    }
+    if (currentFillRegionIndex >= fillRegions.length) {
+        currentFillRegionIndex = fillRegions.length - 1;
+    }
+    fillPoints = fillRegions[currentFillRegionIndex];
+    updateFillRegionUI();
+    updateFillPreview();
+}
+
+function updateFillRegionUI() {
+    const input = document.getElementById('fillRegionInput');
+    if (input) input.value = currentFillRegionIndex + 1;
+
+    const countEl = document.getElementById('fillPointsNum');
+    if (countEl) countEl.innerText = fillPoints.length;
+}
+
 function startFillDrawing(pos) {
-    fillPoints = [{
+    fillRegions = [[{
         x: Math.round(pos.x * 1000000) / 1000000,
         y: Math.round(pos.y * 1000000) / 1000000
-    }];
+    }]];
+    currentFillRegionIndex = 0;
+    fillPoints = fillRegions[0];
 
     lastFillAction = 'start';
     lastAddedFillPointTime = Date.now();
 
     isDrawingFill = true;
     previewFillQuads = [];
+    updateFillRegionUI();
     updateFillPreview();
 }
 
@@ -69,7 +157,7 @@ function addFillPoint(pos, isDragging = false) {
             lastAddedFillPointTime = Date.now();
 
             fillPoints.splice(existingIndex, 1);
-            if (fillPoints.length === 0) cancelFill();
+            if (fillPoints.length === 0 && fillRegions.length === 1) cancelFill();
             else updateFillPreview();
         }
         return;
@@ -81,19 +169,196 @@ function addFillPoint(pos, isDragging = false) {
     updateFillPreview();
 }
 
+function getEvenOddPaths(regions) {
+    const validRegions = regions.filter(r => r.length >= 3).map(r => r.map(p => ({ x: p.x, y: p.y })));
+    if (validRegions.length === 0) return [];
+
+    function isPointInPolygon(p, poly) {
+        let inside = false;
+        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+            const xi = poly[i].x, yi = poly[i].y;
+            const xj = poly[j].x, yj = poly[j].y;
+            const intersect = ((yi > p.y) !== (yj > p.y))
+                && (p.x < (xj - xi) * (p.y - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
+        }
+        return inside;
+    }
+
+    function getPolygonArea(pts) {
+        let area = 0;
+        for (let i = 0; i < pts.length; i++) {
+            let j = (i + 1) % pts.length;
+            area += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
+        }
+        return area;
+    }
+
+    function ensureOrientation(pts, ccw = true) {
+        const area = getPolygonArea(pts);
+        if ((area > 0 && !ccw) || (area < 0 && ccw)) {
+            pts.reverse();
+        }
+    }
+
+    function segmentsIntersect(a1, a2, b1, b2) {
+        if ((Math.abs(a1.x - b1.x) < 1e-6 && Math.abs(a1.y - b1.y) < 1e-6) ||
+            (Math.abs(a1.x - b2.x) < 1e-6 && Math.abs(a1.y - b2.y) < 1e-6) ||
+            (Math.abs(a2.x - b1.x) < 1e-6 && Math.abs(a2.y - b1.y) < 1e-6) ||
+            (Math.abs(a2.x - b2.x) < 1e-6 && Math.abs(a2.y - b2.y) < 1e-6)) {
+            return false;
+        }
+        const d = (a2.x - a1.x) * (b2.y - b1.y) - (a2.y - a1.y) * (b2.x - b1.x);
+        if (Math.abs(d) < 1e-10) return false;
+        const u = ((b1.x - a1.x) * (b2.y - b1.y) - (b1.y - a1.y) * (b2.x - b1.x)) / d;
+        const v = ((b1.x - a1.x) * (a2.y - a1.y) - (b1.y - a1.y) * (a2.x - a1.x)) / d;
+        return (u > 1e-6 && u < 1 - 1e-6 && v > 1e-6 && v < 1 - 1e-6);
+    }
+
+    const depths = new Array(validRegions.length).fill(0);
+    const containers = [];
+    for (let i = 0; i < validRegions.length; i++) {
+        containers[i] = [];
+        for (let j = 0; j < validRegions.length; j++) {
+            if (i === j) continue;
+            if (isPointInPolygon(validRegions[i][0], validRegions[j])) {
+                depths[i]++;
+                containers[i].push(j);
+            }
+        }
+    }
+
+    const outers = [];
+    const holes = [];
+
+    for (let i = 0; i < validRegions.length; i++) {
+        if (depths[i] % 2 === 0) {
+            outers.push({ index: i, pts: validRegions[i], holes: [] });
+        } else {
+            let parentIdx = -1;
+            let maxParentDepth = -1;
+            for (const cIdx of containers[i]) {
+                if (depths[cIdx] % 2 === 0 && depths[cIdx] > maxParentDepth) {
+                    maxParentDepth = depths[cIdx];
+                    parentIdx = cIdx;
+                }
+            }
+            holes.push({ index: i, pts: validRegions[i], parentOuterIdx: parentIdx });
+        }
+    }
+
+    for (const h of holes) {
+        const parentOuter = outers.find(o => o.index === h.parentOuterIdx);
+        if (parentOuter) {
+            parentOuter.holes.push(h.pts);
+        } else {
+            outers.push({ index: h.index, pts: h.pts, holes: [] });
+        }
+    }
+
+    const mergedPaths = [];
+
+    for (const outerGroup of outers) {
+        const outerPts = outerGroup.pts;
+        ensureOrientation(outerPts, true);
+
+        let combinedPts = [...outerPts];
+
+        for (const holePts of outerGroup.holes) {
+            ensureOrientation(holePts, false);
+
+            let bestCombinedIdx = 0;
+            let bestHoleIdx = 0;
+            let minKey = Infinity;
+            let foundValidBridge = false;
+
+            for (let i = 0; i < combinedPts.length; i++) {
+                for (let j = 0; j < holePts.length; j++) {
+                    const pC = combinedPts[i];
+                    const pH = holePts[j];
+                    const distSq = (pC.x - pH.x)**2 + (pC.y - pH.y)**2;
+
+                    if (distSq < minKey) {
+                        let intersects = false;
+                        for (let k = 0; k < combinedPts.length; k++) {
+                            if (segmentsIntersect(pC, pH, combinedPts[k], combinedPts[(k + 1) % combinedPts.length])) {
+                                intersects = true;
+                                break;
+                            }
+                        }
+                        if (!intersects) {
+                            for (let k = 0; k < holePts.length; k++) {
+                                if (segmentsIntersect(pC, pH, holePts[k], holePts[(k + 1) % holePts.length])) {
+                                    intersects = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!intersects) {
+                            minKey = distSq;
+                            bestCombinedIdx = i;
+                            bestHoleIdx = j;
+                            foundValidBridge = true;
+                        }
+                    }
+                }
+            }
+
+            if (!foundValidBridge) {
+                let absoluteMinDistSq = Infinity;
+                for (let i = 0; i < combinedPts.length; i++) {
+                    for (let j = 0; j < holePts.length; j++) {
+                        const distSq = (combinedPts[i].x - holePts[j].x)**2 + (combinedPts[i].y - holePts[j].y)**2;
+                        if (distSq < absoluteMinDistSq) {
+                            absoluteMinDistSq = distSq;
+                            bestCombinedIdx = i;
+                            bestHoleIdx = j;
+                        }
+                    }
+                }
+            }
+
+            const newCombined = [];
+            for (let i = 0; i <= bestCombinedIdx; i++) {
+                newCombined.push(combinedPts[i]);
+            }
+            for (let j = 0; j < holePts.length; j++) {
+                const idx = (bestHoleIdx + j) % holePts.length;
+                newCombined.push(holePts[idx]);
+            }
+            newCombined.push(holePts[bestHoleIdx]);
+            newCombined.push(combinedPts[bestCombinedIdx]);
+            for (let i = bestCombinedIdx + 1; i < combinedPts.length; i++) {
+                newCombined.push(combinedPts[i]);
+            }
+            combinedPts = newCombined;
+        }
+
+        mergedPaths.push(combinedPts);
+    }
+
+    return mergedPaths;
+}
+
 function updateFillPreview() {
-    const countEl = document.getElementById('fillPointsNum');
-    if (countEl) countEl.innerText = fillPoints.length;
+    updateFillRegionUI();
 
     const quadsCountEl = document.getElementById('fillQuadsNum');
 
-    if (!isDrawingFill || fillPoints.length < 3) {
+    if (!isDrawingFill) {
         previewFillQuads = [];
         if (quadsCountEl) quadsCountEl.innerText = "0";
         return;
     }
 
-    previewFillQuads = generateFillQuads(fillPoints);
+    const regionsToRender = isFillMultiRegionMode ? fillRegions : [fillPoints];
+    const pathsToRender = getEvenOddPaths(regionsToRender);
+
+    previewFillQuads = [];
+    for (const path of pathsToRender) {
+        const quads = generateFillQuads(path);
+        previewFillQuads = previewFillQuads.concat(quads);
+    }
     
     if (quadsCountEl) {
         quadsCountEl.innerText = previewFillQuads.length;
@@ -228,15 +493,22 @@ function generateFillQuads(points) {
 }
 
 function finalizeFill() {
-    if (fillPoints.length < 3) {
-        alert(lang === ru ? "Для заполнения необходимо минимум 3 точки!" : "At least 3 points are required for filling!");
+    const regionsToRender = isFillMultiRegionMode ? fillRegions : [fillPoints];
+    const pathsToRender = getEvenOddPaths(regionsToRender);
+
+    if (pathsToRender.length === 0) {
+        alert(typeof lang !== 'undefined' && lang === ru ? "Для заполнения необходимо минимум 3 точки!" : "At least 3 points are required for filling!");
         cancelFill();
         return;
     }
 
-    const finalQuads = generateFillQuads(fillPoints);
+    let finalQuads = [];
+    for (const path of pathsToRender) {
+        finalQuads = finalQuads.concat(generateFillQuads(path));
+    }
+
     if (finalQuads.length === 0) {
-        alert(lang === ru ? "Не удалось сгенерировать заливку!" : "Failed to generate fill!");
+        alert(typeof lang !== 'undefined' && lang === ru ? "Не удалось сгенерировать заливку!" : "Failed to generate fill!");
         cancelFill();
         return;
     }
@@ -245,7 +517,7 @@ function finalizeFill() {
     for (const q of finalQuads) {
         const objIdStr = nextId().toString();
         const object = {
-            name: lang.quad + " " + objIdStr,
+            name: (typeof lang !== 'undefined' ? lang.quad : "Quad") + " " + objIdStr,
             type: "quad",
             pos1: { x: q[0].x, y: q[0].y },
             pos2: { x: q[1].x, y: q[1].y },
@@ -261,17 +533,17 @@ function finalizeFill() {
 
     refreshObjectsList(true);
     cancelFill();
-    markAllTools();
+    if (typeof markAllTools === 'function') markAllTools();
 }
 
 function cancelFill() {
-    fillPoints = [];
+    fillRegions = [[]];
+    currentFillRegionIndex = 0;
+    fillPoints = fillRegions[0];
     isDrawingFill = false;
     isFillDragging = false;
     previewFillQuads = [];
-    
-    const countEl = document.getElementById('fillPointsNum');
-    if (countEl) countEl.innerText = "0";
+    updateFillRegionUI();
     
     const quadsCountEl = document.getElementById('fillQuadsNum');
     if (quadsCountEl) quadsCountEl.innerText = "0";

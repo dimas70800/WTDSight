@@ -1,4 +1,8 @@
-let hatchPoints = [];
+let hatchRegions = [[]];
+let currentHatchRegionIndex = 0;
+let isMultiRegionMode = false;
+let hatchPoints = hatchRegions[0];
+
 let lastHatchPoints = [];
 let isDrawingHatch = false;
 let isHatchDragging = false;
@@ -15,7 +19,91 @@ let lastAddedHatchPointTime = 0;
 let lastHatchRemovedIndex = -1;
 let lastHatchRemovedPoint = null;
 
-window.setHatchMode = function(mode) {
+function setHatchRegionMode(mode) {
+    isMultiRegionMode = (mode === 'multi');
+    const btnSingle = document.getElementById('hatchRegionSingleBtn');
+    const btnMulti = document.getElementById('hatchRegionMultiBtn');
+    const controls = document.getElementById('hatchMultiControls');
+
+    if (btnSingle && btnMulti) {
+        btnSingle.style.background = mode === 'single' ? 'var(--input-bg)' : 'transparent';
+        btnSingle.style.border = mode === 'single' ? 'transparent' : '1px solid var(--border-col)';
+        btnMulti.style.background = mode === 'multi' ? 'var(--input-bg)' : 'transparent';
+        btnMulti.style.border = mode === 'multi' ? 'transparent' : '1px solid var(--border-col)';
+    }
+
+    if (controls) {
+        controls.style.display = mode === 'multi' ? 'flex' : 'none';
+    }
+
+    if (mode === 'single') {
+        if (hatchRegions[currentHatchRegionIndex]) {
+            hatchRegions = [hatchRegions[currentHatchRegionIndex]];
+        } else {
+            hatchRegions = [[]];
+        }
+        currentHatchRegionIndex = 0;
+        hatchPoints = hatchRegions[0];
+        updateHatchRegionUI();
+        updateHatchPreview();
+    }
+};
+
+function changeHatchRegion(dir) {
+    if (hatchRegions.length === 0) return;
+
+    let newIdx = (currentHatchRegionIndex + dir + hatchRegions.length) % hatchRegions.length;
+
+    currentHatchRegionIndex = newIdx;
+    hatchPoints = hatchRegions[currentHatchRegionIndex];
+
+    updateHatchRegionUI();
+    updateHatchPreview();
+};
+
+function setHatchRegionFromInput() {
+    const input = document.getElementById('hatchRegionInput');
+    if (!input) return;
+    let val = parseInt(input.value) - 1;
+    if (isNaN(val) || val < 0) val = 0;
+    if (val >= hatchRegions.length) val = hatchRegions.length - 1;
+    currentHatchRegionIndex = val;
+    hatchPoints = hatchRegions[currentHatchRegionIndex];
+    updateHatchRegionUI();
+    updateHatchPreview();
+};
+
+function addHatchRegion() {
+    hatchRegions.push([]);
+    currentHatchRegionIndex = hatchRegions.length - 1;
+    hatchPoints = hatchRegions[currentHatchRegionIndex];
+    updateHatchRegionUI();
+    updateHatchPreview();
+};
+
+function deleteHatchRegion() {
+    hatchRegions.splice(currentHatchRegionIndex, 1);
+    if (hatchRegions.length === 0) {
+        hatchRegions.push([]);
+        isDrawingHatch = false;
+    }
+    if (currentHatchRegionIndex >= hatchRegions.length) {
+        currentHatchRegionIndex = hatchRegions.length - 1;
+    }
+    hatchPoints = hatchRegions[currentHatchRegionIndex];
+    updateHatchRegionUI();
+    updateHatchPreview();
+};
+
+function updateHatchRegionUI() {
+    const input = document.getElementById('hatchRegionInput');
+    if (input) input.value = currentHatchRegionIndex + 1;
+
+    const countEl = document.getElementById('hatchPointsNum');
+    if (countEl) countEl.innerText = hatchPoints.length;
+}
+
+function setHatchMode(mode) {
     hatchMode = mode;
     const btnLines = document.getElementById('hatchModeLinesBtn');
     const btnQuads = document.getElementById('hatchModeQuadsBtn');
@@ -35,15 +123,17 @@ window.setHatchMode = function(mode) {
     if (thickCont) {
         thickCont.style.display = mode === 'quads' ? 'flex' : 'none';
     }
-    
+
     if (typeof updateHatchPreview === 'function') updateHatchPreview();
 };
 
 function startHatchDrawing(pos) {
-    hatchPoints = [{
+    hatchRegions = [[{
         x: Math.round(pos.x * 1000000) / 1000000,
         y: Math.round(pos.y * 1000000) / 1000000
-    }];
+    }]];
+    currentHatchRegionIndex = 0;
+    hatchPoints = hatchRegions[0];
 
     lastHatchAction = 'start';
     lastAddedHatchPointTime = Date.now();
@@ -51,6 +141,7 @@ function startHatchDrawing(pos) {
     isDrawingHatch = true;
     previewHatchLines = [];
     hatchPhase = el("hatchPhaseInput").value ? parseFloat(el("hatchPhaseInput").value) : 0;
+    updateHatchRegionUI();
     updateHatchPreview();
 }
 
@@ -64,13 +155,11 @@ function addHatchPoint(pos, isDragging = false) {
 
     if (hatchPoints.length > 0) {
         const last = hatchPoints[hatchPoints.length - 1];
-        if (Math.abs(roundedPos.x - last.x) < 0.000001 &&
-            Math.abs(roundedPos.y - last.y) < 0.000001) return;
+        if (Math.abs(roundedPos.x - last.x) < 0.000001 && Math.abs(roundedPos.y - last.y) < 0.000001) return;
     }
     if (hatchPoints.length > 1) {
         const prevLast = hatchPoints[hatchPoints.length - 2];
-        if (Math.abs(roundedPos.x - prevLast.x) < 0.000001 &&
-            Math.abs(roundedPos.y - prevLast.y) < 0.000001) return;
+        if (Math.abs(roundedPos.x - prevLast.x) < 0.000001 && Math.abs(roundedPos.y - prevLast.y) < 0.000001) return;
     }
 
     let existingIndex = -1;
@@ -78,8 +167,7 @@ function addHatchPoint(pos, isDragging = false) {
     let radius = (isTouch ? 20 : 10) / screenZoom / getBaseScale();
 
     for (let i = 0; i < hatchPoints.length; i++) {
-        if (Math.abs(roundedPos.x - hatchPoints[i].x) < radius &&
-            Math.abs(roundedPos.y - hatchPoints[i].y) < radius) {
+        if (Math.abs(roundedPos.x - hatchPoints[i].x) < radius && Math.abs(roundedPos.y - hatchPoints[i].y) < radius) {
             existingIndex = i;
             break;
         }
@@ -104,7 +192,7 @@ function addHatchPoint(pos, isDragging = false) {
             lastAddedHatchPointTime = Date.now();
 
             hatchPoints.splice(existingIndex, 1);
-            if (hatchPoints.length === 0) cancelHatch();
+            if (hatchPoints.length === 0 && hatchRegions.length === 1) cancelHatch();
             else updateHatchPreview();
         }
         return;
@@ -117,21 +205,27 @@ function addHatchPoint(pos, isDragging = false) {
 }
 
 function updateHatchPreview() {
-    const countEl = document.getElementById('hatchPointsNum');
-    if (countEl) countEl.innerText = hatchPoints.length;
+    updateHatchRegionUI();
 
-    if (!isDrawingHatch || hatchPoints.length < 2) return;
+    if (!isDrawingHatch) {
+        previewHatchLines = [];
+        return;
+    }
 
-    if (hatchPoints.length >= 3) {
-        previewHatchLines = generateHatchData(hatchPoints, hatchAngle, hatchDensity, hatchPhase, hatchMode, hatchThickness);
+    const regionsToRender = isMultiRegionMode ? hatchRegions : [hatchPoints];
+    const validRegions = regionsToRender.filter(r => r.length >= 3);
+
+    if (validRegions.length > 0) {
+        previewHatchLines = generateHatchData(regionsToRender, hatchAngle, hatchDensity, hatchPhase, hatchMode, hatchThickness);
     } else {
         previewHatchLines = [];
     }
 }
 
-function generateHatchData(points, angleDeg, spacing, phase, mode, thickness) {
+function generateHatchData(regions, angleDeg, spacing, phase, mode, thickness) {
     const results = [];
-    if (points.length < 3) return results;
+    const validRegions = regions.filter(r => r.length >= 3);
+    if (validRegions.length === 0) return results;
     if (spacing <= 0) return results;
 
     let normalizedAngle = angleDeg % 360;
@@ -145,9 +239,14 @@ function generateHatchData(points, angleDeg, spacing, phase, mode, thickness) {
     const perpX = -Math.sin(angleRad);
     const perpY = Math.cos(angleRad);
 
-    const projValues = points.map(p => p.x * perpX + p.y * perpY);
-    let minProj = Math.min(...projValues);
-    let maxProj = Math.max(...projValues);
+    let allProjValues = [];
+    for (let r of validRegions) {
+        for (let p of r) {
+            allProjValues.push(p.x * perpX + p.y * perpY);
+        }
+    }
+    let minProj = Math.min(...allProjValues);
+    let maxProj = Math.max(...allProjValues);
 
     const base = 0;
     const kMin = Math.floor((minProj - base - phase) / spacing) - 1;
@@ -164,18 +263,20 @@ function generateHatchData(points, angleDeg, spacing, phase, mode, thickness) {
 
         if (mode === 'lines' || !mode) {
             const intersections = [];
-            for (let i = 0; i < points.length; i++) {
-                const p1 = points[i];
-                const p2 = points[(i + 1) % points.length];
-                const proj1 = p1.x * perpX + p1.y * perpY;
-                const proj2 = p2.x * perpX + p2.y * perpY;
+            for (let r of validRegions) {
+                for (let i = 0; i < r.length; i++) {
+                    const p1 = r[i];
+                    const p2 = r[(i + 1) % r.length];
+                    const proj1 = p1.x * perpX + p1.y * perpY;
+                    const proj2 = p2.x * perpX + p2.y * perpY;
 
-                if ((proj1 - baseProj) * (proj2 - baseProj) < 0) {
-                    const t = (baseProj - proj1) / (proj2 - proj1);
-                    const ix = p1.x + (p2.x - p1.x) * t;
-                    const iy = p1.y + (p2.y - p1.y) * t;
-                    const along = ix * lineDirX + iy * lineDirY;
-                    intersections.push({ x: ix, y: iy, along: along });
+                    if ((proj1 - baseProj) * (proj2 - baseProj) < 0) {
+                        const t = (baseProj - proj1) / (proj2 - proj1);
+                        const ix = p1.x + (p2.x - p1.x) * t;
+                        const iy = p1.y + (p2.y - p1.y) * t;
+                        const along = ix * lineDirX + iy * lineDirY;
+                        intersections.push({ x: ix, y: iy, along: along });
+                    }
                 }
             }
 
@@ -183,10 +284,16 @@ function generateHatchData(points, angleDeg, spacing, phase, mode, thickness) {
             intersections.sort((a, b) => a.along - b.along);
 
             for (let i = 0; i < intersections.length - 1; i += 2) {
+                const start = intersections[i];
+                const end = intersections[i + 1];
+
+                const distSq = (start.x - end.x) ** 2 + (start.y - end.y) ** 2;
+                if (distSq < 1e-10) continue;
+
                 results.push({
                     type: 'line',
-                    start: { x: intersections[i].x, y: intersections[i].y },
-                    end: { x: intersections[i + 1].x, y: intersections[i + 1].y }
+                    start: { x: start.x, y: start.y },
+                    end: { x: end.x, y: end.y }
                 });
             }
         } else if (mode === 'quads') {
@@ -195,10 +302,12 @@ function generateHatchData(points, angleDeg, spacing, phase, mode, thickness) {
 
             const uniqueProjs = [pStart, pEnd];
 
-            for (let i = 0; i < points.length; i++) {
-                const vProj = projValues[i];
-                if (vProj > pStart + 1e-9 && vProj < pEnd - 1e-9) {
-                    uniqueProjs.push(vProj);
+            for (let r of validRegions) {
+                for (let i = 0; i < r.length; i++) {
+                    const vProj = r[i].x * perpX + r[i].y * perpY;
+                    if (vProj > pStart + 1e-9 && vProj < pEnd - 1e-9) {
+                        uniqueProjs.push(vProj);
+                    }
                 }
             }
 
@@ -217,28 +326,30 @@ function generateHatchData(points, angleDeg, spacing, phase, mode, thickness) {
 
                 const crossingEdges = [];
 
-                for (let i = 0; i < points.length; i++) {
-                    const p1 = points[i];
-                    const p2 = points[(i + 1) % points.length];
-                    const proj1 = projValues[i];
-                    const proj2 = projValues[(i + 1) % points.length];
+                for (let r of validRegions) {
+                    for (let i = 0; i < r.length; i++) {
+                        const p1 = r[i];
+                        const p2 = r[(i + 1) % r.length];
+                        const proj1 = p1.x * perpX + p1.y * perpY;
+                        const proj2 = p2.x * perpX + p2.y * perpY;
 
-                    if ((proj1 - p_mid) * (proj2 - p_mid) < 0) {
-                        const t_j = (p_j - proj1) / (proj2 - proj1);
-                        const ix_j = p1.x + (p2.x - p1.x) * t_j;
-                        const iy_j = p1.y + (p2.y - p1.y) * t_j;
-                        const along_j = ix_j * lineDirX + iy_j * lineDirY;
+                        if ((proj1 - p_mid) * (proj2 - p_mid) < 0) {
+                            const t_j = (p_j - proj1) / (proj2 - proj1);
+                            const ix_j = p1.x + (p2.x - p1.x) * t_j;
+                            const iy_j = p1.y + (p2.y - p1.y) * t_j;
+                            const along_j = ix_j * lineDirX + iy_j * lineDirY;
 
-                        const t_next = (p_next - proj1) / (proj2 - proj1);
-                        const ix_next = p1.x + (p2.x - p1.x) * t_next;
-                        const iy_next = p1.y + (p2.y - p1.y) * t_next;
-                        const along_next = ix_next * lineDirX + iy_next * lineDirY;
+                            const t_next = (p_next - proj1) / (proj2 - proj1);
+                            const ix_next = p1.x + (p2.x - p1.x) * t_next;
+                            const iy_next = p1.y + (p2.y - p1.y) * t_next;
+                            const along_next = ix_next * lineDirX + iy_next * lineDirY;
 
-                        crossingEdges.push({
-                            pt_j: { x: ix_j, y: iy_j },
-                            pt_next: { x: ix_next, y: iy_next },
-                            along_mid: (along_j + along_next) / 2
-                        });
+                            crossingEdges.push({
+                                pt_j: { x: ix_j, y: iy_j },
+                                pt_next: { x: ix_next, y: iy_next },
+                                along_mid: (along_j + along_next) / 2
+                            });
+                        }
                     }
                 }
                 crossingEdges.sort((a, b) => a.along_mid - b.along_mid);
@@ -247,7 +358,6 @@ function generateHatchData(points, angleDeg, spacing, phase, mode, thickness) {
                     const edgeA = crossingEdges[i];
                     const edgeB = crossingEdges[i + 1];
 
-                    
                     results.push({
                         type: 'quad',
                         pos1: edgeA.pt_j,
@@ -263,13 +373,16 @@ function generateHatchData(points, angleDeg, spacing, phase, mode, thickness) {
 }
 
 function finalizeHatch() {
-    if (hatchPoints.length < 3) {
+    const regionsToRender = isMultiRegionMode ? hatchRegions : [hatchPoints];
+    const validRegions = regionsToRender.filter(r => r.length >= 3);
+
+    if (validRegions.length === 0) {
         alert(lang === ru ? "Для штриховки необходимо минимум 3 точки!" : "At least 3 points are required for hatching!");
         cancelHatch();
         return;
     }
 
-    const finalItems = generateHatchData(hatchPoints, hatchAngle, hatchDensity, hatchPhase, hatchMode, hatchThickness);
+    const finalItems = generateHatchData(regionsToRender, hatchAngle, hatchDensity, hatchPhase, hatchMode, hatchThickness);
 
     if (finalItems.length === 0) {
         alert(lang === ru ? "Не удалось сгенерировать штриховку!" : "Failed to generate hatch lines!");
@@ -277,14 +390,14 @@ function finalizeHatch() {
         return;
     }
 
-    lastHatchPoints = [...hatchPoints];
+    lastHatchPoints = regionsToRender.map(r => [...r]);
 
     let newObjects = [];
 
     for (const item of finalItems) {
         const objIdStr = nextId().toString();
         let object;
-        
+
         if (item.type === 'line') {
             object = {
                 name: lang.line + " " + objIdStr,
@@ -325,13 +438,14 @@ function finalizeHatch() {
 }
 
 function cancelHatch() {
-    hatchPoints = [];
+    hatchRegions = [[]];
+    currentHatchRegionIndex = 0;
+    hatchPoints = hatchRegions[0];
     isDrawingHatch = false;
     isHatchDragging = false;
     previewHatchLines = [];
     hatchPhase = 0;
-    const countEl = document.getElementById('hatchPointsNum');
-    if (countEl) countEl.innerText = "0";
+    updateHatchRegionUI();
 }
 
 function restoreLastHatch() {
@@ -339,7 +453,22 @@ function restoreLastHatch() {
         alert(lang === ru ? "Предыдущая зона отсутствует!" : "No previous zone found!");
         return;
     }
-    hatchPoints = [...lastHatchPoints];
+
+    if (Array.isArray(lastHatchPoints[0])) {
+        hatchRegions = lastHatchPoints.map(r => [...r]);
+    } else {
+        hatchRegions = [[...lastHatchPoints]];
+    }
+
+    currentHatchRegionIndex = 0;
+    hatchPoints = hatchRegions[currentHatchRegionIndex];
+
+    if (hatchRegions.length > 1) {
+        setHatchRegionMode('multi');
+    } else {
+        updateHatchRegionUI();
+    }
+
     isDrawingHatch = true;
     updateHatchPreview();
 }
@@ -358,7 +487,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const thicknessInput = document.getElementById('hatchThicknessInput');
 
     const value = Number((hatchDensity * 2.5).toFixed(6));
-    document.getElementById('middleLineForHatch').innerHTML = `50% = ${value} ↑`;
+    const midLine = document.getElementById('middleLineForHatch');
+    if (midLine) midLine.innerHTML = `50% = ${value} ↑`;
 
     if (angleInput) {
         angleInput.oninput = (e) => {
@@ -378,7 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
             hatchDensity = newDensity;
             densityInput.value = hatchDensity;
             const value = Number((hatchDensity * 2.5).toFixed(6));
-            document.getElementById('middleLineForHatch').innerHTML = `50% = ${value} ↑`;
+            if (midLine) midLine.innerHTML = `50% = ${value} ↑`;
             updateHatchPreview();
         };
     }

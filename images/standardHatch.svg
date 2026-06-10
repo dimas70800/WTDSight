@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 800 800">
+  <defs>
+    <style>
+      .st0 {
+        fill: #777;
+      }
+
+      .st1 {
+        fill: none;
+      }
+
+      .st2 {
+        fill: url(#_Новый_узор);
+        stroke: #777778;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 32px;
+      }
+
+      .st3 {
+        fill: #777778;
+      }
+    </style>
+    <pattern id="_Новый_узор" data-name="Новый узор" x="0" y="0" width="212" height="212" patternTransform="translate(43.37 119.62)" patternUnits="userSpaceOnUse" viewBox="0 0 212 212">
+      <g>
+        <rect class="st1" width="212" height="212"/>
+        <polygon class="st0" points="222.54 434.67 201.33 413.46 413.46 201.33 434.67 222.54 222.54 434.67"/>
+        <polygon class="st0" points="116.54 434.67 95.33 413.46 307.46 201.33 328.67 222.54 116.54 434.67"/>
+        <polygon class="st0" points="10.54 434.67 -10.67 413.46 201.46 201.33 222.67 222.54 10.54 434.67"/>
+        <polygon class="st0" points="-95.46 434.67 -116.67 413.46 95.46 201.33 116.67 222.54 -95.46 434.67"/>
+        <polygon class="st0" points="-201.46 434.67 -222.67 413.46 -10.54 201.33 10.67 222.54 -201.46 434.67"/>
+        <polygon class="st0" points="222.54 222.67 201.33 201.46 413.46 -10.67 434.67 10.54 222.54 222.67"/>
+        <polygon class="st0" points="116.54 222.67 95.33 201.46 307.46 -10.67 328.67 10.54 116.54 222.67"/>
+        <polygon class="st0" points="10.54 222.67 -10.67 201.46 201.46 -10.67 222.67 10.54 10.54 222.67"/>
+        <polygon class="st0" points="-95.46 222.67 -116.67 201.46 95.46 -10.67 116.67 10.54 -95.46 222.67"/>
+        <polygon class="st0" points="-201.46 222.67 -222.67 201.46 -10.54 -10.67 10.67 10.54 -201.46 222.67"/>
+        <polygon class="st0" points="222.54 10.67 201.33 -10.54 413.46 -222.67 434.67 -201.46 222.54 10.67"/>
+        <polygon class="st0" points="116.54 10.67 95.33 -10.54 307.46 -222.67 328.67 -201.46 116.54 10.67"/>
+        <polygon class="st0" points="10.54 10.67 -10.67 -10.54 201.46 -222.67 222.67 -201.46 10.54 10.67"/>
+        <polygon class="st0" points="-95.46 10.67 -116.67 -10.54 95.46 -222.67 116.67 -201.46 -95.46 10.67"/>
+        <polygon class="st0" points="-201.46 10.67 -222.67 -10.54 -10.54 -222.67 10.67 -201.46 -201.46 10.67"/>
+      </g>
+    </pattern>
+  </defs>
+  <line class="st0" x1="1095.46" y1="83.33" x2="1116.67" y2="104.54"/>
+  <line class="st0" x1="1215.46" y1="83.33" x2="1236.67" y2="104.54"/>
+  <line class="st0" x1="1335.46" y1="83.33" x2="1356.67" y2="104.54"/>
+  <circle class="st3" cx="241.07" cy="124.83" r="48"/>
+  <circle class="st3" cx="561.95" cy="124.83" r="48"/>
+  <circle class="st3" cx="719.56" cy="401.5" r="48"/>
+  <circle class="st3" cx="560.82" cy="678.16" r="48"/>
+  <circle class="st3" cx="241.07" cy="677.02" r="48"/>
+  <circle class="st3" cx="83.46" cy="400.36" r="48"/>
+  <path class="st0" d="M642.04,233"/>
+  <polygon class="st2" points="559.64 123.49 240.36 123.49 80.71 400 240.36 676.51 559.64 676.51 719.29 400 559.64 123.49"/>
+</svg>

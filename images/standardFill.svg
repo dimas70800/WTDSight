@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 800">
+  <defs>
+    <style>
+      .st0, .st1 {
+        fill: #777;
+      }
+
+      .st2, .st3 {
+        fill: none;
+      }
+
+      .st4 {
+        fill: #777778;
+      }
+
+      .st1 {
+        opacity: .5;
+      }
+
+      .st1, .st3 {
+        stroke: #777778;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 32px;
+      }
+    </style>
+  </defs>
+  <line class="st2" x1="1095.46" y1="83.33" x2="1116.67" y2="104.54"/>
+  <line class="st2" x1="1215.46" y1="83.33" x2="1236.67" y2="104.54"/>
+  <line class="st2" x1="1335.46" y1="83.33" x2="1356.67" y2="104.54"/>
+  <circle class="st4" cx="241.07" cy="124.83" r="48"/>
+  <circle class="st4" cx="561.95" cy="124.83" r="48"/>
+  <circle class="st4" cx="719.56" cy="401.5" r="48"/>
+  <circle class="st4" cx="560.82" cy="678.16" r="48"/>
+  <circle class="st4" cx="241.07" cy="677.02" r="48"/>
+  <circle class="st4" cx="83.46" cy="400.36" r="48"/>
+  <path class="st0" d="M642.04,233"/>
+  <polygon class="st3" points="559.64 123.49 240.36 123.49 80.71 400 240.36 676.51 559.64 676.51 719.29 400 559.64 123.49"/>
+  <polygon class="st1" points="559.64 123.49 240.36 123.49 80.71 400 240.36 676.51 559.64 676.51 719.29 400 559.64 123.49"/>
+</svg>

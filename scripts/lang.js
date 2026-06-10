@@ -253,7 +253,10 @@ const ru =
     bgBreslauPreviewText: "Бреслау",
     bgPolandPreviewText: "Поля Польши",
     bgArdennesPreviewText: "Арденны",
-    bgTestDrivePreviewText: "Пробный выезд"
+    bgTestDrivePreviewText: "Пробный выезд",
+
+    hatchAreaModeLabel: "Режим области",
+    fillAreaModeLabel: "Режим области"
 };
 
 const en =
@@ -514,6 +517,8 @@ const en =
     bgArdennesPreviewText: "Ardennes",
     bgTestDrivePreviewText: "Test drive",
 
+    hatchAreaModeLabel: "Area mode",
+    fillAreaModeLabel: "Area mode"
 };
 
 const langDependent =
@@ -729,6 +734,9 @@ const langDependent =
         "bgPolandPreviewText",
         "bgArdennesPreviewText",
         "bgTestDrivePreviewText",
+
+        "hatchAreaModeLabel",
+        "fillAreaModeLabel"
     ];
 
 function changeLang(to) {
