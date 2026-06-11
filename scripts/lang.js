@@ -256,7 +256,10 @@ const ru =
     bgTestDrivePreviewText: "Пробный выезд",
 
     hatchAreaModeLabel: "Режим области",
-    fillAreaModeLabel: "Режим области"
+    fillAreaModeLabel: "Режим области",
+
+    horizontalAxisBtnLabel: "Горизонтальная линия",
+    verticalAxisBtnLabel: "Вертикальная линия"
 };
 
 const en =
@@ -518,7 +521,10 @@ const en =
     bgTestDrivePreviewText: "Test drive",
 
     hatchAreaModeLabel: "Area mode",
-    fillAreaModeLabel: "Area mode"
+    fillAreaModeLabel: "Area mode",
+
+    horizontalAxisBtnLabel: "Horizontal line",
+    verticalAxisBtnLabel: "Vertical line"
 };
 
 const langDependent =
@@ -736,7 +742,10 @@ const langDependent =
         "bgTestDrivePreviewText",
 
         "hatchAreaModeLabel",
-        "fillAreaModeLabel"
+        "fillAreaModeLabel",
+
+        "horizontalAxisBtnLabel",
+        "verticalAxisBtnLabel"
     ];
 
 function changeLang(to) {

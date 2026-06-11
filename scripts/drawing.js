@@ -645,3 +645,117 @@ function selectNearest(mouse) {
         showInfo(targetId);
     }
 }
+
+function generateHorizontalAxis() {
+    let minX = Infinity, maxX = -Infinity;
+
+    function checkIntersection(p1, p2) {
+        if (Math.abs(p1.y) < 1e-6 && Math.abs(p2.y) < 1e-6) return;
+        if (Math.abs(p1.x) < 1e-6 && Math.abs(p2.x) < 1e-6) return;
+
+        if (p1.y * p2.y <= 0 && p1.y !== p2.y) {
+            let intersectX = p1.x + (p2.x - p1.x) * (0 - p1.y) / (p2.y - p1.y);
+            if (intersectX >= -1.5 && intersectX <= 1.5) {
+                minX = Math.min(minX, intersectX);
+                maxX = Math.max(maxX, intersectX);
+            }
+        }
+    }
+
+    for (const [id, obj] of objects) {
+        if (obj.type === "line") {
+            checkIntersection(obj.start, obj.end);
+        } else if (obj.type === "quad") {
+            checkIntersection(obj.pos1, obj.pos2);
+            checkIntersection(obj.pos2, obj.pos3);
+            checkIntersection(obj.pos3, obj.pos4);
+            checkIntersection(obj.pos4, obj.pos1);
+        }
+    }
+
+    let newObjects = [];
+    
+    function addAxisLine(p1, p2) {
+        if (Math.abs(p1.x - p2.x) < 1e-5 && Math.abs(p1.y - p2.y) < 1e-5) return;
+        
+        const objIdStr = nextId().toString();
+        const object = {
+            name: (typeof lang !== 'undefined' && lang.line ? lang.line : "Axis Line") + " " + objIdStr,
+            type: "line",
+            start: { x: Math.round(p1.x * 1000000) / 1000000, y: Math.round(p1.y * 1000000) / 1000000 },
+            end:   { x: Math.round(p2.x * 1000000) / 1000000, y: Math.round(p2.y * 1000000) / 1000000 },
+            selected: false
+        };
+        objects.set(objIdStr, object);
+        newObjects.push({ id: objIdStr, object: object });
+    }
+
+    if (minX !== Infinity) {
+        if (minX > -1.5) addAxisLine({x: -1.5, y: 0}, {x: minX, y: 0});
+        if (maxX < 1.5)  addAxisLine({x: maxX, y: 0}, {x: 1.5, y: 0});
+    } else {
+        addAxisLine({x: -1.5, y: 0}, {x: 1.5, y: 0});
+    }
+
+    if (newObjects.length > 0) {
+        pushEvent("add_multiple", newObjects);
+        refreshObjectsList(true);
+    }
+}
+
+function generateVerticalAxis() {
+    let minY = Infinity, maxY = -Infinity;
+
+    function checkIntersection(p1, p2) {
+        if (Math.abs(p1.y) < 1e-6 && Math.abs(p2.y) < 1e-6) return;
+        if (Math.abs(p1.x) < 1e-6 && Math.abs(p2.x) < 1e-6) return;
+
+        if (p1.x * p2.x <= 0 && p1.x !== p2.x) {
+            let intersectY = p1.y + (p2.y - p1.y) * (0 - p1.x) / (p2.x - p1.x);
+            if (intersectY >= -1.5 && intersectY <= 1.5) {
+                minY = Math.min(minY, intersectY);
+                maxY = Math.max(maxY, intersectY);
+            }
+        }
+    }
+
+    for (const [id, obj] of objects) {
+        if (obj.type === "line") {
+            checkIntersection(obj.start, obj.end);
+        } else if (obj.type === "quad") {
+            checkIntersection(obj.pos1, obj.pos2);
+            checkIntersection(obj.pos2, obj.pos3);
+            checkIntersection(obj.pos3, obj.pos4);
+            checkIntersection(obj.pos4, obj.pos1);
+        }
+    }
+
+    let newObjects = [];
+    
+    function addAxisLine(p1, p2) {
+        if (Math.abs(p1.x - p2.x) < 1e-5 && Math.abs(p1.y - p2.y) < 1e-5) return;
+        
+        const objIdStr = nextId().toString();
+        const object = {
+            name: (typeof lang !== 'undefined' && lang.line ? lang.line : "Axis Line") + " " + objIdStr,
+            type: "line",
+            start: { x: Math.round(p1.x * 1000000) / 1000000, y: Math.round(p1.y * 1000000) / 1000000 },
+            end:   { x: Math.round(p2.x * 1000000) / 1000000, y: Math.round(p2.y * 1000000) / 1000000 },
+            selected: false
+        };
+        objects.set(objIdStr, object);
+        newObjects.push({ id: objIdStr, object: object });
+    }
+
+    if (minY !== Infinity) {
+        if (minY > -1.5) addAxisLine({x: 0, y: -1.5}, {x: 0, y: minY});
+        if (maxY < 1.5)  addAxisLine({x: 0, y: maxY}, {x: 0, y: 1.5});
+    } else {
+        addAxisLine({x: 0, y: -1.5}, {x: 0, y: 1.5});
+    }
+
+    if (newObjects.length > 0) {
+        pushEvent("add_multiple", newObjects);
+        refreshObjectsList(true);
+    }
+}
