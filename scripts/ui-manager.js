@@ -398,11 +398,11 @@ function changePreviewBackground() {
     
     const backgrounds = {
         standard: 'images/preview.png',
-        sinai: 'images/sinaiPreview.png',
-        poland: 'images/fieldsOfPolandPreview.png',
-        breslau: 'images/breslauPreview.png',
-        ardennes: 'images/ardennesPreview.png',
-        testdrive: 'images/testDrivePreview.png'
+        sinai: 'images/sinaiPreview.webp',
+        poland: 'images/fieldsOfPolandPreview.webp',
+        breslau: 'images/breslauPreview.webp',
+        ardennes: 'images/ardennesPreview.webp',
+        testdrive: 'images/testDrivePreview.webp'
     };
 
     if (selectedValue === 'standard') {

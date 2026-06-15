@@ -1,6 +1,6 @@
 
 (function () {
-    
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initVectorize);
     } else {
@@ -21,29 +21,11 @@
             }
         }
 
-        // vectorizeBtn.onclick = (e) => {
-        //     e.stopPropagation();
-        //     tool = 'vectorize';
-        //     if (typeof markAllTools === 'function') markAllTools();
-
-        //     toggleVectorizePanel(true);
-        // };
-
-        // if (typeof markAllTools !== 'undefined') {
-        //     const originalMarkAllTools = markAllTools;
-        //     window.markAllTools = function () {
-        //         originalMarkAllTools();
-        //         const btn = document.getElementById('toolsVectorizeButton');
-        //         if (btn) btn.disabled = (tool === 'vectorize');
-        //     };
-        // }
-
         const vectorizePanel = document.getElementById('vectorizePanel');
         if (!vectorizePanel) {
             console.error("vectorizePanel not found");
             return;
         }
-        vectorizePanel.style.display = 'none';
 
         let vectorizeLines = [];
         let vectorizePreviewLines = [];
@@ -221,7 +203,7 @@
 
             isVectorizing = true;
             const statusDiv = document.getElementById('vectorizeStatus');
-            if (statusDiv) statusDiv.innerHTML = lang.vectorizeStatusProcessing +' 0%...';
+            if (statusDiv) statusDiv.innerHTML = lang.vectorizeStatusProcessing + ' 0%...';
 
             const target = parseInt(document.getElementById('vectorizeTargetLines').value);
             const sensitivity = document.getElementById('vectorizeSensitivity').value;
@@ -311,9 +293,7 @@
         }
 
         function autoOptimizeVectorize() {
-            if (!currentSourceImageData) {
-                if (!loadImageFromReference()) return;
-            }
+            if (!loadImageFromReference()) return; 
 
             const target = parseInt(document.getElementById('vectorizeTargetLines').value);
             const denoiseLevel = parseInt(document.getElementById('vectorizeDenoise').value);
@@ -378,9 +358,10 @@
                 { low: 18, high: 105, sharp: 1.3, simp: 0.88, id: 49 }
             ];
 
-            const workers = [];
-            const results = [];
             let completedTests = 0;
+            const results = [];
+
+            const worker = new Worker('scripts/vectorize-worker.js');
 
             function finishOptimization() {
                 let bestResult = null;
@@ -406,9 +387,7 @@
                     const sensitivity = bestParams.low <= 30 ? 'sharp' : (bestParams.low >= 50 ? 'soft' : 'balanced');
                     document.getElementById('vectorizeSensitivity').value = sensitivity;
 
-                    setTimeout(() => {
-                        updateVectorizePreview();
-                    }, 100);
+                    setTimeout(() => { updateVectorizePreview(); }, 100);
 
                     if (statusDiv) {
                         statusDiv.innerHTML = lang.vectorizeStatusOptimized + ` ${bestResult.linesCount} ${lang.vectorizeLinesText}`;
@@ -419,58 +398,38 @@
                 } else {
                     if (statusDiv) statusDiv.innerHTML = lang.vectorizeStatusAutoOptimizationFailed;
                 }
-
-                workers.forEach(w => w.terminate());
+                worker.terminate();
             }
 
-            for (let i = 0; i < tests.length; i++) {
-                const worker = new Worker('scripts/vectorize-worker.js');
-                const test = tests[i];
-
-                worker.onmessage = function (e) {
+            worker.onmessage = function (e) {
+                if (e.data.type === 'auto_result') {
                     results.push(e.data);
                     completedTests++;
-
                     const percent = Math.round((completedTests / tests.length) * 100);
-                    if (statusDiv) {
-                        statusDiv.innerHTML = lang.vectorizeAutoProgress + `: ${percent}%...`;
-                    }
+                    if (statusDiv) statusDiv.innerHTML = lang.vectorizeAutoProgress + `: ${percent}%...`;
+                }
+                else if (e.data.type === 'auto_done') {
+                    finishOptimization();
+                }
+            };
 
-                    if (completedTests === tests.length) {
-                        finishOptimization();
-                    }
+            worker.onerror = function (e) {
+                console.error('Worker error:', e);
+                if (statusDiv) statusDiv.innerHTML = lang.vectorizeStatusError;
+                worker.terminate();
+            };
 
-                    worker.terminate();
-                };
-
-                worker.onerror = function (e) {
-                    console.error(`Test ${test.id} worker error:`, e);
-                    results.push({ testId: test.id, linesCount: 0, error: e.message, params: test });
-                    completedTests++;
-
-                    const percent = Math.round((completedTests / tests.length) * 100);
-                    if (statusDiv) {
-                        statusDiv.innerHTML = lang.vectorizeAutoProgress + `: ${percent}%...`;
-                    }
-
-                    if (completedTests === tests.length) {
-                        finishOptimization();
-                    }
-                };
-
-                worker.postMessage({
-                    imageData: {
-                        data: currentSourceImageData.data,
-                        width: currentSourceImageData.width,
-                        height: currentSourceImageData.height
-                    },
-                    test: test,
-                    target: target,
-                    denoiseLevel: denoiseLevel
-                });
-
-                workers.push(worker);
-            }
+            worker.postMessage({
+                type: 'auto_batch',
+                imageData: {
+                    data: currentSourceImageData.data,
+                    width: currentSourceImageData.width,
+                    height: currentSourceImageData.height
+                },
+                tests: tests,
+                target: target,
+                denoiseLevel: denoiseLevel
+            });
         }
 
         function resetSettings() {
@@ -564,10 +523,8 @@
             if (forceShow === true) {
                 panelVisible = true;
                 vectorizePanel.style.display = 'flex';
-                if (currentSourceImageData) {
+                if (loadImageFromReference()) {
                     scheduleVectorizeUpdate();
-                } else {
-                    loadImageFromReference();
                 }
             } else if (forceShow === false) {
                 panelVisible = false;
@@ -577,10 +534,8 @@
                 panelVisible = !panelVisible;
                 vectorizePanel.style.display = panelVisible ? 'flex' : 'none';
                 if (panelVisible) {
-                    if (currentSourceImageData) {
+                    if (loadImageFromReference()) {
                         scheduleVectorizeUpdate();
-                    } else {
-                        loadImageFromReference();
                     }
                 } else {
                     hideVectorizePreview();
