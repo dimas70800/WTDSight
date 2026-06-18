@@ -121,6 +121,38 @@ function setReferenceMenu() {
     }
 }
 
+let isRefFreeMove = false;
+let refTransformState = {
+    action: null,
+    startRef: null,
+    startMouse: null,
+    startAngle: 0,
+    offsetX: 0,
+    offsetY: 0
+};
+
+function getRefTransformBox() {
+    const ref = referenceArray[currentReference];
+    if (!ref || !ref.obj) return null;
+    const aspectRatio = ref.obj.width / ref.obj.height;
+    return {
+        cx: ref.x,
+        cy: ref.y,
+        w: ref.size * aspectRatio,
+        h: ref.size,
+        angle: ref.rotation * Math.PI / 180
+    };
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const cb = document.getElementById('refFreeMoveCheckbox');
+    if (cb) {
+        cb.addEventListener('change', (e) => {
+            isRefFreeMove = e.target.checked;
+        });
+    }
+});
+
 /*function calc()
 {
     const canv = document.createElement("canvas");

@@ -124,7 +124,8 @@
                                     <span id="refFileTitle">Файл картинки</span>:<br>
                                     <label for="refFile" class="file-upload-btn" id="refFileLabel">Выбрать файл</label>
                                     <input type="file" id="refFile" accept="image/*" style="display: none;">
-                                    <span id="refFileName" style="display: block; margin-top: 4px; font-size: 12px; color: #777; word-break: break-all;"></span>
+                                    <span id="refFileName"
+                                        style="display: block; margin-top: 4px; font-size: 12px; color: #777; word-break: break-all;"></span>
                                 </div>
                             </div>
                             <div class="block-with-elem">
@@ -147,6 +148,11 @@
                                             step="0.01" style="flex-grow: 1;" placeholder="Y">
                                     </div>
                                 </div>
+
+                                <label style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="refFreeMoveCheckbox" style="transform: scale(1.3);">
+                                    <span id="refFreeMoveLabel">Свободное перемещение</span>
+                                </label>
 
                                 <span id="refOpacityTitle">Непрозрачность картинки</span>
                                 <input id="refOpacityInput" type="range" value="0.5" min="0" max="1" step="0.01"
@@ -689,8 +695,10 @@
                             </div>
 
                             <div class="block-with-elem">
-                                <button id="horizontalAxisBtnLabel" onclick="generateHorizontalAxis()">Горизонтальная линия</button>
-                                <button id="verticalAxisBtnLabel" onclick="generateVerticalAxis()">Вертикальная линия</button>
+                                <button id="horizontalAxisBtnLabel" onclick="generateHorizontalAxis()">Горизонтальная
+                                    линия</button>
+                                <button id="verticalAxisBtnLabel" onclick="generateVerticalAxis()">Вертикальная
+                                    линия</button>
                             </div>
 
                             <div class="panel-with-elem">

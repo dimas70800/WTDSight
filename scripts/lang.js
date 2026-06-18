@@ -259,7 +259,9 @@ const ru =
     fillAreaModeLabel: "Режим области",
 
     horizontalAxisBtnLabel: "Горизонтальная линия",
-    verticalAxisBtnLabel: "Вертикальная линия"
+    verticalAxisBtnLabel: "Вертикальная линия",
+
+    refFreeMoveLabel: "Свободное перемещение"
 };
 
 const en =
@@ -524,7 +526,9 @@ const en =
     fillAreaModeLabel: "Area mode",
 
     horizontalAxisBtnLabel: "Horizontal line",
-    verticalAxisBtnLabel: "Vertical line"
+    verticalAxisBtnLabel: "Vertical line",
+    
+    refFreeMoveLabel: "Free transform"
 };
 
 const langDependent =
@@ -745,7 +749,9 @@ const langDependent =
         "fillAreaModeLabel",
 
         "horizontalAxisBtnLabel",
-        "verticalAxisBtnLabel"
+        "verticalAxisBtnLabel",
+
+        "refFreeMoveLabel"
     ];
 
 function changeLang(to) {

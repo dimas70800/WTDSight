@@ -851,6 +851,60 @@ function drawGhost() {
             }
             break;
     }
+    if (typeof currentActiveTabId !== 'undefined' && currentActiveTabId === 'reference' && typeof isRefFreeMove !== 'undefined' && isRefFreeMove) {
+        const box = typeof getRefTransformBox === 'function' ? getRefTransformBox() : null;
+        if (box) {
+            ctx.save();
+            ctx.lineWidth = getLineWidth(2);
+
+            const cos = Math.cos(box.angle), sin = Math.sin(box.angle);
+            const corners = [
+                { x: -box.w / 2, y: -box.h / 2 }, { x: box.w / 2, y: -box.h / 2 },
+                { x: box.w / 2, y: box.h / 2 }, { x: -box.w / 2, y: box.h / 2 }
+            ].map(pt => v2disposSight2v2canvas({
+                x: box.cx + pt.x * cos - pt.y * sin,
+                y: box.cy + pt.x * sin + pt.y * cos
+            }));
+
+            ctx.beginPath();
+            ctx.moveTo(corners[0].x, corners[0].y);
+            corners.forEach(c => ctx.lineTo(c.x, c.y));
+            ctx.closePath();
+
+            ctx.strokeStyle = "rgba(0, 0, 0, 0.8)";
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+            ctx.lineDashOffset = 5;
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
+            ctx.lineDashOffset = 0;
+
+            ctx.strokeStyle = "rgba(0, 0, 0, 0.8)";
+            ctx.fillStyle = "rgba(255, 255, 255, 1)";
+            const handles = getTransformHandles(box);
+            const tHandle = handles.find(h => h.id === 'scale_t').p;
+            const rotHandle = handles.find(h => h.id === 'rotate').p;
+
+            const tScreen = v2disposSight2v2canvas(tHandle);
+            const rotScreen = v2disposSight2v2canvas(rotHandle);
+            ctx.beginPath();
+            ctx.moveTo(tScreen.x, tScreen.y);
+            ctx.lineTo(rotScreen.x, rotScreen.y);
+            ctx.stroke();
+
+            handles.forEach(h => {
+                const canvasPos = v2disposSight2v2canvas(h.p);
+                ctx.beginPath();
+                ctx.arc(canvasPos.x, canvasPos.y, h.id === 'rotate' ? getLineWidth(12) : getLineWidth(8), 0, Math.PI * 2);
+                ctx.fill(); ctx.stroke();
+            });
+
+            ctx.restore();
+        }
+    }
     if (tool === "select" && isSelecting) {
         if (selectionShapeMode === 'rect' && selectionRect) {
             const from = v2disposSight2v2canvas({ x: selectionRect.startX, y: selectionRect.startY });
@@ -1676,6 +1730,43 @@ canvas.onpointerdown = (e) => {
     }
 
     if (e.button === 0) {
+        if (typeof currentActiveTabId !== 'undefined' && currentActiveTabId === 'reference' && typeof isRefFreeMove !== 'undefined' && isRefFreeMove) {
+            const clickCanvas = getMousePos(e.offsetX, e.offsetY);
+            let clickPos = v2canvas2v2disposSight(clickCanvas);
+            const box = typeof getRefTransformBox === 'function' ? getRefTransformBox() : null;
+            
+            if (box) {
+                const handles = getTransformHandles(box);
+                const hitRadius = 12 / screenZoom / getBaseScale();
+                const dist = (p1, p2) => Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
+
+                let hitHandle = handles.find(h => {
+                    const radiusMod = h.id === 'rotate' ? 1.8 : 1.5;
+                    return dist(clickPos, h.p) < hitRadius * radiusMod;
+                });
+
+                if (hitHandle) {
+                    refTransformState.action = hitHandle.id;
+                    refTransformState.startRef = JSON.parse(JSON.stringify(referenceArray[currentReference]));
+                    refTransformState.startRef.obj = referenceArray[currentReference].obj;
+                    refTransformState.startMouse = clickPos;
+                    refTransformState.startAngle = Math.atan2(clickPos.y - box.cy, clickPos.x - box.cx);
+                    return;
+                } else {
+                    const dx = clickPos.x - box.cx;
+                    const dy = clickPos.y - box.cy;
+                    const localX = dx * Math.cos(box.angle) + dy * Math.sin(box.angle);
+                    const localY = -dx * Math.sin(box.angle) + dy * Math.cos(box.angle);
+                    
+                    if (Math.abs(localX) < box.w / 2 && Math.abs(localY) < box.h / 2) {
+                        refTransformState.action = 'move';
+                        refTransformState.offsetX = dx;
+                        refTransformState.offsetY = dy;
+                        return;
+                    }
+                }
+            }
+        }
         mousePos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
         mousePosWindow = getMousePos(e.offsetX, e.offsetY);
 
@@ -2073,6 +2164,89 @@ canvas.onpointermove = (e) => {
     mousePos = v2canvas2v2disposSight(currentMousePosCanvas);
     mousePosWindow = currentMousePosCanvas;
 
+    if (typeof currentActiveTabId !== 'undefined' && currentActiveTabId === 'reference' && typeof isRefFreeMove !== 'undefined' && isRefFreeMove && typeof refTransformState !== 'undefined' && refTransformState.action) {
+        const ref = referenceArray[currentReference];
+
+        if (refTransformState.action === 'move') {
+            ref.x = mousePos.x - refTransformState.offsetX;
+            ref.y = mousePos.y - refTransformState.offsetY;
+        } else {
+            const initialRef = refTransformState.startRef;
+            if (!initialRef || !initialRef.obj) return;
+
+            const aspectRatio = initialRef.obj.width / initialRef.obj.height;
+            const initialBox = {
+                cx: initialRef.x, cy: initialRef.y,
+                w: initialRef.size * aspectRatio, h: initialRef.size,
+                angle: initialRef.rotation * Math.PI / 180
+            };
+
+            if (refTransformState.action === 'rotate') {
+                const currentAngle = Math.atan2(mousePos.y - initialBox.cy, mousePos.x - initialBox.cx);
+                let deltaAngle = currentAngle - refTransformState.startAngle;
+                if (e.shiftKey) {
+                    const step = Math.PI / 12;
+                    deltaAngle = Math.round(deltaAngle / step) * step;
+                }
+                ref.rotation = initialRef.rotation + (deltaAngle * 180 / Math.PI);
+            } else {
+                const dx = mousePos.x - initialBox.cx, dy = mousePos.y - initialBox.cy;
+                const localX = dx * Math.cos(initialBox.angle) + dy * Math.sin(initialBox.angle);
+                const localY = -dx * Math.sin(initialBox.angle) + dy * Math.cos(initialBox.angle);
+
+                const dir = refTransformState.action.split('_')[1] || '';
+                const isLeft = dir.includes('l'), isRight = dir.includes('r');
+                const isTop = dir.includes('t'), isBottom = dir.includes('b');
+                const isCorner = ['tl', 'tr', 'bl', 'br'].includes(dir);
+
+                const signX = isRight ? 1 : (isLeft ? -1 : 0);
+                const signY = isBottom ? 1 : (isTop ? -1 : 0);
+                const isCenterScale = e.shiftKey && !isCorner;
+
+                let originLocalX = signX === 1 ? -initialBox.w / 2 : (signX === -1 ? initialBox.w / 2 : 0);
+                let originLocalY = signY === 1 ? -initialBox.h / 2 : (signY === -1 ? initialBox.h / 2 : 0);
+
+                let newW = initialBox.w, newH = initialBox.h;
+
+                if (isCenterScale) {
+                    if (signX !== 0) newW = Math.max(0.01, localX * signX * 2);
+                    if (signY !== 0) newH = Math.max(0.01, localY * signY * 2);
+                } else {
+                    if (signX !== 0) newW = Math.max(0.01, (localX - originLocalX) * signX);
+                    if (signY !== 0) newH = Math.max(0.01, (localY - originLocalY) * signY);
+                }
+
+                let scaleFactor = 1;
+                if (signX !== 0 && signY !== 0) {
+                   scaleFactor = Math.max(newW / initialBox.w, newH / initialBox.h);
+                } else if (signX !== 0) {
+                   scaleFactor = newW / initialBox.w;
+                } else if (signY !== 0) {
+                   scaleFactor = newH / initialBox.h;
+                }
+
+                newW = initialBox.w * scaleFactor;
+                newH = initialBox.h * scaleFactor;
+                ref.size = newH;
+
+                let newLocalCx = 0, newLocalCy = 0;
+                if (isCenterScale) {
+                    newLocalCx = 0;
+                    newLocalCy = 0;
+                } else {
+                    newLocalCx = originLocalX + (signX !== 0 ? (newW / 2) * signX : 0);
+                    newLocalCy = originLocalY + (signY !== 0 ? (newH / 2) * signY : 0);
+                }
+
+                ref.x = initialBox.cx + newLocalCx * Math.cos(initialBox.angle) - newLocalCy * Math.sin(initialBox.angle);
+                ref.y = initialBox.cy + newLocalCx * Math.sin(initialBox.angle) + newLocalCy * Math.cos(initialBox.angle);
+            }
+        }
+        
+        if (typeof setReferenceMenu === 'function') setReferenceMenu();
+        return; 
+    }
+
     if (tool === "curve" && isDrawingCurve) {
         let mousePos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
 
@@ -2446,6 +2620,11 @@ canvas.onpointerup = (e) => {
     }
 
     if (e.button === 0) {
+
+        if (typeof isRefFreeMove !== 'undefined' && isRefFreeMove && typeof refTransformState !== 'undefined' && refTransformState.action) {
+            refTransformState.action = null;
+            return;
+        }
 
         if (tool === "text" && textToolState.action) {
             textToolState.action = null;
