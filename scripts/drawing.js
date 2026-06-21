@@ -35,7 +35,7 @@ function nextId() {
 
 function clearEverything() {
     if (confirm(lang === ru ? "Рисунок будет полностью стёрт, продолжить?" : "The drawing will be entirely cleared, continue?")) {
-        load("{}");
+        load("{}", true);
     }
 }
 
@@ -212,11 +212,9 @@ function refreshObjectsList(scrollDown) {
 }
 
 function unselectAnyObjects() {
-    for (const [id, obj] of objects) {
-        obj.selected = false;
+    if (typeof clearSelection === 'function') {
+        clearSelection();
     }
-
-    selectedId = null;
 }
 
 let selectedId = null;
@@ -442,10 +440,20 @@ function toggleMobileSnapping() {
     }
 }
 
+let isCtrlUsedInCombo = false;
+
 document.onkeydown = (e) => {
     const activeElem = document.activeElement;
-    if (activeElem.tagName === 'INPUT' || activeElem.tagName === 'TEXTAREA') {
-        if (e.code === "Escape" || e.ctrlKey) activeElem.blur();
+    if (activeElem.tagName === 'INPUT' || activeElem.tagName === 'TEXTAREA' || activeElem.isContentEditable) {
+        if (e.code === "Escape") activeElem.blur();
+
+        if (e.ctrlKey && e.key !== 'Control') {
+            isCtrlUsedInCombo = true;
+        } 
+        else if (e.key === 'Control') {
+            isCtrlUsedInCombo = false; 
+        }
+
         return;
     }
     if (isAnimatingDrawing) {
@@ -504,6 +512,12 @@ document.onkeydown = (e) => {
 };
 
 document.onkeyup = (e) => {
+    const activeElem = document.activeElement;
+    if (activeElem && (activeElem.tagName === 'INPUT' || activeElem.tagName === 'TEXTAREA' || activeElem.isContentEditable)) {
+        if (e.key === 'Control' && !isCtrlUsedInCombo) {
+            activeElem.blur();
+        }
+    }
     if (e.code === "ControlLeft") {
         snapping = false;
         if (!arrowPulling && !isPullingCenter) {

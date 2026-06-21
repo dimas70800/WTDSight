@@ -38,11 +38,22 @@ function loadFromFile(e) {
     load(e.target.result);
 }
 
-function load(rawData) {
-    objects = new Map(Object.entries(JSON.parse(rawData)));
+function load(rawData, forceReplace = false) {
+    const replace = forceReplace || (document.getElementById("replaceObjectsOnLoad")?.checked !== false);
+    const loadedMap = new Map(Object.entries(JSON.parse(rawData)));
+
+    if (replace) {
+        objects = loadedMap;
+        clearEvents();
+    } else {
+        for (const [_, obj] of loadedMap) {
+            const newId = nextId().toString();
+            objects.set(newId, obj);
+        }
+    }
+    
     refreshObjectsList();
     unselectAnyObjects();
-    clearEvents();
 }
 
 async function saveExport(data) {
@@ -123,11 +134,21 @@ function loadFromBlk(text) {
         return;
     }
 
-    objects = newObjects;
+    const replace = document.getElementById("replaceObjectsOnLoad")?.checked !== false;
+
+    if (replace) {
+        objects = newObjects;
+        clearEvents();
+    } else {
+        for (const [_, obj] of newObjects) {
+            const newId = nextId().toString();
+            objects.set(newId, obj);
+        }
+    }
+
     refreshObjectsList();
     unselectAnyObjects();
-    clearEvents();
-
+    
     if (typeof showNotification === 'function') {
         showNotification(`${lang.loaded} ${newObjects.size} ${lang.objectsFromBLK}`);
     }

@@ -261,7 +261,9 @@ const ru =
     horizontalAxisBtnLabel: "Горизонтальная линия",
     verticalAxisBtnLabel: "Вертикальная линия",
 
-    refFreeMoveLabel: "Свободное перемещение"
+    refFreeMoveLabel: "Свободное перемещение",
+
+    replaceObjectsLabel: "Заменять обьекты"
 };
 
 const en =
@@ -528,7 +530,9 @@ const en =
     horizontalAxisBtnLabel: "Horizontal line",
     verticalAxisBtnLabel: "Vertical line",
     
-    refFreeMoveLabel: "Free transform"
+    refFreeMoveLabel: "Free transform",
+
+    replaceObjectsLabel: "Replace objects"
 };
 
 const langDependent =
@@ -751,7 +755,9 @@ const langDependent =
         "horizontalAxisBtnLabel",
         "verticalAxisBtnLabel",
 
-        "refFreeMoveLabel"
+        "refFreeMoveLabel",
+
+        "replaceObjectsLabel"
     ];
 
 function changeLang(to) {

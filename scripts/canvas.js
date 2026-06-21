@@ -1399,12 +1399,24 @@ function clearSelection() {
     for (const [id, obj] of objects) {
         obj.selected = false;
     }
+    
     selectedObjectsSet.clear();
     selectionRect = null;
+    lassoPoints = [];
+    isSelecting = false;
+    
+    if (typeof transformState !== 'undefined') {
+        transformState.box = null;
+        transformState.active = false;
+        transformState.action = null;
+        transformState.selectedIdsHash = "";
+    }
+
     if (selectedId !== null) {
         selectedId = null;
         showInfo(null);
     }
+    updateSelectionInfo();
 }
 
 function updateSelectionInfo() {

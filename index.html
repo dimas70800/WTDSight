@@ -183,6 +183,11 @@
                                     onclick="document.getElementById('loadBlkInput').click()">Загрузить из BLK</button>
                                 <input type="file" id="loadBlkInput" style="display: none" accept=".blk,.txt">
 
+                                <label style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="replaceObjectsOnLoad" checked style="transform: scale(1.3);">
+                                    <span id="replaceObjectsLabel">Заменять объекты</span>
+                                </label>
+
                                 <button id="saveButton" onclick="save()">Сохранить в файл</button>
 
                                 <div style="display: flex; gap: 10px; align-items: center;">
