@@ -209,6 +209,9 @@ function drawPreview() {
 
     pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
 
+    const previewColorSelect = document.getElementById('previewColorSelect');
+    const previewColor = previewColorSelect ? previewColorSelect.value : "#000000";
+
     const maxDist = parseInt(document.getElementById('previewMaxDist')?.value) || 6000;
 
     const drawVert = document.getElementById('previewDrawCentralLineVert').checked;
@@ -231,7 +234,7 @@ function drawPreview() {
     }
 
     pCtx.lineWidth = (pCanvas.height / 2160) * 1.5;
-    pCtx.strokeStyle = "rgba(0, 0, 0, 0.8)";
+    pCtx.strokeStyle = previewColor;
 
     if (drawVert || drawHorz) {
         pCtx.beginPath();
@@ -248,7 +251,8 @@ function drawPreview() {
 
     if (drawTicks) {
         pCtx.lineWidth = (pCanvas.height / 2160) * 1.5;
-        pCtx.fillStyle = "rgba(0, 0, 0, 0.8)";
+        pCtx.strokeStyle = previewColor;
+        pCtx.fillStyle = previewColor;
 
         pCtx.textAlign = "center";
         pCtx.textBaseline = "middle";
@@ -309,8 +313,8 @@ function drawPreview() {
         }
     }
 
-    pCtx.fillStyle = "rgba(0, 0, 0, 1)";
-    pCtx.strokeStyle = "rgba(0, 0, 0, 1)";
+    pCtx.fillStyle = previewColor;
+    pCtx.strokeStyle = previewColor;
     pCtx.lineJoin = "round";
 
     for (const [id, object] of objects) {

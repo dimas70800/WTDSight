@@ -773,3 +773,63 @@ function generateVerticalAxis() {
         refreshObjectsList(true);
     }
 }
+
+function transformAllObjects(type, axis, useCenter = false) {
+    if (objects.size === 0) return;
+
+    let centerX = 0;
+    let centerY = 0;
+
+    if (type === 'transfer' || useCenter) {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const [id, obj] of objects) {
+            const pts = obj.type === 'line' ? [obj.start, obj.end] : [obj.pos1, obj.pos2, obj.pos3, obj.pos4];
+            for (let p of pts) {
+                if (p.x < minX) minX = p.x;
+                if (p.y < minY) minY = p.y;
+                if (p.x > maxX) maxX = p.x;
+                if (p.y > maxY) maxY = p.y;
+            }
+        }
+        centerX = minX + (maxX - minX) / 2;
+        centerY = minY + (maxY - minY) / 2;
+    }
+
+    const initialData = [];
+    for (const [id, obj] of objects) {
+        initialData.push({
+            id: id,
+            object: obj,
+            prevData: getObjectMoveData(obj)
+        });
+    }
+
+    for (const [id, obj] of objects) {
+        const pts = obj.type === 'line' ? [obj.start, obj.end] : [obj.pos1, obj.pos2, obj.pos3, obj.pos4];
+        
+        for (let p of pts) {
+            if (type === 'transfer') {
+                if (axis === 'horz') p.x -= 2 * centerX;
+                if (axis === 'vert') p.y -= 2 * centerY;
+            } else if (type === 'mirror') {
+                if (axis === 'horz') {
+                    p.x = useCenter ? centerX - (p.x - centerX) : -p.x;
+                } else if (axis === 'vert') {
+                    p.y = useCenter ? centerY - (p.y - centerY) : -p.y;
+                }
+            }
+        }
+    }
+
+    const moveEventData = initialData.map(item => ({
+        id: item.id,
+        prevData: item.prevData,
+        newData: getObjectMoveData(item.object)
+    }));
+    pushEvent("move_multiple", { objectsData: moveEventData });
+    
+    if (typeof updateSelectionInfo === 'function') updateSelectionInfo();
+    if (typeof transformState !== 'undefined' && transformState.active === false && typeof updateTransformBoxFromSelection === 'function') {
+        updateTransformBoxFromSelection();
+    }
+}

@@ -263,7 +263,20 @@ const ru =
 
     refFreeMoveLabel: "Свободное перемещение",
 
-    replaceObjectsLabel: "Заменять обьекты"
+    replaceObjectsLabel: "Заменять обьекты",
+
+    mirrorLabel: "Отражение",
+    previewColorText: "Цвет прицела:",
+    colorBlack: "Черный",
+    colorWhite: "Белый",
+    colorBrightGreen: "Ярко-зеленый",
+    colorGreen: "Зеленый",
+    colorLime: "Лаймовый",
+    colorYellow: "Желтый",
+    colorOrange: "Оранжевый",
+    colorRed: "Красный",
+    colorCyan: "Голубой",
+    colorBlue: "Синий"
 };
 
 const en =
@@ -529,10 +542,23 @@ const en =
 
     horizontalAxisBtnLabel: "Horizontal line",
     verticalAxisBtnLabel: "Vertical line",
-    
+
     refFreeMoveLabel: "Free transform",
 
-    replaceObjectsLabel: "Replace objects"
+    replaceObjectsLabel: "Replace objects",
+
+    mirrorLabel: "Mirror",
+    previewColorText: "Sight Color:",
+    colorBlack: "Black",
+    colorWhite: "White",
+    colorBrightGreen: "Bright Green",
+    colorGreen: "Green",
+    colorLime: "Lime Green",
+    colorYellow: "Yellow",
+    colorOrange: "Orange",
+    colorRed: "Red",
+    colorCyan: "Cyan",
+    colorBlue: "Blue"
 };
 
 const langDependent =
@@ -726,7 +752,7 @@ const langDependent =
         "addCurrentSightBtn",
         "addFilesToArchiveBtn",
         "createArchiveBtn",
-        
+
         "hatchRestoreBtn",
 
         "shareSightBtn",
@@ -734,7 +760,7 @@ const langDependent =
 
         "boostyText",
         "oldSelectionLabel",
-        
+
         "shapesTitleText",
         "shapesDescription",
         "shapesCreateBtn",
@@ -757,7 +783,20 @@ const langDependent =
 
         "refFreeMoveLabel",
 
-        "replaceObjectsLabel"
+        "replaceObjectsLabel",
+
+        "mirrorLabel",
+        "previewColorText",
+        "colorBlack",
+        "colorWhite",
+        "colorBrightGreen",
+        "colorGreen",
+        "colorLime",
+        "colorYellow",
+        "colorOrange",
+        "colorRed",
+        "colorCyan",
+        "colorBlue"
     ];
 
 function changeLang(to) {
