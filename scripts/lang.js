@@ -276,7 +276,10 @@ const ru =
     colorOrange: "Оранжевый",
     colorRed: "Красный",
     colorCyan: "Голубой",
-    colorBlue: "Синий"
+    colorBlue: "Синий",
+
+    hatchGridLabel: "Сетка",
+    hatchGridAngleTitle: "Угол сетки"
 };
 
 const en =
@@ -558,7 +561,10 @@ const en =
     colorOrange: "Orange",
     colorRed: "Red",
     colorCyan: "Cyan",
-    colorBlue: "Blue"
+    colorBlue: "Blue",
+
+    hatchGridLabel: "Grid",
+    hatchGridAngleTitle: "Grid angle"
 };
 
 const langDependent =
@@ -796,7 +802,10 @@ const langDependent =
         "colorOrange",
         "colorRed",
         "colorCyan",
-        "colorBlue"
+        "colorBlue",
+
+        "hatchGridLabel",
+        "hatchGridAngleTitle",
     ];
 
 function changeLang(to) {

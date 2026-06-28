@@ -11,6 +11,9 @@ let hatchAngle = 45;
 let hatchDensity = 0.03;
 let hatchPhase = 0;
 
+let hatchGridEnabled = false;
+let hatchGridAngle = 90;
+
 let hatchMode = 'lines';
 let hatchThickness = 0.005;
 
@@ -219,6 +222,11 @@ function updateHatchPreview() {
 
     if (validRegions.length > 0) {
         previewHatchLines = generateHatchData(regionsToRender, hatchAngle, hatchDensity, hatchPhase, hatchMode, hatchThickness);
+        
+        if (hatchGridEnabled) {
+            const gridLines = generateHatchData(regionsToRender, hatchAngle + hatchGridAngle, hatchDensity, hatchPhase, hatchMode, hatchThickness);
+            previewHatchLines = previewHatchLines.concat(gridLines);
+        }
     } else {
         previewHatchLines = [];
     }
@@ -384,7 +392,12 @@ function finalizeHatch() {
         return;
     }
 
-    const finalItems = generateHatchData(regionsToRender, hatchAngle, hatchDensity, hatchPhase, hatchMode, hatchThickness);
+    let finalItems = generateHatchData(regionsToRender, hatchAngle, hatchDensity, hatchPhase, hatchMode, hatchThickness);
+    
+    if (hatchGridEnabled) {
+        const gridItems = generateHatchData(regionsToRender, hatchAngle + hatchGridAngle, hatchDensity, hatchPhase, hatchMode, hatchThickness);
+        finalItems = finalItems.concat(gridItems);
+    }
 
     if (finalItems.length === 0) {
         alert(lang === ru ? "Не удалось сгенерировать штриховку!" : "Failed to generate hatch lines!");
@@ -487,6 +500,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelBtn = document.getElementById('hatchCancelBtn');
     const restoreBtn = document.getElementById('hatchRestoreBtn');
     const thicknessInput = document.getElementById('hatchThicknessInput');
+
+    const gridCheckbox = document.getElementById('hatchGridCheckbox');
+    const gridAngleCont = document.getElementById('hatchGridAngleContainer');
+    const gridAngleInput = document.getElementById('hatchGridAngleInput');
+
+    if (gridCheckbox) {
+        gridCheckbox.onchange = (e) => {
+            hatchGridEnabled = e.target.checked;
+            if (gridAngleCont) gridAngleCont.style.display = hatchGridEnabled ? 'flex' : 'none';
+            updateHatchPreview();
+        };
+    }
+
+    if (gridAngleInput) {
+        gridAngleInput.oninput = (e) => {
+            let newGridAngle = parseFloat(gridAngleInput.value);
+            if (isNaN(newGridAngle)) newGridAngle = 90;
+            hatchGridAngle = newGridAngle;
+            updateHatchPreview();
+        };
+    }
 
     const value = Number((hatchDensity * 2.5).toFixed(6));
     const midLine = document.getElementById('middleLineForHatch');
