@@ -808,6 +808,42 @@ option:checked {
     background-color: var(--bg-main-panel);
 }
 
+.drag-drop-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.drag-drop-overlay.active {
+    display: flex;
+}
+
+.drag-drop-content {
+    display: flex;
+    border: 10px dashed rgb(255, 255, 255);
+    justify-content: center;
+    align-items: center;
+    width: 50vw;
+    border-radius: 20px;
+    padding: 60px;
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: white;
+    text-align: center;
+    background: rgba(200, 200, 200, 0.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
 @media screen and (max-width: 950px) {
     :root {
         --sidebar-width: 50px;

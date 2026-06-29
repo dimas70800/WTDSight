@@ -468,3 +468,77 @@ window.addEventListener('load', async () => {
         }
     }
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    const dragDropOverlay = document.getElementById('dragDropOverlay');
+    
+    let dragCounter = 0;
+
+    window.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        dragCounter++;
+        dragDropOverlay.classList.add('active');
+    });
+
+    window.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dragCounter--;
+        if (dragCounter === 0) {
+            dragDropOverlay.classList.remove('active');
+        }
+    });
+
+    window.addEventListener('dragover', (e) => {
+        e.preventDefault();
+    });
+
+    window.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dragCounter = 0;
+        dragDropOverlay.classList.remove('active');
+
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const file = e.dataTransfer.files[0];
+            const name = file.name.toLowerCase();
+
+            if (name.endsWith('.json')) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    if (typeof load === 'function') {
+                        load(ev.target.result);
+                    }
+                };
+                reader.readAsText(file);
+            }
+            else if (name.endsWith('.blk') || name.endsWith('.txt')) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    if (typeof loadFromBlk === 'function') {
+                        loadFromBlk(ev.target.result);
+                    }
+                };
+                reader.readAsText(file);
+            }
+            else if (file.type.startsWith('image/')) {
+                if (typeof referenceArray !== 'undefined' && typeof currentReference !== 'undefined') {
+                    referenceArray[currentReference].fileName = file.name;
+                    const url = URL.createObjectURL(file);
+                    const img = new Image();
+                    img.onload = () => {
+                        referenceArray[currentReference].obj = img;
+                        referenceArray[currentReference].url = null;
+                        
+                        if (typeof setReferenceMenu === 'function') setReferenceMenu();
+                    };
+                    img.src = url;
+                }
+            } 
+            
+            else {
+                if (typeof showNotification === 'function') {
+                    showNotification((typeof lang !== 'undefined' && lang === en) ? "Unsupported file format!" : "Неподдерживаемый формат файла!", true);
+                }
+            }
+        }
+    });
+});

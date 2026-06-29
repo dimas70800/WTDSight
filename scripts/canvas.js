@@ -681,11 +681,28 @@ function drawGhost() {
 
                 ctx.strokeStyle = el("outlineCheckBox").checked ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.8)";
                 ctx.lineWidth = getLineWidth(1);
-                previewTextLines.forEach(line => {
-                    const from = v2disposSight2v2canvas(line.start);
-                    const to = v2disposSight2v2canvas(line.end);
-                    drawLine(from.x, from.y, to.x, to.y);
-                });
+                
+                const isFilled = document.getElementById('textFillCheckbox') && document.getElementById('textFillCheckbox').checked;
+
+                if (isFilled && typeof previewTextQuads !== 'undefined' && previewTextQuads.length > 0) {
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+                    for (const q of previewTextQuads) {
+                        const p1 = v2disposSight2v2canvas(q[0]), p2 = v2disposSight2v2canvas(q[1]);
+                        const p3 = v2disposSight2v2canvas(q[2]), p4 = v2disposSight2v2canvas(q[3]);
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+                        ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                    }
+                } else {
+                    previewTextLines.forEach(line => {
+                        const from = v2disposSight2v2canvas(line.start);
+                        const to = v2disposSight2v2canvas(line.end);
+                        drawLine(from.x, from.y, to.x, to.y);
+                    });
+                }
 
                 ctx.restore();
             }

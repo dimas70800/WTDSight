@@ -24,6 +24,12 @@
         <canvas id="mainCanvas" width="3840" height="2160"></canvas>
     </div>
 
+    <div id="dragDropOverlay" class="drag-drop-overlay">
+        <div class="drag-drop-content" id="dragDropOverlayText">
+            Перетащите сюда файл blk, json или любое изображение
+        </div>
+    </div>
+
     <a id="saver"></a>
 
     <div class="interface-wrapper">
@@ -553,7 +559,12 @@
                                         style="width: 5em">
                                 </div>
 
-                                <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 10px;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <input type="checkbox" id="textFillCheckbox" style="transform: scale(1.2);" onchange="updateTextPreview()">
+                                    <span id="textFillLabel">Заливка</span>
+                                </label>
+
+                                <div style="display: flex; flex-direction: column; gap: 5px;">
                                     <span id="simplifyLabel">Упрощение</span>
                                     <input type="range" id="textSimplifyInput" min="1" max="50" value="0">
                                 </div>

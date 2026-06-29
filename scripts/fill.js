@@ -370,7 +370,17 @@ function updateFillPreview() {
 function generateFillQuads(points) {
     if (points.length < 3) return [];
     
-    let pts = points.map(p => ({ x: p.x, y: p.y }));
+    let pts = [];
+    for (let p of points) {
+        if (pts.length === 0 || Math.hypot(p.x - pts[pts.length-1].x, p.y - pts[pts.length-1].y) > 1e-8) {
+            pts.push({ x: p.x, y: p.y });
+        }
+    }
+    if (pts.length > 1 && Math.hypot(pts[0].x - pts[pts.length-1].x, pts[0].y - pts[pts.length-1].y) < 1e-8) {
+        pts.pop();
+    }
+    if (pts.length < 3) return [];
+
     let area = 0;
     for (let i = 0; i < pts.length; i++) {
         let j = (i + 1) % pts.length;
@@ -382,17 +392,27 @@ function generateFillQuads(points) {
         return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
     }
 
+    function samePoint(p1, p2) {
+        return Math.abs(p1.x - p2.x) < 1e-8 && Math.abs(p1.y - p2.y) < 1e-8;
+    }
+
     function isPointInTriangle(p, a, b, c) {
-        let as_x = p.x - a.x, as_y = p.y - a.y;
-        let s_ab = (b.x - a.x) * as_y - (b.y - a.y) * as_x > 0;
-        if (((c.x - a.x) * as_y - (c.y - a.y) * as_x > 0) === s_ab) return false;
-        if (((c.x - b.x) * (p.y - b.y) - (c.y - b.y) * (p.x - b.x) > 0) !== s_ab) return false;
-        return true;
+        if (samePoint(p, a) || samePoint(p, b) || samePoint(p, c)) return false;
+        
+        let denominator = ((b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y));
+        if (Math.abs(denominator) < 1e-12) return false;
+        
+        let w1 = ((b.y - c.y) * (p.x - c.x) + (c.x - b.x) * (p.y - c.y)) / denominator;
+        let w2 = ((c.y - a.y) * (p.x - c.x) + (a.x - c.x) * (p.y - c.y)) / denominator;
+        let w3 = 1 - w1 - w2;
+        
+        return w1 >= -1e-8 && w2 >= -1e-8 && w3 >= -1e-8;
     }
 
     let triangles = [];
     let bailout = 0;
-    while (pts.length >= 3 && bailout < 1000) {
+    
+    while (pts.length >= 3 && bailout < 2000) {
         bailout++;
         let n = pts.length;
         let earFound = false;
@@ -402,7 +422,7 @@ function generateFillQuads(points) {
             let next = (i + 1) % n;
             let a = pts[prev], b = pts[i], c = pts[next];
 
-            if (cross(a, b, c) <= 1e-7) continue;
+            if (cross(a, b, c) <= 1e-10) continue;
 
             let isEar = true;
             for (let j = 0; j < n; j++) {
@@ -422,42 +442,56 @@ function generateFillQuads(points) {
         }
         
         if (!earFound) {
-            triangles.push([pts[0], pts[1], pts[2]]);
-            pts.splice(1, 1);
+            let bestIdx = -1;
+            let maxCross = -Infinity;
+            for (let i = 0; i < pts.length; i++) {
+                let prev = (i - 1 + pts.length) % pts.length;
+                let next = (i + 1) % pts.length;
+                let cr = cross(pts[prev], pts[i], pts[next]);
+                if (cr > maxCross) {
+                    maxCross = cr;
+                    bestIdx = i;
+                }
+            }
+            
+            if (bestIdx !== -1) {
+                let prev = (bestIdx - 1 + pts.length) % pts.length;
+                let next = (bestIdx + 1) % pts.length;
+                
+                if (maxCross > 1e-10) { 
+                    triangles.push([pts[prev], pts[bestIdx], pts[next]]);
+                }
+                pts.splice(bestIdx, 1);
+            } else {
+                pts.splice(0, 1);
+            }
         }
     }
 
     let quads = [];
     let usedTriangles = new Array(triangles.length).fill(false);
-
-    function samePoint(p1, p2) { return Math.abs(p1.x - p2.x) < 1e-6 && Math.abs(p1.y - p2.y) < 1e-6; }
-    function edgesOpposite(e1, e2) { return samePoint(e1.start, e2.end) && samePoint(e1.end, e2.start); }
-    function getEdges(t) { return [{start: t[0], end: t[1]}, {start: t[1], end: t[2]}, {start: t[2], end: t[0]}]; }
     
     function rebuildQuad(t1, t2) {
-        let edges1 = getEdges(t1), edges2 = getEdges(t2), allEdges = [];
-        for(let e1 of edges1) {
-            if(!edges2.some(e2 => edgesOpposite(e1, e2))) allEdges.push(e1);
+        let ptsList = [];
+        for (let p of t1) ptsList.push(p);
+        for (let p of t2) {
+            if (!ptsList.some(pt => samePoint(pt, p))) ptsList.push(p);
         }
-        for(let e2 of edges2) {
-            if(!edges1.some(e1 => edgesOpposite(e2, e1))) allEdges.push(e2);
-        }
-        if(allEdges.length !== 4) return null;
+        if (ptsList.length !== 4) return null;
 
-        let quad = [], curEdge = allEdges[0];
-        quad.push(curEdge.start);
-        for(let step=0; step<3; step++) {
-            let nextEdge = allEdges.find(e => samePoint(e.start, curEdge.end) && e !== curEdge);
-            if(!nextEdge) return null;
-            quad.push(nextEdge.start);
-            curEdge = nextEdge;
-        }
-        return quad;
+        let cx = (ptsList[0].x + ptsList[1].x + ptsList[2].x + ptsList[3].x) / 4;
+        let cy = (ptsList[0].y + ptsList[1].y + ptsList[2].y + ptsList[3].y) / 4;
+        ptsList.sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
+        return ptsList;
     }
 
     function isConvexQuad(q) {
         let signs = [];
-        for(let i=0; i<4; i++) signs.push(cross(q[i], q[(i+1)%4], q[(i+2)%4]) > 0);
+        for(let i = 0; i < 4; i++) {
+            let cr = cross(q[i], q[(i+1)%4], q[(i+2)%4]);
+            if (cr <= 1e-10) return false;
+            signs.push(cr > 0);
+        }
         return signs.every(s => s === true) || signs.every(s => s === false);
     }
 
@@ -486,7 +520,9 @@ function generateFillQuads(points) {
         }
         if (!merged) {
              let t = triangles[i];
-             quads.push([t[0], t[1], t[2], t[2]]);
+             if (Math.abs(cross(t[0], t[1], t[2])) > 1e-10) {
+                 quads.push([t[0], t[1], t[2], t[2]]);
+             }
              usedTriangles[i] = true;
         }
     }
