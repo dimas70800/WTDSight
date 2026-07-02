@@ -1,4 +1,4 @@
-<svg width="800px" height="800px" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+<svg width="800px" height="800px" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><desc>by dimas7080</desc>
   <defs>
     <pattern id="hatch" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(50)">
       <line x1="0" y1="0" x2="0" y2="10" stroke="#777" stroke-width="4"/>

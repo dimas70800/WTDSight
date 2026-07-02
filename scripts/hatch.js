@@ -272,8 +272,10 @@ function generateHatchData(regions, angleDeg, spacing, phase, mode, thickness) {
         const baseProj = base + phase + k * spacing;
 
         if (mode === 'lines' || !mode) {
-            const intersections = [];
+            let scanlineSegments = [];
+            
             for (let r of validRegions) {
+                const regionIntersections = [];
                 for (let i = 0; i < r.length; i++) {
                     const p1 = r[i];
                     const p2 = r[(i + 1) % r.length];
@@ -285,27 +287,50 @@ function generateHatchData(regions, angleDeg, spacing, phase, mode, thickness) {
                         const ix = p1.x + (p2.x - p1.x) * t;
                         const iy = p1.y + (p2.y - p1.y) * t;
                         const along = ix * lineDirX + iy * lineDirY;
-                        intersections.push({ x: ix, y: iy, along: along });
+                        regionIntersections.push({ x: ix, y: iy, along: along });
                     }
+                }
+
+                if (regionIntersections.length < 2) continue;
+                regionIntersections.sort((a, b) => a.along - b.along);
+
+                for (let i = 0; i < regionIntersections.length - 1; i += 2) {
+                    scanlineSegments.push({
+                        start: regionIntersections[i],
+                        end: regionIntersections[i + 1]
+                    });
                 }
             }
 
-            if (intersections.length < 2) continue;
-            intersections.sort((a, b) => a.along - b.along);
+            if (scanlineSegments.length === 0) continue;
 
-            for (let i = 0; i < intersections.length - 1; i += 2) {
-                const start = intersections[i];
-                const end = intersections[i + 1];
+            scanlineSegments.sort((a, b) => a.start.along - b.start.along);
+            let mergedSegments = [scanlineSegments[0]];
 
-                const distSq = (start.x - end.x) ** 2 + (start.y - end.y) ** 2;
+            for (let i = 1; i < scanlineSegments.length; i++) {
+                let current = scanlineSegments[i];
+                let last = mergedSegments[mergedSegments.length - 1];
+
+                if (current.start.along <= last.end.along + 1e-5) {
+                    if (current.end.along > last.end.along) {
+                        last.end = current.end;
+                    }
+                } else {
+                    mergedSegments.push(current);
+                }
+            }
+
+            for (let seg of mergedSegments) {
+                const distSq = (seg.start.x - seg.end.x) ** 2 + (seg.start.y - seg.end.y) ** 2;
                 if (distSq < 1e-10) continue;
 
                 results.push({
                     type: 'line',
-                    start: { x: start.x, y: start.y },
-                    end: { x: end.x, y: end.y }
+                    start: { x: seg.start.x, y: seg.start.y },
+                    end: { x: seg.end.x, y: seg.end.y }
                 });
             }
+
         } else if (mode === 'quads') {
             const pStart = baseProj - thickness / 2;
             const pEnd = baseProj + thickness / 2;
@@ -334,9 +359,10 @@ function generateHatchData(regions, angleDeg, spacing, phase, mode, thickness) {
                 const p_next = intervals[j + 1];
                 const p_mid = (p_j + p_next) / 2;
 
-                const crossingEdges = [];
+                let quadSegments = [];
 
                 for (let r of validRegions) {
+                    const regionEdges = [];
                     for (let i = 0; i < r.length; i++) {
                         const p1 = r[i];
                         const p2 = r[(i + 1) % r.length];
@@ -354,26 +380,49 @@ function generateHatchData(regions, angleDeg, spacing, phase, mode, thickness) {
                             const iy_next = p1.y + (p2.y - p1.y) * t_next;
                             const along_next = ix_next * lineDirX + iy_next * lineDirY;
 
-                            crossingEdges.push({
+                            regionEdges.push({
                                 pt_j: { x: ix_j, y: iy_j },
                                 pt_next: { x: ix_next, y: iy_next },
                                 along_mid: (along_j + along_next) / 2
                             });
                         }
                     }
+
+                    if (regionEdges.length < 2) continue;
+                    regionEdges.sort((a, b) => a.along_mid - b.along_mid);
+
+                    for (let i = 0; i < regionEdges.length - 1; i += 2) {
+                        quadSegments.push({
+                            startEdge: regionEdges[i],
+                            endEdge: regionEdges[i + 1]
+                        });
+                    }
                 }
-                crossingEdges.sort((a, b) => a.along_mid - b.along_mid);
 
-                for (let i = 0; i < crossingEdges.length - 1; i += 2) {
-                    const edgeA = crossingEdges[i];
-                    const edgeB = crossingEdges[i + 1];
+                if (quadSegments.length === 0) continue;
+                quadSegments.sort((a, b) => a.startEdge.along_mid - b.startEdge.along_mid);
 
+                let mergedQuads = [quadSegments[0]];
+                for (let i = 1; i < quadSegments.length; i++) {
+                    let current = quadSegments[i];
+                    let last = mergedQuads[mergedQuads.length - 1];
+
+                    if (current.startEdge.along_mid <= last.endEdge.along_mid + 1e-5) {
+                        if (current.endEdge.along_mid > last.endEdge.along_mid) {
+                            last.endEdge = current.endEdge;
+                        }
+                    } else {
+                        mergedQuads.push(current);
+                    }
+                }
+
+                for (let mq of mergedQuads) {
                     results.push({
                         type: 'quad',
-                        pos1: edgeA.pt_j,
-                        pos2: edgeB.pt_j,
-                        pos3: edgeB.pt_next,
-                        pos4: edgeA.pt_next
+                        pos1: mq.startEdge.pt_j,
+                        pos2: mq.endEdge.pt_j,
+                        pos3: mq.endEdge.pt_next,
+                        pos4: mq.startEdge.pt_next
                     });
                 }
             }
@@ -408,27 +457,100 @@ function finalizeHatch() {
     lastHatchPoints = regionsToRender.map(r => [...r]);
 
     let newObjects = [];
+    let processedLines = [];
+
+    function clipLine(start, end) {
+        let segments = [{ start: start, end: end }];
+
+        function processAgainstLine(A, B) {
+            const vObj = { x: B.x - A.x, y: B.y - A.y };
+            const lenObj = Math.sqrt(vObj.x**2 + vObj.y**2);
+            if (lenObj < 1e-6) return;
+            const dObj = { x: vObj.x / lenObj, y: vObj.y / lenObj };
+
+            for (let i = segments.length - 1; i >= 0; i--) {
+                const seg = segments[i];
+                const C = seg.start;
+                const D = seg.end;
+
+                const vSeg = { x: D.x - C.x, y: D.y - C.y };
+                const lenSeg = Math.sqrt(vSeg.x**2 + vSeg.y**2);
+                if (lenSeg < 1e-6) continue;
+                const dSeg = { x: vSeg.x / lenSeg, y: vSeg.y / lenSeg };
+
+                const cross1 = dObj.x * dSeg.y - dObj.y * dSeg.x;
+                if (Math.abs(cross1) > 1e-4) continue;
+
+                const vAC = { x: C.x - A.x, y: C.y - A.y };
+                const cross2 = dObj.x * vAC.y - dObj.y * vAC.x;
+                if (Math.abs(cross2) > 1e-4) continue;
+
+                const pA = (A.x - C.x) * dSeg.x + (A.y - C.y) * dSeg.y;
+                const pB = (B.x - C.x) * dSeg.x + (B.y - C.y) * dSeg.y;
+
+                const pObjMin = Math.min(pA, pB);
+                const pObjMax = Math.max(pA, pB);
+
+                const pSegMin = 0;
+                const pSegMax = lenSeg;
+
+                if (pObjMax <= pSegMin + 1e-5 || pObjMin >= pSegMax - 1e-5) continue;
+
+                segments.splice(i, 1);
+
+                if (pObjMin > pSegMin + 1e-5) {
+                    const t = pObjMin / lenSeg;
+                    segments.push({
+                        start: { x: C.x, y: C.y },
+                        end: { x: C.x + vSeg.x * t, y: C.y + vSeg.y * t }
+                    });
+                }
+                if (pObjMax < pSegMax - 1e-5) {
+                    const t = pObjMax / lenSeg;
+                    segments.push({
+                        start: { x: C.x + vSeg.x * t, y: C.y + vSeg.y * t },
+                        end: { x: D.x, y: D.y }
+                    });
+                }
+            }
+        }
+
+        for (const [id, obj] of objects) {
+            if (obj.type === "line") processAgainstLine(obj.start, obj.end);
+        }
+        for (const obj of processedLines) {
+            if (obj.type === "line") processAgainstLine(obj.start, obj.end);
+        }
+
+        return segments;
+    }
 
     for (const item of finalItems) {
-        const objIdStr = nextId().toString();
-        let object;
-
         if (item.type === 'line') {
-            object = {
-                name: lang.line + " " + objIdStr,
-                type: "line",
-                start: {
-                    x: Math.round(item.start.x * 1000000) / 1000000,
-                    y: Math.round(item.start.y * 1000000) / 1000000
-                },
-                end: {
-                    x: Math.round(item.end.x * 1000000) / 1000000,
-                    y: Math.round(item.end.y * 1000000) / 1000000
-                },
-                selected: false
-            };
+            const clippedSegments = clipLine(item.start, item.end);
+            
+            for (const seg of clippedSegments) {
+                const objIdStr = nextId().toString();
+                const object = {
+                    name: lang.line + " " + objIdStr,
+                    type: "line",
+                    start: {
+                        x: Math.round(seg.start.x * 1000000) / 1000000,
+                        y: Math.round(seg.start.y * 1000000) / 1000000
+                    },
+                    end: {
+                        x: Math.round(seg.end.x * 1000000) / 1000000,
+                        y: Math.round(seg.end.y * 1000000) / 1000000
+                    },
+                    selected: false
+                };
+                objects.set(objIdStr, object);
+                newObjects.push({ id: objIdStr, object: object });
+                processedLines.push(object);
+            }
         } else if (item.type === 'quad') {
-            object = {
+            const objIdStr = nextId().toString();
+            const object = {
                 name: lang.quad + " " + objIdStr,
                 type: "quad",
                 pos1: { x: Math.round(item.pos1.x * 1000000) / 1000000, y: Math.round(item.pos1.y * 1000000) / 1000000 },
@@ -437,10 +559,9 @@ function finalizeHatch() {
                 pos4: { x: Math.round(item.pos4.x * 1000000) / 1000000, y: Math.round(item.pos4.y * 1000000) / 1000000 },
                 selected: false
             };
+            objects.set(objIdStr, object);
+            newObjects.push({ id: objIdStr, object: object });
         }
-
-        objects.set(objIdStr, object);
-        newObjects.push({ id: objIdStr, object: object });
     }
 
     if (newObjects.length > 0) {
