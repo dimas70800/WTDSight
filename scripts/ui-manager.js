@@ -185,6 +185,14 @@ function toggleSightPreview() {
     }
 }
 
+function togglePreviewMenu() {
+    const menu = document.getElementById('previewMenuWrapper');
+    const btn = document.getElementById('previewToggleBtn');
+
+    menu.classList.toggle('collapsed');
+    btn.innerHTML = menu.classList.contains('collapsed') ? '◀' : '▶';
+}
+
 function toggleFullScreen() {
     const doc = window.document;
     const docEl = doc.documentElement;

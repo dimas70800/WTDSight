@@ -282,7 +282,10 @@ const ru =
     hatchGridAngleTitle: "Угол сетки",
 
     textFillLabel: "Заливка",
-    dragDropOverlayText: "Перетащите сюда файл blk, json или любое изображение"
+    dragDropOverlayText: "Перетащите сюда файл blk, json или любое изображение",
+
+    areaSelectHatchLabel: "Выделение области",
+    areaSelectFillLabel: "Выделение области"
 };
 
 const en =
@@ -570,7 +573,10 @@ const en =
     hatchGridAngleTitle: "Grid angle",
 
     textFillLabel: "Fill",
-    dragDropOverlayText: "Drag & drop a blk, json file or any image here"
+    dragDropOverlayText: "Drag & drop a blk, json file or any image here",
+
+    areaSelectHatchLabel: "Area selection",
+    areaSelectFillLabel: "Area selection"
 };
 
 const langDependent =
@@ -814,7 +820,10 @@ const langDependent =
         "hatchGridAngleTitle",
 
         "textFillLabel",
-        "dragDropOverlayText"
+        "dragDropOverlayText",
+
+        "areaSelectHatchLabel",
+        "areaSelectFillLabel"
     ];
 
 function changeLang(to) {

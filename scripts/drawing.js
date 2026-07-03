@@ -112,7 +112,7 @@ function endDrawing(pos) {
                     return true;
                 }
 
-                const isObjectConvex = isConvex([quadPos[0], quadPos[1], quadPos[2], pos]);
+                const isObjectConvex = isConvex([quadPos[0], quadPos[1], quadPos[2], roundedPos]);
 
                 // Draw only if convex
 
@@ -124,7 +124,7 @@ function endDrawing(pos) {
                         pos1: quadPos[0],
                         pos2: quadPos[1],
                         pos3: quadPos[2],
-                        pos4: pos,
+                        pos4: roundedPos,
                         selected: false
                     };
 

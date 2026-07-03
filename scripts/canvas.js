@@ -6,8 +6,8 @@ function resizeCanvas() {
     const dpr = window.devicePixelRatio || 1;
 
     // Физический размер холста
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
+    canvas.width = Math.round(window.innerWidth * dpr);
+    canvas.height = Math.round(window.innerHeight * dpr);
 
     // CSS-размер холста
     canvas.style.width = window.innerWidth + 'px';
@@ -568,7 +568,7 @@ function drawGhost() {
                 const isActive = (rIdx === (typeof currentHatchRegionIndex !== 'undefined' ? currentHatchRegionIndex : 0));
 
                 ctx.strokeStyle = isActive ? "rgba(100, 200, 100, 0.4)" : "rgba(100, 200, 100, 0.8)";
-                
+
                 for (let i = 0; i < rPoints.length; i++) {
                     if (i > 0) {
                         const prevCanvas = v2disposSight2v2canvas(rPoints[i - 1]);
@@ -576,7 +576,7 @@ function drawGhost() {
                         drawLine(prevCanvas.x, prevCanvas.y, pointCanvas.x, pointCanvas.y);
                     }
                 }
-                
+
                 if (rPoints.length >= 3) {
                     const firstCanvas = v2disposSight2v2canvas(rPoints[0]);
                     const lastCanvas = v2disposSight2v2canvas(rPoints[rPoints.length - 1]);
@@ -681,7 +681,7 @@ function drawGhost() {
 
                 ctx.strokeStyle = el("outlineCheckBox").checked ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.8)";
                 ctx.lineWidth = getLineWidth(1);
-                
+
                 const isFilled = document.getElementById('textFillCheckbox') && document.getElementById('textFillCheckbox').checked;
 
                 if (isFilled && typeof previewTextQuads !== 'undefined' && previewTextQuads.length > 0) {
@@ -765,7 +765,7 @@ function drawGhost() {
                 const isActive = (rIdx === (typeof currentFillRegionIndex !== 'undefined' ? currentFillRegionIndex : 0));
 
                 ctx.strokeStyle = isActive ? "rgba(100, 150, 255, 0.4)" : "rgba(100, 150, 255, 0.8)";
-                
+
                 for (let i = 0; i < rPoints.length; i++) {
                     if (i > 0) {
                         const prevCanvas = v2disposSight2v2canvas(rPoints[i - 1]);
@@ -773,7 +773,7 @@ function drawGhost() {
                         drawLine(prevCanvas.x, prevCanvas.y, pointCanvas.x, pointCanvas.y);
                     }
                 }
-                
+
                 if (rPoints.length >= 3) {
                     const firstCanvas = v2disposSight2v2canvas(rPoints[0]);
                     const lastCanvas = v2disposSight2v2canvas(rPoints[rPoints.length - 1]);
@@ -891,11 +891,11 @@ function drawGhost() {
             ctx.strokeStyle = "rgba(0, 0, 0, 0.8)";
             ctx.setLineDash([5, 5]);
             ctx.stroke();
-            
+
             ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
             ctx.lineDashOffset = 5;
             ctx.stroke();
-            
+
             ctx.setLineDash([]);
             ctx.lineDashOffset = 0;
 
@@ -1416,12 +1416,12 @@ function clearSelection() {
     for (const [id, obj] of objects) {
         obj.selected = false;
     }
-    
+
     selectedObjectsSet.clear();
     selectionRect = null;
     lassoPoints = [];
     isSelecting = false;
-    
+
     if (typeof transformState !== 'undefined') {
         transformState.box = null;
         transformState.active = false;
@@ -1763,7 +1763,7 @@ canvas.onpointerdown = (e) => {
             const clickCanvas = getMousePos(e.offsetX, e.offsetY);
             let clickPos = v2canvas2v2disposSight(clickCanvas);
             const box = typeof getRefTransformBox === 'function' ? getRefTransformBox() : null;
-            
+
             if (box) {
                 const handles = getTransformHandles(box);
                 const hitRadius = 12 / screenZoom / getBaseScale();
@@ -1786,7 +1786,7 @@ canvas.onpointerdown = (e) => {
                     const dy = clickPos.y - box.cy;
                     const localX = dx * Math.cos(box.angle) + dy * Math.sin(box.angle);
                     const localY = -dx * Math.sin(box.angle) + dy * Math.cos(box.angle);
-                    
+
                     if (Math.abs(localX) < box.w / 2 && Math.abs(localY) < box.h / 2) {
                         refTransformState.action = 'move';
                         refTransformState.offsetX = dx;
@@ -2044,25 +2044,33 @@ canvas.onpointerdown = (e) => {
                 const clickCanvas = getMousePos(e.offsetX, e.offsetY);
                 let clickPos = v2canvas2v2disposSight(clickCanvas);
 
-                if (snapping || mobileSnappingActive) {
-                    const snapPos = snappingPos(clickPos, snapRad);
-                    if (snapPos != null) clickPos = snapPos;
+                if (typeof hatchInputMode !== 'undefined' && hatchInputMode === 'wand') {
+                    executeMagicWand(clickPos);
+                } else {
+                    if (snapping || mobileSnappingActive) {
+                        const snapPos = snappingPos(clickPos, snapRad);
+                        if (snapPos != null) clickPos = snapPos;
+                    }
+                    if (!isDrawingHatch) startHatchDrawing(clickPos);
+                    else addHatchPoint(clickPos, false);
+                    isHatchDragging = true;
                 }
-                if (!isDrawingHatch) startHatchDrawing(clickPos);
-                else addHatchPoint(clickPos, false);
-                isHatchDragging = true;
             }
             else if (tool === "fill") {
                 const clickCanvas = getMousePos(e.offsetX, e.offsetY);
                 let clickPos = v2canvas2v2disposSight(clickCanvas);
 
-                if (snapping || mobileSnappingActive) {
-                    const snapPos = snappingPos(clickPos, snapRad);
-                    if (snapPos != null) clickPos = snapPos;
+                if (typeof fillInputMode !== 'undefined' && fillInputMode === 'wand') {
+                    executeFillMagicWand(clickPos);
+                } else {
+                    if (snapping || mobileSnappingActive) {
+                        const snapPos = snappingPos(clickPos, snapRad);
+                        if (snapPos != null) clickPos = snapPos;
+                    }
+                    if (!isDrawingFill) startFillDrawing(clickPos);
+                    else addFillPoint(clickPos, false);
+                    isFillDragging = true;
                 }
-                if (!isDrawingFill) startFillDrawing(clickPos);
-                else addFillPoint(clickPos, false);
-                isFillDragging = true;
             }
             else if (tool === "curve") {
                 const clickCanvas = getMousePos(e.offsetX, e.offsetY);
@@ -2247,11 +2255,11 @@ canvas.onpointermove = (e) => {
 
                 let scaleFactor = 1;
                 if (signX !== 0 && signY !== 0) {
-                   scaleFactor = Math.max(newW / initialBox.w, newH / initialBox.h);
+                    scaleFactor = Math.max(newW / initialBox.w, newH / initialBox.h);
                 } else if (signX !== 0) {
-                   scaleFactor = newW / initialBox.w;
+                    scaleFactor = newW / initialBox.w;
                 } else if (signY !== 0) {
-                   scaleFactor = newH / initialBox.h;
+                    scaleFactor = newH / initialBox.h;
                 }
 
                 newW = initialBox.w * scaleFactor;
@@ -2271,9 +2279,9 @@ canvas.onpointermove = (e) => {
                 ref.y = initialBox.cy + newLocalCx * Math.sin(initialBox.angle) + newLocalCy * Math.cos(initialBox.angle);
             }
         }
-        
+
         if (typeof setReferenceMenu === 'function') setReferenceMenu();
-        return; 
+        return;
     }
 
     if (tool === "curve" && isDrawingCurve) {

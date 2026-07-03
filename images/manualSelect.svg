@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 800"><desc>by dimas7080</desc>
+  <defs>
+    <style>
+      .st0 {
+        fill: #777;
+      }
+
+      .st1 {
+        fill: #fff;
+        stroke: #777;
+        stroke-linecap: round;
+        stroke-miterlimit: 10;
+        stroke-width: 40px;
+      }
+    </style>
+  </defs>
+  <path class="st1" d="M714.07,442.69l-106.89,53.5c-2.49,1.25-3.03,4.57-1.06,6.54l110.13,110.13c7.86,7.86,8.02,20.46.35,28.14l-75.75,75.75c-7.67,7.67-20.27,7.51-28.13-.35l-110.13-110.13c-1.97-1.97-5.3-1.43-6.55,1.06l-53.4,106.77c-2.38,4.74-9.26,4.43-11.19-.52l-176.23-450.38c-1.95-4.98,2.96-9.89,7.95-7.95l450.38,176.24c4.94,1.93,5.26,8.81.52,11.19Z"/>
+  <g>
+    <rect class="st0" x="177.22" y="383.1" width="40" height="150" rx="20" ry="20" transform="translate(12.75 921.48) rotate(-135)"/>
+    <rect class="st0" x="113.58" y="241.68" width="40" height="150" rx="20" ry="20" transform="translate(-183.1 450.26) rotate(-90)"/>
+    <rect class="st0" x="438.07" y="122.25" width="40" height="150" rx="20" ry="20" transform="translate(642.49 660.64) rotate(-135)"/>
+    <rect class="st0" x="296.64" y="58.62" width="40" height="150" rx="20" ry="20" transform="translate(633.29 267.23) rotate(-180)"/>
+    <rect class="st0" x="147.17" y="92.2" width="40" height="150" rx="20" ry="20" transform="translate(-69.27 167.18) rotate(-45)"/>
+  </g>
+</svg>

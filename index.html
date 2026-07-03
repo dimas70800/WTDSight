@@ -304,17 +304,20 @@
                             <p style="font-size: 13px; color: #aaa;" id="hatchDescription">Кликайте по
                                 холсту, чтобы создать
                                 контур (мин. 3 точки)</p>
-                                
+
                             <div class="block-with-elem">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
                                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                                         <input type="checkbox" id="hatchGridCheckbox" style="transform: scale(1.2);">
                                         <span id="hatchGridLabel">Сетка</span>
                                     </label>
                                 </div>
-                                <div id="hatchGridAngleContainer" style="display: none; justify-content: space-between; align-items: center; margin-top: 5px;">
+                                <div id="hatchGridAngleContainer"
+                                    style="display: none; justify-content: space-between; align-items: center; margin-top: 5px;">
                                     <label id="hatchGridAngleTitle">Угол сетки:</label>
-                                    <input type="number" id="hatchGridAngleInput" step="1" value="90" min="0" max="180" style="width: 100px;">
+                                    <input type="number" id="hatchGridAngleInput" step="1" value="90" min="0" max="180"
+                                        style="width: 100px;">
                                 </div>
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <label id="hatchAngle">Угол:</label>
@@ -346,7 +349,22 @@
                                 </div>
                             </div>
                             <button id="hatchRestoreBtn">Предыдущая зона</button>
-                            
+
+                            <div class="block-with-elem" style="margin-top: 5px;">
+                                <span style="font-size: 13px; text-align: center;" id="areaSelectHatchLabel">Выделение области</span>
+                                <div
+                                    style="display: flex; justify-content:space-evenly; flex-direction: row; gap: 5px;">
+                                    <button id="hatchInputManualBtn" onclick="setHatchInputMode('manual')"
+                                        style="width: 60px; height: 60px; background: var(--input-bg); border-color: transparent;">
+                                        <img src="images/manualSelect.svg" style="height: 100%; width: 100%;">
+                                    </button>
+                                    <button id="hatchInputWandBtn" onclick="setHatchInputMode('wand')"
+                                        style="width: 60px; height: 60px; background: transparent; border: 1px solid var(--border-col);">
+                                        <img src="images/magicSelect.svg" style="height: 100%; width: 100%;">
+                                    </button>
+                                </div>
+                            </div>
+
                             <div class="block-with-elem">
                                 <div style="display: flex; justify-content:space-evenly; flex-direction: row;">
                                     <button id="hatchModeLinesBtn" onclick="setHatchMode('lines')"
@@ -365,7 +383,7 @@
                                         value="0.005" style="width: 100px;">
                                 </div>
                             </div>
-                            <div class="block-with-elem" style="margin-top: 5px;">
+                            <div class="block-with-elem">
                                 <span id="hatchAreaModeLabel" style="font-size: 13px; text-align: center;">Режим
                                     области</span>
                                 <div
@@ -560,7 +578,8 @@
                                 </div>
 
                                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                    <input type="checkbox" id="textFillCheckbox" style="transform: scale(1.2);" onchange="updateTextPreview()">
+                                    <input type="checkbox" id="textFillCheckbox" style="transform: scale(1.2);"
+                                        onchange="updateTextPreview()">
                                     <span id="textFillLabel">Заливка</span>
                                 </label>
 
@@ -638,6 +657,22 @@
                                         style="background: #eb3b3b; color: white; flex-grow: 1;">Отмена</button>
                                 </div>
                             </div>
+
+                            <div class="block-with-elem" style="margin-top: 5px;">
+                                <span style="font-size: 13px; text-align: center;" id="areaSelectFillLabel">Выделение области</span>
+                                <div
+                                    style="display: flex; justify-content:space-evenly; flex-direction: row; gap: 5px;">
+                                    <button id="fillInputManualBtn" onclick="setFillInputMode('manual')"
+                                        style="width: 60px; height: 60px; background: var(--input-bg); border-color: transparent;">
+                                        <img src="images/manualSelect.svg" style="height: 100%; width: 100%;">
+                                    </button>
+                                    <button id="fillInputWandBtn" onclick="setFillInputMode('wand')"
+                                        style="width: 60px; height: 60px; background: transparent; border: 1px solid var(--border-col);">
+                                        <img src="images/magicSelect.svg" style="height: 100%; width: 100%;">
+                                    </button>
+                                </div>
+                            </div>
+
                             <div class="block-with-elem" style="margin-top: 5px;">
                                 <span id="fillAreaModeLabel" style="font-size: 13px; text-align: center;">Режим
                                     области</span>
@@ -732,25 +767,32 @@
 
                             <div class="panel-with-elem">
                                 <span id="mirrorLabel" style="font-weight: bold; text-align: center;">Отражение</span>
-                                <div style="display: flex; justify-content:space-evenly; flex-direction: row; gap: 4px;">
-                                    <button onclick="transformAllObjects('mirror', 'horz', true)" style="flex: 1; height: 40px;">
+                                <div
+                                    style="display: flex; justify-content:space-evenly; flex-direction: row; gap: 4px;">
+                                    <button onclick="transformAllObjects('mirror', 'horz', true)"
+                                        style="flex: 1; height: 40px;">
                                         <img src="images/mirrorHorizCenter.svg" style="width: 100%; height: 100%;">
                                     </button>
-                                    <button onclick="transformAllObjects('mirror', 'vert', true)" style="flex: 1; height: 40px;">
+                                    <button onclick="transformAllObjects('mirror', 'vert', true)"
+                                        style="flex: 1; height: 40px;">
                                         <img src="images/mirrorVertCenter.svg" style="width: 100%; height: 100%;">
                                     </button>
-                                    <button onclick="transformAllObjects('mirror', 'horz', false)" style="flex: 1; height: 40px;">
+                                    <button onclick="transformAllObjects('mirror', 'horz', false)"
+                                        style="flex: 1; height: 40px;">
                                         <img src="images/mirrorHoriz.svg" style="width: 100%; height: 100%;">
                                     </button>
-                                    <button onclick="transformAllObjects('mirror', 'vert', false)" style="flex: 1; height: 40px;">
+                                    <button onclick="transformAllObjects('mirror', 'vert', false)"
+                                        style="flex: 1; height: 40px;">
                                         <img src="images/mirrorVert.svg" style="width: 100%; height: 100%;">
                                     </button>
                                 </div>
                                 <div style="display: flex; justify-content: center; gap: 5px;">
-                                    <button onclick="transformAllObjects('transfer', 'horz')" style="width: 60px; height: 40px;">
+                                    <button onclick="transformAllObjects('transfer', 'horz')"
+                                        style="width: 60px; height: 40px;">
                                         <img src="images/transferHoriz.svg" style="width: 100%; height: 100%;">
                                     </button>
-                                    <button onclick="transformAllObjects('transfer', 'vert')" style="width: 60px; height: 40px;">
+                                    <button onclick="transformAllObjects('transfer', 'vert')"
+                                        style="width: 60px; height: 40px;">
                                         <img src="images/transferVert.svg" style="width: 100%; height: 100%;">
                                     </button>
                                 </div>
@@ -1009,73 +1051,88 @@
                 <img src="images/preview-btn.svg" alt="preview button" style="height: 60%;">
             </div>
 
-            <div class="preview-controls">
-                <label style="flex-direction: column; align-items: flex-start; gap: 5px;">
-                    <span id="previewBgText">Выбор фона:</span>
-                    <select id="previewBgSelect" onchange="changePreviewBackground()" style="width: 100%;">
-                        <option value="standard" id="bgStandardPreviewText" selected>Стандартный</option>
-                        <option value="sinai" id="bgSinaiPreviewText">Синай</option>
-                        <option value="breslau" id="bgBreslauPreviewText">Бреслау</option>
-                        <option value="poland" id="bgPolandPreviewText">Поля Польши</option>
-                        <option value="ardennes" id="bgArdennesPreviewText">Арденны</option>
-                        <option value="testdrive" id="bgTestDrivePreviewText">Пробный выезд</option>
-                    </select>
-                </label>
-                <label style="flex-direction: column; align-items: flex-start; gap: 5px;">
-                    <span id="previewColorText">Цвет прицела:</span>
-                    <select id="previewColorSelect" onchange="drawPreview()" style="width: 100%;">
-                        <option id="colorBlack" value="#000000" style="background: #000000; color: #fff;" selected>Черный</option>
-                        <option id="colorWhite" value="#ffffff" style="background: #ffffff; color: #000;">Белый</option>
-                        <option id="colorBrightGreen" value="#00ff3c" style="background: #00ff3c; color: #000;">Ярко-зеленый</option>
-                        <option id="colorGreen" value="#14ff00" style="background: #14ff00; color: #000;">Зеленый</option>
-                        <option id="colorLime" value="#82ff00" style="background: #82ff00; color: #000;">Салатовый</option>
-                        <option id="colorYellow" value="#ffff00" style="background: #ffff00; color: #000;">Желтый</option>
-                        <option id="colorOrange" value="#ff8800" style="background: #ff8800; color: #000;">Оранжевый</option>
-                        <option id="colorRed" value="#ff2400" style="background: #ff2400; color: #000;">Красный</option>
-                        <option id="colorCyan" value="#00c8ff" style="background: #00c8ff; color: #000;">Голубой</option>
-                        <option id="colorBlue" value="#0064ff" style="background: #0064ff; color: #fff;">Синий</option>
-                    </select>
-                </label>
-                <label>
-                    <input type="checkbox" id="previewDrawCentralLineVert" checked onchange="drawPreview()">
-                    <span id="drawVertLinePreviewText">Верт. линия</span>
-                </label>
-                <label>
-                    <input type="checkbox" id="previewDrawCentralLineHorz" checked onchange="drawPreview()">
-                    <span id="drawHorzLinePreviewText">Гориз. линия</span>
-                </label>
-                <label id="previewThermalRow">
-                    <input type="checkbox" id="previewThermalToggle" onchange="toggleThermalMode()">
-                    <span id="thermalPreviewText">Тепловизор</span>
-                </label>
-                <label>
-                    <input type="checkbox" id="previewDrawTicks" checked onchange="drawPreview()">
-                    <span id="dashPreviewText">Деления</span>
-                </label>
-                <label>
-                    <span id="spacingPreviewText">Расстояние:</span>
-                    <input type="number" id="previewTickSpacing" min="0.1" value="0.4" step="0.1"
-                        style="width: 60px; background: var(--input-bg); color: var(--text-white); border: 1px solid var(--border-col); border-radius: 4px; padding: 2px 5px;"
-                        oninput="drawPreview()">
-                </label>
-                <label>
-                    <span id="maxDistPreviewText">Макс. дистанция:</span>
-                    <input type="number" id="previewMaxDist" value="6000" min="200" max="6000" step="200"
-                        style="width: 60px; background: var(--input-bg); color: var(--text-white); border: 1px solid var(--border-col); border-radius: 4px; padding: 2px 5px;"
-                        oninput="this.value = Math.round(this.value / 200) * 200; drawPreview();">
-                </label>
-                <label>
-                    <span id="textPosPreviewText">Сдвиг текста</span>
-                    <input type="number" id="previewTextPosX" value="0.14" step="0.01"
-                        style="width: 60px; background: var(--input-bg); color: var(--text-white); border: 1px solid var(--border-col); border-radius: 4px; padding: 2px 5px;">
-                </label>
-                <button onclick="takePreviewScreenshot()" class="preview-screenshot-btn">
-                    <span id="screenshotPreviewText">Сделать скриншот</span>
-                </button>
+            <div id="previewMenuWrapper" class="preview-menu-wrapper">
+                <button id="previewToggleBtn" onclick="togglePreviewMenu()">▶</button>
+
+                <div class="preview-controls" id="previewControlsIsland">
+                    <label style="flex-direction: column; align-items: flex-start; gap: 5px;">
+                        <span id="previewBgText">Выбор фона:</span>
+                        <select id="previewBgSelect" onchange="changePreviewBackground()" style="width: 100%;">
+                            <option value="standard" id="bgStandardPreviewText" selected>Стандартный</option>
+                            <option value="sinai" id="bgSinaiPreviewText">Синай</option>
+                            <option value="breslau" id="bgBreslauPreviewText">Бреслау</option>
+                            <option value="poland" id="bgPolandPreviewText">Поля Польши</option>
+                            <option value="ardennes" id="bgArdennesPreviewText">Арденны</option>
+                            <option value="testdrive" id="bgTestDrivePreviewText">Пробный выезд</option>
+                        </select>
+                    </label>
+                    <label style="flex-direction: column; align-items: flex-start; gap: 5px;">
+                        <span id="previewColorText">Цвет прицела:</span>
+                        <select id="previewColorSelect" onchange="drawPreview()" style="width: 100%;">
+                            <option id="colorBlack" value="#000000" style="background: #000000; color: #fff;" selected>
+                                Черный</option>
+                            <option id="colorWhite" value="#ffffff" style="background: #ffffff; color: #000;">Белый
+                            </option>
+                            <option id="colorBrightGreen" value="#00ff3c" style="background: #00ff3c; color: #000;">
+                                Ярко-зеленый</option>
+                            <option id="colorGreen" value="#14ff00" style="background: #14ff00; color: #000;">Зеленый
+                            </option>
+                            <option id="colorLime" value="#82ff00" style="background: #82ff00; color: #000;">Салатовый
+                            </option>
+                            <option id="colorYellow" value="#ffff00" style="background: #ffff00; color: #000;">Желтый
+                            </option>
+                            <option id="colorOrange" value="#ff8800" style="background: #ff8800; color: #000;">Оранжевый
+                            </option>
+                            <option id="colorRed" value="#ff2400" style="background: #ff2400; color: #000;">Красный
+                            </option>
+                            <option id="colorCyan" value="#00c8ff" style="background: #00c8ff; color: #000;">Голубой
+                            </option>
+                            <option id="colorBlue" value="#0064ff" style="background: #0064ff; color: #fff;">Синий
+                            </option>
+                        </select>
+                    </label>
+                    <label>
+                        <input type="checkbox" id="previewDrawCentralLineVert" checked onchange="drawPreview()">
+                        <span id="drawVertLinePreviewText">Верт. линия</span>
+                    </label>
+                    <label>
+                        <input type="checkbox" id="previewDrawCentralLineHorz" checked onchange="drawPreview()">
+                        <span id="drawHorzLinePreviewText">Гориз. линия</span>
+                    </label>
+                    <label id="previewThermalRow">
+                        <input type="checkbox" id="previewThermalToggle" onchange="toggleThermalMode()">
+                        <span id="thermalPreviewText">Тепловизор</span>
+                    </label>
+                    <label>
+                        <input type="checkbox" id="previewDrawTicks" checked onchange="drawPreview()">
+                        <span id="dashPreviewText">Деления</span>
+                    </label>
+                    <label>
+                        <span id="spacingPreviewText">Расстояние:</span>
+                        <input type="number" id="previewTickSpacing" min="0.1" value="0.4" step="0.1"
+                            style="width: 60px; background: var(--input-bg); color: var(--text-white); border: 1px solid var(--border-col); border-radius: 4px; padding: 2px 5px;"
+                            oninput="drawPreview()">
+                    </label>
+                    <label>
+                        <span id="maxDistPreviewText">Макс. дистанция:</span>
+                        <input type="number" id="previewMaxDist" value="6000" min="200" max="6000" step="200"
+                            style="width: 60px; background: var(--input-bg); color: var(--text-white); border: 1px solid var(--border-col); border-radius: 4px; padding: 2px 5px;"
+                            oninput="this.value = Math.round(this.value / 200) * 200; drawPreview();">
+                    </label>
+                    <label>
+                        <span id="textPosPreviewText">Сдвиг текста</span>
+                        <input type="number" id="previewTextPosX" value="0.14" step="0.01"
+                            style="width: 60px; background: var(--input-bg); color: var(--text-white); border: 1px solid var(--border-col); border-radius: 4px; padding: 2px 5px;">
+                    </label>
+                    <button onclick="takePreviewScreenshot()" class="preview-screenshot-btn">
+                        <span id="screenshotPreviewText">Сделать скриншот</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
+    <script src="scripts/clipper.js"></script>
     <script src="scripts/ui-manager.js"></script>
     <script src="scripts/util.js"></script>
     <script src="scripts/drawing.js"></script>

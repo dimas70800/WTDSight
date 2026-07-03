@@ -737,8 +737,7 @@ input[type="range"] {
 
 .preview-controls {
     position: absolute;
-    top: 20px;
-    right: 20px;
+    width: 100%;
     z-index: 10;
     background: var(--bg-main-panel);
     padding: 15px;
@@ -842,6 +841,55 @@ option:checked {
     text-align: center;
     background: rgba(200, 200, 200, 0.5);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.preview-menu-wrapper {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 260px;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.preview-menu-wrapper > * {
+    pointer-events: auto;
+}
+
+#previewControlsIsland {
+    transform-origin: top right;
+    transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.3s ease;
+}
+
+#previewToggleBtn {
+    position: absolute;
+    left: -60px;
+    top: 15px;
+    width: 45px;
+    height: 45px;
+    background: var(--bg-main-panel);
+    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-col);
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-white);
+    font-size: 16px;
+    z-index: 1001;
+    transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.preview-menu-wrapper.collapsed #previewControlsIsland {
+    transform: scale(0);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.preview-menu-wrapper.collapsed #previewToggleBtn {
+    left: calc(100% - 45px);
+    top: 0;
 }
 
 @media screen and (max-width: 950px) {
@@ -1035,6 +1083,7 @@ option:checked {
         width: 100%;
         justify-content: space-between;
     }
+    
 }
 
 @media screen and (max-height: 500px) and (orientation: landscape) {
