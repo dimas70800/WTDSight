@@ -272,10 +272,8 @@ function generateHatchData(regions, angleDeg, spacing, phase, mode, thickness) {
         const baseProj = base + phase + k * spacing;
 
         if (mode === 'lines' || !mode) {
-            let scanlineSegments = [];
-            
+            const intersections = [];
             for (let r of validRegions) {
-                const regionIntersections = [];
                 for (let i = 0; i < r.length; i++) {
                     const p1 = r[i];
                     const p2 = r[(i + 1) % r.length];
@@ -287,56 +285,30 @@ function generateHatchData(regions, angleDeg, spacing, phase, mode, thickness) {
                         const ix = p1.x + (p2.x - p1.x) * t;
                         const iy = p1.y + (p2.y - p1.y) * t;
                         const along = ix * lineDirX + iy * lineDirY;
-                        regionIntersections.push({ x: ix, y: iy, along: along });
+                        intersections.push({ x: ix, y: iy, along: along });
                     }
-                }
-
-                if (regionIntersections.length < 2) continue;
-                regionIntersections.sort((a, b) => a.along - b.along);
-
-                for (let i = 0; i < regionIntersections.length - 1; i += 2) {
-                    scanlineSegments.push({
-                        start: regionIntersections[i],
-                        end: regionIntersections[i + 1]
-                    });
                 }
             }
 
-            if (scanlineSegments.length === 0) continue;
+            if (intersections.length < 2) continue;
+            intersections.sort((a, b) => a.along - b.along);
 
-            scanlineSegments.sort((a, b) => a.start.along - b.start.along);
-            let mergedSegments = [scanlineSegments[0]];
-
-            for (let i = 1; i < scanlineSegments.length; i++) {
-                let current = scanlineSegments[i];
-                let last = mergedSegments[mergedSegments.length - 1];
-
-                if (current.start.along <= last.end.along + 1e-5) {
-                    if (current.end.along > last.end.along) {
-                        last.end = current.end;
-                    }
-                } else {
-                    mergedSegments.push(current);
-                }
-            }
-
-            for (let seg of mergedSegments) {
-                const distSq = (seg.start.x - seg.end.x) ** 2 + (seg.start.y - seg.end.y) ** 2;
+            for (let i = 0; i < intersections.length - 1; i += 2) {
+                const start = intersections[i];
+                const end = intersections[i + 1];
+                const distSq = (start.x - end.x) ** 2 + (start.y - end.y) ** 2;
                 if (distSq < 1e-10) continue;
-
                 results.push({
                     type: 'line',
-                    start: { x: seg.start.x, y: seg.start.y },
-                    end: { x: seg.end.x, y: seg.end.y }
+                    start: { x: start.x, y: start.y },
+                    end: { x: end.x, y: end.y }
                 });
             }
-
         } else if (mode === 'quads') {
             const pStart = baseProj - thickness / 2;
             const pEnd = baseProj + thickness / 2;
 
             const uniqueProjs = [pStart, pEnd];
-
             for (let r of validRegions) {
                 for (let i = 0; i < r.length; i++) {
                     const vProj = r[i].x * perpX + r[i].y * perpY;
@@ -345,7 +317,6 @@ function generateHatchData(regions, angleDeg, spacing, phase, mode, thickness) {
                     }
                 }
             }
-
             uniqueProjs.sort((a, b) => a - b);
             const intervals = [];
             for (let i = 0; i < uniqueProjs.length; i++) {
@@ -359,10 +330,8 @@ function generateHatchData(regions, angleDeg, spacing, phase, mode, thickness) {
                 const p_next = intervals[j + 1];
                 const p_mid = (p_j + p_next) / 2;
 
-                let quadSegments = [];
-
+                const crossingEdges = [];
                 for (let r of validRegions) {
-                    const regionEdges = [];
                     for (let i = 0; i < r.length; i++) {
                         const p1 = r[i];
                         const p2 = r[(i + 1) % r.length];
@@ -380,49 +349,25 @@ function generateHatchData(regions, angleDeg, spacing, phase, mode, thickness) {
                             const iy_next = p1.y + (p2.y - p1.y) * t_next;
                             const along_next = ix_next * lineDirX + iy_next * lineDirY;
 
-                            regionEdges.push({
+                            crossingEdges.push({
                                 pt_j: { x: ix_j, y: iy_j },
                                 pt_next: { x: ix_next, y: iy_next },
                                 along_mid: (along_j + along_next) / 2
                             });
                         }
                     }
-
-                    if (regionEdges.length < 2) continue;
-                    regionEdges.sort((a, b) => a.along_mid - b.along_mid);
-
-                    for (let i = 0; i < regionEdges.length - 1; i += 2) {
-                        quadSegments.push({
-                            startEdge: regionEdges[i],
-                            endEdge: regionEdges[i + 1]
-                        });
-                    }
                 }
+                crossingEdges.sort((a, b) => a.along_mid - b.along_mid);
 
-                if (quadSegments.length === 0) continue;
-                quadSegments.sort((a, b) => a.startEdge.along_mid - b.startEdge.along_mid);
-
-                let mergedQuads = [quadSegments[0]];
-                for (let i = 1; i < quadSegments.length; i++) {
-                    let current = quadSegments[i];
-                    let last = mergedQuads[mergedQuads.length - 1];
-
-                    if (current.startEdge.along_mid <= last.endEdge.along_mid + 1e-5) {
-                        if (current.endEdge.along_mid > last.endEdge.along_mid) {
-                            last.endEdge = current.endEdge;
-                        }
-                    } else {
-                        mergedQuads.push(current);
-                    }
-                }
-
-                for (let mq of mergedQuads) {
+                for (let i = 0; i < crossingEdges.length - 1; i += 2) {
+                    const edgeA = crossingEdges[i];
+                    const edgeB = crossingEdges[i + 1];
                     results.push({
                         type: 'quad',
-                        pos1: mq.startEdge.pt_j,
-                        pos2: mq.endEdge.pt_j,
-                        pos3: mq.endEdge.pt_next,
-                        pos4: mq.startEdge.pt_next
+                        pos1: edgeA.pt_j,
+                        pos2: edgeB.pt_j,
+                        pos3: edgeB.pt_next,
+                        pos4: edgeA.pt_next
                     });
                 }
             }
