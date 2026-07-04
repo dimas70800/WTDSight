@@ -449,9 +449,9 @@ document.onkeydown = (e) => {
 
         if (e.ctrlKey && e.key !== 'Control') {
             isCtrlUsedInCombo = true;
-        } 
+        }
         else if (e.key === 'Control') {
-            isCtrlUsedInCombo = false; 
+            isCtrlUsedInCombo = false;
         }
 
         return;
@@ -536,11 +536,14 @@ function snappingPos(mouse, maxPixelRadius = Infinity, ignoreId = null) {
         maxSqrMag = radiusSight * radiusSight;
     }
 
-    function comp(pos) {
+    let snapInfo = null;
+
+    function comp(pos, info = null) {
         const sqrMag = v2sqrmag(mouse, pos);
         if (sqrMag < closestSqrMag && sqrMag <= maxSqrMag) {
             closestPos = pos;
             closestSqrMag = sqrMag;
+            snapInfo = info;
         }
     }
 
@@ -557,14 +560,26 @@ function snappingPos(mouse, maxPixelRadius = Infinity, ignoreId = null) {
                 comp(obj.pos2);
                 comp(obj.pos3);
                 comp(obj.pos4);
-                break;
+
+                if (tool !== "hatch" && tool !== "fill") {
+                    comp(v2avg([obj.pos1, obj.pos2]), { isEdge: true, p1: obj.pos1, p2: obj.pos2 });
+                    comp(v2avg([obj.pos2, obj.pos3]), { isEdge: true, p1: obj.pos2, p2: obj.pos3 });
+                    comp(v2avg([obj.pos3, obj.pos4]), { isEdge: true, p1: obj.pos3, p2: obj.pos4 });
+                    comp(v2avg([obj.pos4, obj.pos1]), { isEdge: true, p1: obj.pos4, p2: obj.pos1 });
+                    break;
+                }
         }
     }
 
-    return (closestPos != null ? {
-        x: Math.round(closestPos.x * 1000000) / 1000000,
-        y: Math.round(closestPos.y * 1000000) / 1000000
-    } : null);
+    if (closestPos != null) {
+        const result = {
+            x: Math.round(closestPos.x * 1000000) / 1000000,
+            y: Math.round(closestPos.y * 1000000) / 1000000
+        };
+        if (snapInfo) result.snapInfo = snapInfo;
+        return result;
+    }
+    return null;
 }
 
 function pointToSegmentDistSqr(p, v, w) {
@@ -635,14 +650,14 @@ function selectNearest(mouse) {
 
         list.sort((a, b) => a.distSqr - b.distSqr);
 
-        const hitRadiusPixels = 20; 
+        const hitRadiusPixels = 20;
         const hitRadiusSight = hitRadiusPixels / (screenZoom * getBaseScale());
         const thresholdSqr = hitRadiusSight * hitRadiusSight;
 
         let overlappingItems = list.filter(item => item.distSqr <= thresholdSqr);
 
         if (overlappingItems.length === 0) {
-            overlappingItems = [list[0]]; 
+            overlappingItems = [list[0]];
         }
 
         let targetId = overlappingItems[0].id;
@@ -688,16 +703,16 @@ function generateHorizontalAxis() {
     }
 
     let newObjects = [];
-    
+
     function addAxisLine(p1, p2) {
         if (Math.abs(p1.x - p2.x) < 1e-5 && Math.abs(p1.y - p2.y) < 1e-5) return;
-        
+
         const objIdStr = nextId().toString();
         const object = {
             name: (typeof lang !== 'undefined' && lang.line ? lang.line : "Axis Line") + " " + objIdStr,
             type: "line",
             start: { x: Math.round(p1.x * 1000000) / 1000000, y: Math.round(p1.y * 1000000) / 1000000 },
-            end:   { x: Math.round(p2.x * 1000000) / 1000000, y: Math.round(p2.y * 1000000) / 1000000 },
+            end: { x: Math.round(p2.x * 1000000) / 1000000, y: Math.round(p2.y * 1000000) / 1000000 },
             selected: false
         };
         objects.set(objIdStr, object);
@@ -705,10 +720,10 @@ function generateHorizontalAxis() {
     }
 
     if (minX !== Infinity) {
-        if (minX > -1.5) addAxisLine({x: -1.5, y: 0}, {x: minX, y: 0});
-        if (maxX < 1.5)  addAxisLine({x: maxX, y: 0}, {x: 1.5, y: 0});
+        if (minX > -1.5) addAxisLine({ x: -1.5, y: 0 }, { x: minX, y: 0 });
+        if (maxX < 1.5) addAxisLine({ x: maxX, y: 0 }, { x: 1.5, y: 0 });
     } else {
-        addAxisLine({x: -1.5, y: 0}, {x: 1.5, y: 0});
+        addAxisLine({ x: -1.5, y: 0 }, { x: 1.5, y: 0 });
     }
 
     if (newObjects.length > 0) {
@@ -745,16 +760,16 @@ function generateVerticalAxis() {
     }
 
     let newObjects = [];
-    
+
     function addAxisLine(p1, p2) {
         if (Math.abs(p1.x - p2.x) < 1e-5 && Math.abs(p1.y - p2.y) < 1e-5) return;
-        
+
         const objIdStr = nextId().toString();
         const object = {
             name: (typeof lang !== 'undefined' && lang.line ? lang.line : "Axis Line") + " " + objIdStr,
             type: "line",
             start: { x: Math.round(p1.x * 1000000) / 1000000, y: Math.round(p1.y * 1000000) / 1000000 },
-            end:   { x: Math.round(p2.x * 1000000) / 1000000, y: Math.round(p2.y * 1000000) / 1000000 },
+            end: { x: Math.round(p2.x * 1000000) / 1000000, y: Math.round(p2.y * 1000000) / 1000000 },
             selected: false
         };
         objects.set(objIdStr, object);
@@ -762,10 +777,10 @@ function generateVerticalAxis() {
     }
 
     if (minY !== Infinity) {
-        if (minY > -1.5) addAxisLine({x: 0, y: -1.5}, {x: 0, y: minY});
-        if (maxY < 1.5)  addAxisLine({x: 0, y: maxY}, {x: 0, y: 1.5});
+        if (minY > -1.5) addAxisLine({ x: 0, y: -1.5 }, { x: 0, y: minY });
+        if (maxY < 1.5) addAxisLine({ x: 0, y: maxY }, { x: 0, y: 1.5 });
     } else {
-        addAxisLine({x: 0, y: -1.5}, {x: 0, y: 1.5});
+        addAxisLine({ x: 0, y: -1.5 }, { x: 0, y: 1.5 });
     }
 
     if (newObjects.length > 0) {
@@ -806,7 +821,7 @@ function transformAllObjects(type, axis, useCenter = false) {
 
     for (const [id, obj] of objects) {
         const pts = obj.type === 'line' ? [obj.start, obj.end] : [obj.pos1, obj.pos2, obj.pos3, obj.pos4];
-        
+
         for (let p of pts) {
             if (type === 'transfer') {
                 if (axis === 'horz') p.x -= 2 * centerX;
@@ -827,7 +842,7 @@ function transformAllObjects(type, axis, useCenter = false) {
         newData: getObjectMoveData(item.object)
     }));
     pushEvent("move_multiple", { objectsData: moveEventData });
-    
+
     if (typeof updateSelectionInfo === 'function') updateSelectionInfo();
     if (typeof transformState !== 'undefined' && transformState.active === false && typeof updateTransformBoxFromSelection === 'function') {
         updateTransformBoxFromSelection();

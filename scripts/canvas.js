@@ -2095,6 +2095,10 @@ canvas.onpointerdown = (e) => {
 
                 if (snapping || mobileSnappingActive) {
                     const snapPos = snappingPos(clickPos, snapRad);
+                    if (snapPos) {
+                        brushPoints.push({ x: snapPos.x, y: snapPos.y });
+                        brushStartSnapInfo = snapPos.snapInfo || null;
+                    }
                     if (snapPos != null) {
                         brushPoints.push(snapPos);
                     }
@@ -2710,6 +2714,9 @@ canvas.onpointerup = (e) => {
                 const snapP = snappingPos(mousePos, snapRad);
                 if (snapP != null) {
                     brushPoints[brushPoints.length - 1] = snapP;
+                    if (snapP.snapInfo) {
+                        brushEndSnapInfo = snapP.snapInfo;
+                    }
                 }
             }
 

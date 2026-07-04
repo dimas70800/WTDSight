@@ -1,4 +1,6 @@
 let brushPoints = [];
+let brushStartSnapInfo = null;
+let brushEndSnapInfo = null;
 let isDrawingBrush = false;
 let brushMode = 'flat';
 
@@ -38,6 +40,66 @@ function finishBrush() {
 
     let smoothed = smoothCurve(brushPoints, smoothVal);
     let simplified = simplifyRDP(smoothed, epsilon);
+
+    if (typeof brushStartSnapInfo !== 'undefined' && brushStartSnapInfo && brushStartSnapInfo.isEdge && simplified.length >= 2) {
+        let p1 = brushStartSnapInfo.p1;
+        let p2 = brushStartSnapInfo.p2;
+        
+        let edgeDir = { x: p2.x - p1.x, y: p2.y - p1.y };
+        
+        let normal = { x: -edgeDir.y, y: edgeDir.x };
+        let nLen = Math.hypot(normal.x, normal.y);
+        if (nLen > 0) {
+            normal.x /= nLen;
+            normal.y /= nLen;
+        }
+
+        let strokeDir = { x: simplified[1].x - simplified[0].x, y: simplified[1].y - simplified[0].y };
+        if (strokeDir.x * normal.x + strokeDir.y * normal.y < 0) {
+            normal.x = -normal.x;
+            normal.y = -normal.y;
+        }
+
+        let fixPoint = {
+            x: simplified[0].x + normal.x * 0.0001,
+            y: simplified[0].y + normal.y * 0.0001
+        };
+        
+        simplified.splice(1, 0, fixPoint);
+    }
+    
+    if (typeof brushEndSnapInfo !== 'undefined' && brushEndSnapInfo && brushEndSnapInfo.isEdge && simplified.length >= 2) {
+        let p1 = brushEndSnapInfo.p1;
+        let p2 = brushEndSnapInfo.p2;
+        
+        let edgeDir = { x: p2.x - p1.x, y: p2.y - p1.y };
+        
+        let normal = { x: -edgeDir.y, y: edgeDir.x };
+        let nLen = Math.hypot(normal.x, normal.y);
+        if (nLen > 0) {
+            normal.x /= nLen;
+            normal.y /= nLen;
+        }
+
+        let lastIdx = simplified.length - 1;
+
+        let strokeDir = { x: simplified[lastIdx].x - simplified[lastIdx - 1].x, y: simplified[lastIdx].y - simplified[lastIdx - 1].y };
+        
+        if (strokeDir.x * normal.x + strokeDir.y * normal.y < 0) {
+            normal.x = -normal.x;
+            normal.y = -normal.y;
+        }
+
+        let fixPoint = {
+            x: simplified[lastIdx].x - normal.x * 0.0001,
+            y: simplified[lastIdx].y - normal.y * 0.0001
+        };
+        
+        simplified.splice(lastIdx, 0, fixPoint);
+    }
+    
+    if (typeof brushStartSnapInfo !== 'undefined') brushStartSnapInfo = null;
+    if (typeof brushEndSnapInfo !== 'undefined') brushEndSnapInfo = null;
 
     if (simplified.length < 2) {
         brushPoints = [];
