@@ -285,7 +285,9 @@ const ru =
     dragDropOverlayText: "Перетащите сюда файл blk, json или любое изображение",
 
     areaSelectHatchLabel: "Выделение области",
-    areaSelectFillLabel: "Выделение области"
+    areaSelectFillLabel: "Выделение области",
+
+    screenshotSaveAsPreviewText: "Сохранить скриншот как..."
 };
 
 const en =
@@ -576,7 +578,9 @@ const en =
     dragDropOverlayText: "Drag & drop a blk, json file or any image here",
 
     areaSelectHatchLabel: "Area selection",
-    areaSelectFillLabel: "Area selection"
+    areaSelectFillLabel: "Area selection",
+
+    screenshotSaveAsPreviewText: "Save screenshot as..."
 };
 
 const langDependent =
@@ -823,7 +827,9 @@ const langDependent =
         "dragDropOverlayText",
 
         "areaSelectHatchLabel",
-        "areaSelectFillLabel"
+        "areaSelectFillLabel",
+
+        "screenshotSaveAsPreviewText"
     ];
 
 function changeLang(to) {

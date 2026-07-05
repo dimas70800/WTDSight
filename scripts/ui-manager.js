@@ -358,12 +358,12 @@ window.addEventListener('resize', () => {
     }
 });
 
-function takePreviewScreenshot() {
+async function takePreviewScreenshot(saveAs = false) {
     const bgImg = document.getElementById('previewBackground');
     const pCanvas = document.getElementById('previewCanvas');
 
     if (!bgImg || !pCanvas) return;
-
+ 
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = pCanvas.width;   // 3840
     tempCanvas.height = pCanvas.height; // 2160
@@ -371,7 +371,6 @@ function takePreviewScreenshot() {
     const tCtx = tempCanvas.getContext('2d');
 
     tCtx.drawImage(bgImg, 0, 0, tempCanvas.width, tempCanvas.height);
-
     tCtx.drawImage(pCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
 
     tCtx.font = "20px Arial";
@@ -381,20 +380,48 @@ function takePreviewScreenshot() {
 
     const textPadding = 30;
     const watermarkText = "Made with WTDSight by dimas7080";
-
     tCtx.fillText(watermarkText, tempCanvas.width - textPadding, tempCanvas.height - textPadding);
 
-    try {
-        const dataURL = tempCanvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.download = `WTDSight_Preview_${new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_')}.png`;
-        link.href = dataURL;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    } catch (e) {
-        console.error("Ошибка при сохранении скриншота:", e);
-        alert("Не удалось сохранить скриншот.");
+    const defaultFileName = `WTDSight_Preview_${new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_')}.png`;
+
+    if (saveAs && window.showSaveFilePicker) {
+        try {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: defaultFileName,
+                types: [{
+                    description: 'PNG Изображение',
+                    accept: { 'image/png': ['.png'] },
+                }],
+            });
+            
+            const writable = await handle.createWritable();
+            tempCanvas.toBlob(async (blob) => {
+                await writable.write(blob);
+                await writable.close();
+                if (typeof showNotification === 'function') {
+                    showNotification("Скриншот успешно сохранен!");
+                }
+            }, 'image/png');
+        } catch (err) {
+            console.log("Сохранение отменено:", err);
+        }
+    } else {
+        try {
+            const dataURL = tempCanvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = defaultFileName;
+            link.href = dataURL;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (e) {
+            console.error("Ошибка при сохранении скриншота:", e);
+            if (typeof showNotification === 'function') {
+                showNotification("Не удалось сохранить скриншот.", true);
+            } else {
+                alert("Не удалось сохранить скриншот.");
+            }
+        }
     }
 }
 
