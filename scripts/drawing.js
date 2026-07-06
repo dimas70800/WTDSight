@@ -456,6 +456,43 @@ document.onkeydown = (e) => {
 
         return;
     }
+    
+    if (event.code === 'Space') {
+        event.preventDefault();
+        switch (tool) {
+            case 'hatch':
+                document.getElementById('hatchCreateBtn')?.click();
+                break;
+            case 'fill':
+                document.getElementById('fillCreateBtn')?.click();
+                break;
+            case 'shapes':
+                document.getElementById('shapesCreateBtn')?.click();
+                break;
+            case 'text':
+                document.getElementById('textCreateBtn')?.click();
+                break;
+        }
+    }
+
+    if (event.code === 'KeyR') {
+        event.preventDefault();
+        switch (tool) {
+            case 'hatch':
+                document.getElementById('hatchCancelBtn')?.click();
+                break;
+            case 'fill':
+                document.getElementById('fillCancelBtn')?.click();
+                break;
+            case 'shapes':
+                document.getElementById('shapesCancelBtn')?.click();
+                break;
+            case 'text':
+                document.getElementById('textCancelBtn')?.click();
+                break;
+        }
+    }
+
     if (isAnimatingDrawing) {
         if (e.code === "Escape") stopDrawingAnimation();
         return;

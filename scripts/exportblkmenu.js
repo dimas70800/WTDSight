@@ -252,7 +252,7 @@ function saveBlkFile(content, fileName) {
             saver.style.display = 'none';
             document.body.appendChild(saver);
         }
-        
+
 
         saver.href = url;
         saver.download = fileName.trim().replaceAll(" ", '_') + '.blk';
@@ -286,20 +286,41 @@ function openModal() {
 function onModalClick(e) {
     if (e.target === document.getElementById('exportModal')) {
         closeModal();
+        saveExportSettings();
     }
 }
 
-function onGenerateBlkClick() {
+async function onGenerateBlkClick(saveAs = false) {
     try {
         const settings = saveExportSettings();
         let blk = generateBlkContent(settings);
         blk = addDrawingObjectsToBlk(blk);
         const fileName = getFileName();
 
-        if (saveBlkFile(blk, fileName)) {
+        const suggestedName = fileName.endsWith('.blk') ? fileName : fileName + '.blk';
+
+        if (saveAs && window.showSaveFilePicker) {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: suggestedName,
+                types: [{
+                    accept: { 'text/plain': ['.blk'] },
+                }],
+            });
+            
+            const writable = await handle.createWritable();
+            await writable.write(blk);
+            await writable.close();
             closeModal();
+        } else {
+            if (saveBlkFile(blk, fileName)) {
+                closeModal();
+            }
         }
     } catch (error) {
+        if (error.name === 'AbortError') {
+            return;
+        }
+        
         console.error('Ошибка при генерации BLK:', error);
         alert('Ошибка при генерации BLK: ' + error.message);
     }
@@ -315,6 +336,7 @@ function initExportModal() {
     const closeBtn = document.getElementById('closeExportBtn');
     const cancelBtn = document.getElementById('cancelExportBtn');
     const generateBtn = document.getElementById('generateBlkBtn');
+    const saveAsBlkBtn = document.getElementById('saveAsBlkBtn');
 
     if (!modal || !exportBtn || !closeBtn || !cancelBtn || !generateBtn) {
         console.error('Не найдены элементы модального окна!');
@@ -322,10 +344,14 @@ function initExportModal() {
     }
 
     exportBtn.onclick = openModal;
-    closeBtn.onclick = closeModal;
+    closeBtn.addEventListener('click', function () {
+        closeModal();
+        saveExportSettings();
+    });
     cancelBtn.onclick = closeModal;
     modal.onclick = onModalClick;
-    generateBtn.onclick = onGenerateBlkClick;
+    generateBtn.addEventListener('click', () => onGenerateBlkClick(false));
+    saveAsBlkBtn.addEventListener('click', () => onGenerateBlkClick(true));
 
     loadExportSettings();
 }

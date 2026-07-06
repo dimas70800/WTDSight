@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 800"><desc>by dimas7080</desc>
+  <defs>
+    <style>
+      .st0 {
+        fill: #fff;
+      }
+    </style>
+  </defs>
+  <rect class="st0" x="313.82" y="26.56" width="172.36" height="746.88" transform="translate(400 -165.69) rotate(45)"/>
+  <rect class="st0" x="313.82" y="26.56" width="172.36" height="746.88" transform="translate(-165.69 400) rotate(-45)"/>
+</svg>

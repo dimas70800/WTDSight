@@ -351,7 +351,8 @@
                             <button id="hatchRestoreBtn">Предыдущая зона</button>
 
                             <div class="block-with-elem" style="margin-top: 5px;">
-                                <span style="font-size: 13px; text-align: center;" id="areaSelectHatchLabel">Выделение области</span>
+                                <span style="font-size: 13px; text-align: center;" id="areaSelectHatchLabel">Выделение
+                                    области</span>
                                 <div
                                     style="display: flex; justify-content:space-evenly; flex-direction: row; gap: 5px;">
                                     <button id="hatchInputManualBtn" onclick="setHatchInputMode('manual')"
@@ -659,7 +660,8 @@
                             </div>
 
                             <div class="block-with-elem" style="margin-top: 5px;">
-                                <span style="font-size: 13px; text-align: center;" id="areaSelectFillLabel">Выделение области</span>
+                                <span style="font-size: 13px; text-align: center;" id="areaSelectFillLabel">Выделение
+                                    области</span>
                                 <div
                                     style="display: flex; justify-content:space-evenly; flex-direction: row; gap: 5px;">
                                     <button id="fillInputManualBtn" onclick="setFillInputMode('manual')"
@@ -686,7 +688,8 @@
                                             style="height: 100%; width: 100%;"></button>
                                 </div>
 
-                                <div id="fillMultiControls" style="display: none; align-items: center; justify-content: center; gap: 5px; margin-top: 8px; border-top: 1px solid var(--border-col); padding-top: 8px;">
+                                <div id="fillMultiControls"
+                                    style="display: none; align-items: center; justify-content: center; gap: 5px; margin-top: 8px; border-top: 1px solid var(--border-col); padding-top: 8px;">
                                     <button onclick="changeFillRegion(-1)"
                                         style="width: 40px; height: 40px;">&lt;</button>
                                     <input type="number" id="fillRegionInput" value="1" min="1" step="1"
@@ -721,7 +724,7 @@
                                         <img src="images/starShape.svg" alt="Star">
                                     </button>
                                     <button class="shape-btn" data-shape="animeStar">
-                                        <img src="images/animeStarShape.svg" alt="Anime Star"> 
+                                        <img src="images/animeStarShape.svg" alt="Anime Star">
                                     </button>
                                     <button class="shape-btn" data-shape="heart">
                                         <img src="images/heartShape.svg" alt="Heart">
@@ -897,7 +900,10 @@
                         <img src="images/discord_icon.svg" alt="discord" style="height: 2em;">
                         Discord Server</button>
                     <button class="settings-modal-close"
-                        onclick="document.getElementById('settingsModalWindow').style.display='none'">&times;</button>
+                        onclick="document.getElementById('settingsModalWindow').style.display='none'"
+                        style="display: flex; justify-content: center; align-items: center; width: 40px; height: 40px;">
+                        <img src="images/crossIcon.svg" style="width: 80%; height: 80%;">
+                    </button>
                 </div>
             </div>
             <div class="settings-body">
@@ -944,7 +950,10 @@
         <div class="export-modal-content">
             <div class="export-header">
                 <h2 id="exportModalTitle">Настройки экспорта прицела</h2>
-                <button class="modal-close" id="closeExportBtn">&times;</button>
+                <div style="display: flex; justify-content: space-between; gap: 20px;">
+                    <button class="modal-close" id="closeExportBtn" style="display: flex; justify-content: center; align-items: center; width: 40px; height: 40px;"><img
+                            src="images/crossIcon.svg" style="width: 80%; height: 80%;"></button>
+                </div>
             </div>
             <div class="export-body">
                 <div class="export-row"><label id="exportRangefinderProgressBarColor1">Цвет шкалы прогрессбара</label>
@@ -1041,9 +1050,11 @@
                     </div>
                 </div>
             </div>
-            <div class="export-buttons"><button id="cancelExportBtn"
-                    style="background: transparent; border: 1px solid var(--border-col);">Отмена</button><button
-                    id="generateBlkBtn" style="background: #3f7cb9; color: white;">Экспортировать как .blk</button>
+            <div class="export-buttons">
+                <button id="cancelExportBtn"
+                    style="background: transparent; border: 1px solid var(--border-col);">Отмена</button>
+                <button id="saveAsBlkBtn" style="background: #3f7cb9; color: white;">Сохранить файл .blk в...</button>
+                <button id="generateBlkBtn" style="background: #3f7cb9; color: white;">Экспортировать как .blk</button>
             </div>
         </div>
     </div>

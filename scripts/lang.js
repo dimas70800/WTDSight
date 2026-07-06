@@ -287,7 +287,8 @@ const ru =
     areaSelectHatchLabel: "Выделение области",
     areaSelectFillLabel: "Выделение области",
 
-    screenshotSaveAsPreviewText: "Сохранить скриншот как..."
+    screenshotSaveAsPreviewText: "Сохранить скриншот как...",
+    saveAsBlkBtn: "Сохранить файл .blk в..."
 };
 
 const en =
@@ -580,7 +581,8 @@ const en =
     areaSelectHatchLabel: "Area selection",
     areaSelectFillLabel: "Area selection",
 
-    screenshotSaveAsPreviewText: "Save screenshot as..."
+    screenshotSaveAsPreviewText: "Save screenshot as...",
+    saveAsBlkBtn: "Save file .blk in..."
 };
 
 const langDependent =
@@ -829,7 +831,8 @@ const langDependent =
         "areaSelectHatchLabel",
         "areaSelectFillLabel",
 
-        "screenshotSaveAsPreviewText"
+        "screenshotSaveAsPreviewText",
+        "saveAsBlkBtn"
     ];
 
 function changeLang(to) {

@@ -11,6 +11,7 @@
     --radius-panel: 30px;
     --input-bg: rgba(0, 0, 0, 0.2);
     --border-col: rgba(255, 255, 255, 0.1);
+    --invert-color-image: none;
 }
 
 [data-theme="light"] {
@@ -21,6 +22,7 @@
     --text-white: #222222;
     --input-bg: rgba(0, 0, 0, 0.05);
     --border-col: rgba(0, 0, 0, 0.1);
+    --invert-color-image: invert(1);
 }
 
 * {
@@ -547,10 +549,8 @@ input[type="range"] {
     font-size: 18px;
 }
 
-.settings-modal-close {
-    color: var(--text-white);
-    padding: 6px 10px;
-    outline: none;
+.settings-modal-close img{
+    filter: var(--invert-color-image);
 }
 
 .settings-modal-close:hover {
@@ -890,6 +890,10 @@ option:checked {
 .preview-menu-wrapper.collapsed #previewToggleBtn {
     left: calc(100% - 45px);
     top: 0;
+}
+
+#closeExportBtn img {
+    filter: var(--invert-color-image);
 }
 
 @media screen and (max-width: 950px) {

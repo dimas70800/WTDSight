@@ -389,7 +389,6 @@ async function takePreviewScreenshot(saveAs = false) {
             const handle = await window.showSaveFilePicker({
                 suggestedName: defaultFileName,
                 types: [{
-                    description: 'PNG Изображение',
                     accept: { 'image/png': ['.png'] },
                 }],
             });
@@ -398,12 +397,9 @@ async function takePreviewScreenshot(saveAs = false) {
             tempCanvas.toBlob(async (blob) => {
                 await writable.write(blob);
                 await writable.close();
-                if (typeof showNotification === 'function') {
-                    showNotification("Скриншот успешно сохранен!");
-                }
             }, 'image/png');
         } catch (err) {
-            console.log("Сохранение отменено:", err);
+            showNotification("Сохранение отменено.", true);
         }
     } else {
         try {
