@@ -97,6 +97,162 @@ function togglePanel(forceState) {
     if (arrow) arrow.textContent = isCollapsed ? '▶' : '◀';
 }
 
+document.querySelectorAll('.settings-tab-btn').forEach(button => {
+    button.addEventListener('click', () => {
+        document.querySelectorAll('.settings-tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.settings-tab-content').forEach(content => content.classList.remove('active'));
+        
+        button.classList.add('active');
+        const tabId = button.getAttribute('data-tab');
+        document.getElementById(`settings-tab-${tabId}`).classList.add('active');
+    });
+});
+
+
+const defaultHotkeys = {
+    actionCreate:  { code: 'Space',  ctrl: false, alt: false, shift: false, descId: 'hotkeyCreate' },
+    actionCancel:  { code: 'KeyR',   ctrl: false, alt: false, shift: false, descId: 'hotkeyCancel' },
+    actionSave:    { code: 'KeyS',   ctrl: true,  alt: false, shift: false, descId: 'hotkeySave' },
+    actionUndo:    { code: 'KeyZ',   ctrl: true,  alt: false, shift: false, descId: 'hotkeyUndo' },
+    actionRedo:    { code: 'KeyY',   ctrl: true,  alt: false, shift: false, descId: 'hotkeyRedo' },
+    actionDelete:  { code: 'Delete', ctrl: false, alt: false, shift: false, descId: 'hotkeyDelete' },
+    actionClearSel:{ code: 'KeyA',   ctrl: true,  alt: false, shift: false, descId: 'hotkeyClearSel' },
+    actionRotLeft: { code: 'KeyQ',   ctrl: false, alt: false, shift: false, descId: 'hotkeyRotLeft' },
+    actionRotRight:{ code: 'KeyE',   ctrl: false, alt: false, shift: false, descId: 'hotkeyRotRight' }
+};
+
+let currentHotkeys = JSON.parse(JSON.stringify(defaultHotkeys));
+let activeHotkeyRebindAction = null;
+
+function initHotkeysSystem() {
+    loadHotkeysFromStorage();
+    renderHotkeysUI();
+
+    const resetBtn = document.getElementById('resetHotkeysBtn');
+    if (resetBtn) {
+        resetBtn.onclick = () => {
+            if (confirm(typeof lang !== 'undefined' && lang === ru ? 'Сбросить все комбинации клавиш?' : 'Reset all hotkeys?')) {
+                currentHotkeys = JSON.parse(JSON.stringify(defaultHotkeys));
+                saveHotkeysToStorage();
+                renderHotkeysUI();
+            }
+        };
+    }
+
+    window.addEventListener('keydown', handleHotkeyCapture, true);
+
+    document.addEventListener('click', (e) => {
+        if (activeHotkeyRebindAction !== null) {
+            if (!e.target.classList.contains('listening')) {
+                activeHotkeyRebindAction = null;
+                renderHotkeysUI();
+            }
+        }
+    });
+}
+
+function loadHotkeysFromStorage() {
+    try {
+        const saved = localStorage.getItem('wtdsight-custom-hotkeys');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            currentHotkeys = Object.assign({}, defaultHotkeys, parsed);
+            for (let key in parsed) {
+                if (defaultHotkeys[key]) {
+                    currentHotkeys[key].descId = defaultHotkeys[key].descId;
+                }
+            }
+        }
+    } catch(e) { }
+}
+
+function saveHotkeysToStorage() {
+    localStorage.setItem('wtdsight-custom-hotkeys', JSON.stringify(currentHotkeys));
+}
+
+function getReadableHotkeyString(hotkey) {
+    let parts = [];
+    if (hotkey.ctrl) parts.push('Ctrl');
+    if (hotkey.alt) parts.push('Alt');
+    if (hotkey.shift) parts.push('Shift');
+    
+    let cleanCode = hotkey.code
+        .replace('Key', '')
+        .replace('Digit', '')
+        .replace('Arrow', '');
+        
+    if (cleanCode === 'Space') cleanCode = (typeof lang !== 'undefined' && lang === ru) ? 'Пробел' : 'Space';
+    
+    parts.push(cleanCode);
+    return parts.join(' + ');
+}
+
+function renderHotkeysUI() {
+    const listContainer = document.getElementById('hotkeysList');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = '';
+
+    Object.keys(currentHotkeys).forEach(actionKey => {
+        const item = currentHotkeys[actionKey];
+
+        const row = document.createElement('div');
+        row.className = 'hotkey-row';
+
+        const label = document.createElement('span');
+        label.className = 'hotkey-label';
+        label.textContent = (typeof lang !== 'undefined' && lang[item.descId]) ? lang[item.descId] : item.descId;
+
+        const btn = document.createElement('button');
+        btn.className = 'hotkey-capture-btn';
+
+        if (activeHotkeyRebindAction === actionKey) {
+            btn.classList.add('listening');
+            btn.textContent = '';
+        } else {
+            btn.classList.remove('listening');
+            btn.textContent = getReadableHotkeyString(item);
+        }
+        
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            
+            if (activeHotkeyRebindAction === actionKey) {
+                activeHotkeyRebindAction = null;
+            } else {
+                activeHotkeyRebindAction = actionKey;
+            }
+            renderHotkeysUI();
+        };
+
+        row.appendChild(label);
+        row.appendChild(btn);
+        listContainer.appendChild(row);
+    });
+}
+
+function handleHotkeyCapture(e) {
+    if (activeHotkeyRebindAction === null) return;
+
+    if (['Control', 'Shift', 'Alt', 'Meta', 'AltGraph'].includes(e.key)) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    currentHotkeys[activeHotkeyRebindAction].code = e.code;
+    currentHotkeys[activeHotkeyRebindAction].ctrl = e.ctrlKey;
+    currentHotkeys[activeHotkeyRebindAction].shift = e.shiftKey;
+    currentHotkeys[activeHotkeyRebindAction].alt = e.altKey;
+
+    saveHotkeysToStorage();
+    activeHotkeyRebindAction = null;
+    renderHotkeysUI();
+}
+
+window.addEventListener('load', () => {
+    initHotkeysSystem();
+});
+
 document.querySelectorAll('.nav-static .tab-button').forEach(btn => {
     btn.addEventListener('click', function (e) {
         const targetId = this.getAttribute('data-target');

@@ -540,7 +540,7 @@ input[type="range"] {
     justify-content: space-between;
     align-items: center;
     padding: 20px;
-    border-bottom: 1px solid var(--border-col);
+    padding-bottom: 5px;
     flex-shrink: 0;
 }
 
@@ -894,6 +894,145 @@ option:checked {
 
 #closeExportBtn img {
     filter: var(--invert-color-image);
+}
+
+.settings-tabs-nav {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    box-shadow: inset 0 -1px 0 var(--border-col); 
+    padding: 10px 15px 0 15px;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.settings-tabs-nav::-webkit-scrollbar {
+    display: none;
+}
+
+.settings-tab-btn {
+    background: var(--input-bg);
+    color: var(--text-white);
+    border: 1px solid var(--border-col);
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: bold;
+    opacity: 0.7;
+    transition: background-color 0.2s, opacity 0.2s;
+    white-space: nowrap;
+}
+
+.settings-tab-btn:hover {
+    opacity: 1;
+    background: rgba(128, 128, 128, 0.4);
+}
+
+.settings-tab-btn.active {
+    background: var(--bg-main-panel);
+    opacity: 1;
+}
+.settings-tab-content {
+    display: none;
+}
+
+.settings-tab-content.active {
+    display: block;
+    animation: fadeIn 0.2s ease;
+}
+
+.controls-toolbar {
+    margin-bottom: 20px;
+}
+
+.reset-hotkeys-btn {
+    width: 100%;
+    padding: 12px;
+    background: #cc3f3f;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.reset-hotkeys-btn:hover {
+    background: #e64a4a;
+}
+
+.hotkeys-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.hotkey-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--input-bg);
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-col);
+}
+
+.hotkey-label {
+    font-size: 14px;
+    color: var(--text-white);
+}
+
+.hotkey-capture-btn {
+    background: var(--bg-side-bar);
+    border: 1px solid var(--border-col);
+    color: var(--text-white);
+    padding: 6px 15px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 14px;
+    min-width: 120px;
+    height: 35px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.hotkey-capture-btn:hover {
+    background: rgba(128, 128, 128, 0.5);
+}
+
+.hotkey-capture-btn.listening {
+    background: var(--input-bg) !important;
+    color: transparent !important;
+    border-color: var(--accent) !important;
+    position: relative;
+    cursor: text;
+}
+
+.hotkey-capture-btn.listening::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px;
+    height: 16px;
+    background-color: var(--text-white);
+    animation: blinkCursor 1s step-end infinite;
+}
+
+@keyframes blinkCursor {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 @media screen and (max-width: 950px) {

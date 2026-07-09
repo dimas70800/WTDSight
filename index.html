@@ -897,8 +897,8 @@
                     </button>
                     <button onclick='window.open("https://discord.gg/TJWqaqf4TU", "_blank")'
                         style="display: flex; align-items: center; gap: 5px; font-size: 1em;" id="discord-server-btn">
-                        <img src="images/discord_icon.svg" alt="discord" style="height: 2em;">
-                        Discord Server</button>
+                        <img src="images/discord_icon.svg" alt="discord" style="height: 2em;"> Discord Server
+                    </button>
                     <button class="settings-modal-close"
                         onclick="document.getElementById('settingsModalWindow').style.display='none'"
                         style="display: flex; justify-content: center; align-items: center; width: 40px; height: 40px;">
@@ -906,42 +906,62 @@
                     </button>
                 </div>
             </div>
+
+            <div class="settings-tabs-nav">
+                <button class="settings-tab-btn active" data-tab="main" id="mainSettingsTabBtn">Основные</button>
+                <button class="settings-tab-btn" data-tab="controls" id="controlsSettingsTabBtn">Управление</button>
+            </div>
+
             <div class="settings-body">
-                <div class="settings-row">
-                    <span id="changeLangTitle">Сменить язык:</span>
-                    <img src="images/lang.png" alt="Lang"
-                        style="height: 35px; cursor: pointer; border-radius: 6px; background: white;"
-                        onclick="changeLang()">
+                <div id="settings-tab-main" class="settings-tab-content active">
+                    <div class="settings-row">
+                        <span id="changeLangTitle">Сменить язык:</span>
+                        <img src="images/lang.png" alt="Lang"
+                            style="height: 35px; cursor: pointer; border-radius: 6px; background: white;"
+                            onclick="changeLang()">
+                    </div>
+                    <div class="settings-row">
+                        <span id="themeTitleText">Тема интерфейса:</span>
+                        <button onclick="toggleTheme()" style="padding: 8px 15px;" id="changeThemeLabel">Сменить
+                            тему</button>
+                    </div>
+                    <div class="settings-row">
+                        <span id="colorCanvasLabel">Цвет фона:</span>
+                        <input id="canvasBgColor" type="color" value="#ffffff" oninput="setBgColorCanvas(this.value)"
+                            style="width: 50px; height: 35px; padding: 0;">
+                    </div>
+                    <div class="settings-row">
+                        <span id="outlineCheckBoxTitleText">Отображать обводку:</span>
+                        <input id="outlineCheckBox" type="checkbox" onchange="setOutlineCheckBox(this.checked)"
+                            style="transform: scale(1.5);">
+                    </div>
+                    <div class="settings-row">
+                        <span id="hintsCheckBoxTitleText">Отображать подсказки:</span>
+                        <input id="hintsCheckBox" type="checkbox" onchange="toggleHints(this.checked)" checked
+                            style="transform: scale(1.5);">
+                    </div>
+                    <div class="settings-row">
+                        <span id="drawGridCheckBoxTitleText">Отображать сетку прицела</span>
+                        <input id="drawGridCheckBox" type="checkbox" onchange="toggleDrawGrid(this.checked)" checked
+                            style="transform: scale(1.5);">
+                    </div>
+                    <label class="settings-row">
+                        <span id="oldSelectionLabel">Старый режим выделения</span>
+                        <input type="checkbox" id="oldSelectionCheckBox" style="transform: scale(1.5);">
+                    </label>
                 </div>
-                <div class="settings-row">
-                    <span id="themeTitleText">Тема интерфейса:</span>
-                    <button onclick="toggleTheme()" style="padding: 8px 15px;" id="changeThemeLabel">Сменить
-                        тему</button>
+
+                <div id="settings-tab-controls" class="settings-tab-content">
+                    <button id="resetHotkeysBtn" style="width: 100%; margin-bottom: 15px; background: #eb3b3b; color: white;">Сбросить настройки</button>
+                    <div id="hotkeysList" style="display: flex; flex-direction: column; gap: 8px;">
+                        <div class="hotkey-row" style="height: 60px;"></div>
+                        <div class="hotkey-row" style="height: 60px;"></div>
+                        <div class="hotkey-row" style="height: 60px;"></div>
+                        <div class="hotkey-row" style="height: 60px;"></div>
+                        <div class="hotkey-row" style="height: 60px;"></div>
+                        <div class="hotkey-row" style="height: 60px;"></div>
+                    </div>
                 </div>
-                <div class="settings-row">
-                    <span id="colorCanvasLabel">Цвет фона:</span>
-                    <input id="canvasBgColor" type="color" value="#ffffff" oninput="setBgColorCanvas(this.value)"
-                        style="width: 50px; height: 35px; padding: 0;">
-                </div>
-                <div class="settings-row">
-                    <span id="outlineCheckBoxTitleText">Отображать обводку:</span>
-                    <input id="outlineCheckBox" type="checkbox" onchange="setOutlineCheckBox(this.checked)"
-                        style="transform: scale(1.5);">
-                </div>
-                <div class="settings-row">
-                    <span id="hintsCheckBoxTitleText">Отображать подсказки:</span>
-                    <input id="hintsCheckBox" type="checkbox" onchange="toggleHints(this.checked)" checked
-                        style="transform: scale(1.5);">
-                </div>
-                <div class="settings-row">
-                    <span id="drawGridCheckBoxTitleText">Отображать сетку прицела</span>
-                    <input id="drawGridCheckBox" type="checkbox" onchange="toggleDrawGrid(this.checked)" checked
-                        style="transform: scale(1.5);">
-                </div>
-                <label class="settings-row">
-                    <span id="oldSelectionLabel">Старый режим выделения</span>
-                    <input type="checkbox" id="oldSelectionCheckBox" style="transform: scale(1.5);">
-                </label>
             </div>
         </div>
     </div>
@@ -951,7 +971,8 @@
             <div class="export-header">
                 <h2 id="exportModalTitle">Настройки экспорта прицела</h2>
                 <div style="display: flex; justify-content: space-between; gap: 20px;">
-                    <button class="modal-close" id="closeExportBtn" style="display: flex; justify-content: center; align-items: center; width: 40px; height: 40px;"><img
+                    <button class="modal-close" id="closeExportBtn"
+                        style="display: flex; justify-content: center; align-items: center; width: 40px; height: 40px;"><img
                             src="images/crossIcon.svg" style="width: 80%; height: 80%;"></button>
                 </div>
             </div>

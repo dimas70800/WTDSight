@@ -442,6 +442,14 @@ function toggleMobileSnapping() {
 
 let isCtrlUsedInCombo = false;
 
+function checkHotkey(actionKey, e) {
+    const hk = currentHotkeys[actionKey];
+    return e.code === hk.code && 
+           !!e.ctrlKey === !!hk.ctrl && 
+           !!e.altKey === !!hk.alt && 
+           !!e.shiftKey === !!hk.shift;
+}
+
 document.onkeydown = (e) => {
     const activeElem = document.activeElement;
     if (activeElem.tagName === 'INPUT' || activeElem.tagName === 'TEXTAREA' || activeElem.isContentEditable) {
@@ -457,7 +465,9 @@ document.onkeydown = (e) => {
         return;
     }
     
-    if (event.code === 'Space') {
+    if (typeof isRebinding !== 'undefined' && isRebinding !== null) return;
+
+    if (checkHotkey('actionCreate', e)) {
         event.preventDefault();
         switch (tool) {
             case 'hatch':
@@ -475,7 +485,7 @@ document.onkeydown = (e) => {
         }
     }
 
-    if (event.code === 'KeyR') {
+    if (checkHotkey('actionCancel', e)) {
         event.preventDefault();
         switch (tool) {
             case 'hatch':
@@ -498,32 +508,32 @@ document.onkeydown = (e) => {
         return;
     }
 
-    if (e.ctrlKey && e.code === "KeyS") {
+    if (checkHotkey('actionSave', e)) {
         e.preventDefault();
         forcedSave();
         showNotification(lang.savedNotificationText)
     }
 
-    if (e.code === "KeyQ") {
+    if (checkHotkey('actionRotLeft', e)) {
         changeVisualRotation(-15);
     }
-    if (e.code === "KeyE") {
+    if (checkHotkey('actionRotRight', e)) {
         changeVisualRotation(15);
     }
-    if (e.code === "KeyZ" && e.ctrlKey) {
+    if (checkHotkey('actionUndo', e)) {
         e.preventDefault();
         popEvent();
         refreshObjectsList();
     }
 
-    if (e.code === "KeyY" && e.ctrlKey) {
+    if (checkHotkey('actionRedo', e)) {
         e.preventDefault();
         popRedo();
         refreshObjectsList();
     }
 
 
-    if (e.code === "Delete") {
+    if (checkHotkey('actionDelete', e)) {
         e.preventDefault();
         if (selectedObjectsSet.size > 0) {
             deleteSelectedObjects();
@@ -542,7 +552,7 @@ document.onkeydown = (e) => {
         snapping = true;
     }
 
-    if (e.code === "KeyA" && e.ctrlKey) {
+    if (checkHotkey('actionClearSel', e)) {
         e.preventDefault();
         unselectAnyObjects();
     }

@@ -288,7 +288,20 @@ const ru =
     areaSelectFillLabel: "Выделение области",
 
     screenshotSaveAsPreviewText: "Сохранить скриншот как...",
-    saveAsBlkBtn: "Сохранить файл .blk в..."
+    saveAsBlkBtn: "Сохранить файл .blk в...",
+
+    mainSettingsTabBtn: "Основные",
+    controlsSettingsTabBtn: "Управление",
+    resetHotkeysBtn: "Сбросить настройки",
+    hotkeyCreate: "Создать (Инструмент)",
+    hotkeyCancel: "Отмена (Инструмент)",
+    hotkeySave: "Сохранить (Принудительно)",
+    hotkeyUndo: "Шаг назад",
+    hotkeyRedo: "Шаг вперед",
+    hotkeyDelete: "Удалить выбранное",
+    hotkeyClearSel: "Сбросить выделение",
+    hotkeyRotLeft: "Повернуть холст влево",
+    hotkeyRotRight: "Повернуть холст вправо"
 };
 
 const en =
@@ -582,7 +595,20 @@ const en =
     areaSelectFillLabel: "Area selection",
 
     screenshotSaveAsPreviewText: "Save screenshot as...",
-    saveAsBlkBtn: "Save file .blk in..."
+    saveAsBlkBtn: "Save file .blk in...",
+
+    mainSettingsTabBtn: "Main",
+    controlsSettingsTabBtn: "Control",
+    resetHotkeysBtn: "Reset settings",
+    hotkeyCreate: "Create (Tool)",
+    hotkeyCancel: "Cancel (Tool)",
+    hotkeySave: "Save (Force)",
+    hotkeyUndo: "Undo",
+    hotkeyRedo: "Redo",
+    hotkeyDelete: "Delete selected",
+    hotkeyClearSel: "Clear selection",
+    hotkeyRotLeft: "Rotate canvas left",
+    hotkeyRotRight: "Rotate canvas right",
 };
 
 const langDependent =
@@ -832,7 +858,11 @@ const langDependent =
         "areaSelectFillLabel",
 
         "screenshotSaveAsPreviewText",
-        "saveAsBlkBtn"
+        "saveAsBlkBtn",
+
+        "mainSettingsTabBtn",
+        "controlsSettingsTabBtn",
+        "resetHotkeysBtn"
     ];
 
 function changeLang(to) {
@@ -872,6 +902,9 @@ function changeLang(to) {
 
     if (typeof saveAllSettings === 'function') {
         saveAllSettings();
+    }
+    if (typeof renderHotkeysUI === 'function') {
+        renderHotkeysUI();
     }
 }
 
