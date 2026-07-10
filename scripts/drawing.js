@@ -467,6 +467,31 @@ document.onkeydown = (e) => {
     
     if (typeof isRebinding !== 'undefined' && isRebinding !== null) return;
 
+    if(checkHotkey('actionLinesTool', e)) {
+        e.preventDefault();
+        switchTool('lines');
+    }
+    if(checkHotkey('actionCurveTool', e)) {
+        e.preventDefault();
+        switchTool('curve');
+    }
+    if(checkHotkey('actionBrushTool', e)) {
+        e.preventDefault();
+        switchTool('brush');
+    }
+    if(checkHotkey('actionHatchTool', e)) {
+        e.preventDefault();
+        switchTool('hatch');
+    }
+    if(checkHotkey('actionFillTool', e)) {
+        e.preventDefault();
+        switchTool('fill');
+    }
+    if(checkHotkey('actionSelectTool', e)) {
+        e.preventDefault();
+        switchTool('select');
+    }
+
     if (checkHotkey('actionCreate', e)) {
         event.preventDefault();
         switch (tool) {

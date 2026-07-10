@@ -293,15 +293,22 @@ const ru =
     mainSettingsTabBtn: "Основные",
     controlsSettingsTabBtn: "Управление",
     resetHotkeysBtn: "Сбросить настройки",
-    hotkeyCreate: "Создать (Инструмент)",
-    hotkeyCancel: "Отмена (Инструмент)",
+    hotkeyCreate: "Создать (Инструменты)",
+    hotkeyCancel: "Отмена (Инструменты)",
     hotkeySave: "Сохранить (Принудительно)",
     hotkeyUndo: "Шаг назад",
     hotkeyRedo: "Шаг вперед",
     hotkeyDelete: "Удалить выбранное",
     hotkeyClearSel: "Сбросить выделение",
     hotkeyRotLeft: "Повернуть холст влево",
-    hotkeyRotRight: "Повернуть холст вправо"
+    hotkeyRotRight: "Повернуть холст вправо",
+
+    hotkeyLinesTool: "Инструмент Линии",
+    hotkeyCurveTool: "Инструмент Кривая",
+    hotkeyBrushTool: "Инструмент Кисть",
+    hotkeyHatchTool: "Инструмент Штриховка",
+    hotkeyFillTool: "Инструмент Заливки",
+    hotkeySelectTool: "Инструмент Выделение"
 };
 
 const en =
@@ -600,8 +607,8 @@ const en =
     mainSettingsTabBtn: "Main",
     controlsSettingsTabBtn: "Control",
     resetHotkeysBtn: "Reset settings",
-    hotkeyCreate: "Create (Tool)",
-    hotkeyCancel: "Cancel (Tool)",
+    hotkeyCreate: "Create (Tools)",
+    hotkeyCancel: "Cancel (Tools)",
     hotkeySave: "Save (Force)",
     hotkeyUndo: "Undo",
     hotkeyRedo: "Redo",
@@ -609,6 +616,13 @@ const en =
     hotkeyClearSel: "Clear selection",
     hotkeyRotLeft: "Rotate canvas left",
     hotkeyRotRight: "Rotate canvas right",
+    
+    hotkeyLinesTool: "Lines Tool",
+    hotkeyCurveTool: "Curve Tool",
+    hotkeyBrushTool: "Brush Tool",
+    hotkeyHatchTool: "Hatch Tool",
+    hotkeyFillTool: "Fill Tool",
+    hotkeySelectTool: "Select Tool"
 };
 
 const langDependent =

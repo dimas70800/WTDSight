@@ -118,7 +118,13 @@ const defaultHotkeys = {
     actionDelete:  { code: 'Delete', ctrl: false, alt: false, shift: false, descId: 'hotkeyDelete' },
     actionClearSel:{ code: 'KeyA',   ctrl: true,  alt: false, shift: false, descId: 'hotkeyClearSel' },
     actionRotLeft: { code: 'KeyQ',   ctrl: false, alt: false, shift: false, descId: 'hotkeyRotLeft' },
-    actionRotRight:{ code: 'KeyE',   ctrl: false, alt: false, shift: false, descId: 'hotkeyRotRight' }
+    actionRotRight:{ code: 'KeyE',   ctrl: false, alt: false, shift: false, descId: 'hotkeyRotRight' },
+    actionLinesTool:{ code: 'KeyL',   ctrl: false, alt: false, shift: false, descId: 'hotkeyLinesTool' },
+    actionCurveTool:{ code: 'KeyC',   ctrl: false, alt: false, shift: false, descId: 'hotkeyCurveTool' },
+    actionBrushTool:{ code: 'KeyB',   ctrl: false, alt: false, shift: false, descId: 'hotkeyBrushTool' },
+    actionHatchTool:{ code: 'KeyH',   ctrl: false, alt: false, shift: false, descId: 'hotkeyHatchTool' },
+    actionFillTool:{ code: 'KeyF',   ctrl: false, alt: false, shift: false, descId: 'hotkeyFillTool' },
+    actionSelectTool:{ code: 'KeyS',   ctrl: false, alt: false, shift: false, descId: 'hotkeySelectTool' }
 };
 
 let currentHotkeys = JSON.parse(JSON.stringify(defaultHotkeys));
