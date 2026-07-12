@@ -615,9 +615,9 @@
                                 <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
                                     <span id="brushThicknessLabel">Толщина кисти</span>
                                     <div style="display: flex; align-items: center; gap: 10px;">
-                                        <input type="range" id="brushThicknessInput" min="1" max="100" value="10"
+                                        <input type="range" id="brushThicknessInput" min="1" max="100" value="10" step="0.1"
                                             oninput="document.getElementById('brushThicknessNumber').value = this.value">
-                                        <input type="number" id="brushThicknessNumber" min="1" max="100" value="10" style="width: 60px;"
+                                        <input type="number" id="brushThicknessNumber" min="1" max="100" value="10" step="0.1" style="width: 60px;"
                                             oninput="document.getElementById('brushThicknessInput').value = this.value">
                                     </div>
                                 </div>
