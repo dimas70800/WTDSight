@@ -308,7 +308,9 @@ const ru =
     hotkeyBrushTool: "Инструмент Кисть",
     hotkeyHatchTool: "Инструмент Штриховка",
     hotkeyFillTool: "Инструмент Заливки",
-    hotkeySelectTool: "Инструмент Выделение"
+    hotkeySelectTool: "Инструмент Выделение",
+
+    drawCrosshairCheckBoxTitleText: "Отображать перекрестие прицела"
 };
 
 const en =
@@ -622,7 +624,9 @@ const en =
     hotkeyBrushTool: "Brush Tool",
     hotkeyHatchTool: "Hatch Tool",
     hotkeyFillTool: "Fill Tool",
-    hotkeySelectTool: "Select Tool"
+    hotkeySelectTool: "Select Tool",
+
+    drawCrosshairCheckBoxTitleText: "Show sight crosshair"
 };
 
 const langDependent =
@@ -876,7 +880,9 @@ const langDependent =
 
         "mainSettingsTabBtn",
         "controlsSettingsTabBtn",
-        "resetHotkeysBtn"
+        "resetHotkeysBtn",
+
+        "drawCrosshairCheckBoxTitleText"
     ];
 
 function changeLang(to) {

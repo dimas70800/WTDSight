@@ -18,6 +18,7 @@ function loadSettings() {
         outline: false,
         canvasBgColor: '#c7c7c7',
         drawGrid: true,
+        drawCrosshair: true,
         oldSelection: false
     };
 }
@@ -31,6 +32,7 @@ function saveAllSettings() {
         const hintsEl = document.getElementById('hintsCheckBox');
         const outlineEl = document.getElementById('outlineCheckBox');
         const drawGridEl = document.getElementById('drawGridCheckBox');
+        const drawCrosshairEl = document.getElementById('drawCrosshairCheckBox');
         const canvasBgColorEl = document.getElementById('canvasBgColor');
         const oldSelectionEl = document.getElementById('oldSelectionCheckBox');
 
@@ -43,6 +45,7 @@ function saveAllSettings() {
             outline: outlineEl.checked,
             canvasBgColor: canvasBgColorEl.value,
             drawGrid: drawGridEl.checked,
+            drawCrosshair: drawCrosshairEl.checked,
             oldSelection: oldSelectionEl.checked
         };
 
@@ -81,6 +84,10 @@ function applyAllSettings(settings) {
     // Сетка
     if (typeof toggleDrawGrid === 'function') {
         toggleDrawGrid(settings.drawGrid !== undefined ? settings.drawGrid : true);
+    }
+
+    if (typeof toggleDrawGrid === 'function') {
+        toggleDrawCrosshair(settings.drawCrosshair !== undefined ? settings.drawCrosshair : true);
     }
 
     const oldSelectionEl = document.getElementById('oldSelectionCheckBox');

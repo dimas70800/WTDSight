@@ -32,7 +32,7 @@ function finishBrush() {
 
     let simplifyVal = parseFloat(document.getElementById('brushSimplifyInput').value);
     let smoothVal = parseInt(document.getElementById('brushSmoothInput').value);
-    let thicknessVal = parseInt(document.getElementById('brushThicknessInput').value);
+    let thicknessVal = parseFloat(document.getElementById('brushThicknessInput').value);
 
     let epsilon = simplifyVal * 0.0001;
     let thickness = thicknessVal * 0.001;

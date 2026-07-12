@@ -1,5 +1,5 @@
 const canvas = el("mainCanvas");
-const ctx = canvas.getContext("2d");
+const ctx = canvas.getContext("2d", { willReadFrequently: false });
 
 function resizeCanvas() {
     // Коэффициент масштабирования пикселей
@@ -124,6 +124,7 @@ let lastMousePosCanvas = { x: 0, y: 0 };
 
 let ctxBgColor = "#ffffff";
 let drawGridEnabled = true;
+let drawCrosshairEnabled = true;
 
 function setOutlineCheckBox(val) {
     el("outlineCheckBox").checked = val;
@@ -144,6 +145,12 @@ function setBgColorCanvas(clr) {
 function toggleDrawGrid(show) {
     drawGridEnabled = show;
     el("drawGridCheckBox").checked = show;
+    if (typeof saveAllSettings === 'function') saveAllSettings();
+}
+
+function toggleDrawCrosshair(show) {
+    drawCrosshairEnabled = show;
+    el("drawCrosshairCheckBox").checked = show;
     if (typeof saveAllSettings === 'function') saveAllSettings();
 }
 
@@ -181,7 +188,9 @@ function render() {
     if (drawGridEnabled) {
         drawGrid();
     }
-    drawCrosshair();
+    if(drawCrosshairEnabled){
+        drawCrosshair();
+    }
     drawStuff();
     drawArrows();
     drawGhost();
@@ -709,7 +718,7 @@ function drawGhost() {
             break;
         case "brush":
             let brushThicknessInput = el("brushThicknessInput");
-            let brushThicknessVal = brushThicknessInput ? parseInt(brushThicknessInput.value) : 10;
+            let brushThicknessVal = brushThicknessInput ? parseFloat(brushThicknessInput.value) : 10;
             let brushRadiusSight = (brushThicknessVal * 0.001) / 2;
             let brushRadiusPixel = sight2pixel(brushRadiusSight);
 

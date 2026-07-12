@@ -767,6 +767,152 @@ document.addEventListener('DOMContentLoaded', () => {
     const gridAngleCont = document.getElementById('hatchGridAngleContainer');
     const gridAngleInput = document.getElementById('hatchGridAngleInput');
 
+    const eyedropperBtn = document.getElementById('hatchEyedropperBtn');
+
+    if (eyedropperBtn) {
+        let isEyedropperActive = false;
+        
+        eyedropperBtn.onclick = () => {
+            if (isEyedropperActive) return;
+            
+            isEyedropperActive = true;
+            const canvas = document.getElementById('mainCanvas');
+            const ctx = canvas.getContext('2d');
+
+            const magSize = 150;
+            const zoom = 8;
+            const srcSize = Math.floor(magSize / zoom);
+
+            const magDiv = document.createElement('div');
+            magDiv.style.position = 'fixed';
+            magDiv.style.width = magSize + 'px';
+            magDiv.style.height = magSize + 'px';
+            magDiv.style.borderRadius = '50%';
+            magDiv.style.border = '2px solid #444';
+            magDiv.style.boxShadow = '0 0 15px rgba(0,0,0,0.6), inset 0 0 10px rgba(0,0,0,0.5)';
+            magDiv.style.pointerEvents = 'none';
+            magDiv.style.zIndex = '99999';
+            magDiv.style.overflow = 'hidden';
+            magDiv.style.display = 'none';
+            magDiv.style.cursor = 'none';
+
+            const magCanvas = document.createElement('canvas');
+            magCanvas.width = magSize;
+            magCanvas.height = magSize;
+            magDiv.appendChild(magCanvas);
+
+            const centerRing = document.createElement('div');
+            centerRing.style.position = 'absolute';
+            centerRing.style.top = '50%';
+            centerRing.style.left = '50%';
+            centerRing.style.width = zoom + 'px';
+            centerRing.style.height = zoom + 'px';
+            centerRing.style.border = '1px solid #000';
+            centerRing.style.outline = '1px solid #fff';
+            centerRing.style.transform = 'translate(-50%, -50%)';
+            magDiv.appendChild(centerRing);
+
+            document.body.appendChild(magDiv);
+
+            const mCtx = magCanvas.getContext('2d');
+            mCtx.imageSmoothingEnabled = false;
+
+            const originalCursor = canvas.style.cursor;
+            canvas.style.cursor = 'none';
+
+            let isActive = true;
+
+            function cleanup() {
+                isActive = false;
+                isEyedropperActive = false;
+                canvas.style.cursor = originalCursor;
+                if (document.body.contains(magDiv)) {
+                    document.body.removeChild(magDiv);
+                }
+                window.removeEventListener('pointermove', onMove, { capture: true });
+                window.removeEventListener('pointerdown', onClick, { capture: true });
+                window.removeEventListener('keydown', onKey);
+            }
+
+            function onMove(e) {
+                if (!isActive) return;
+                
+                if (e.target !== canvas) {
+                    magDiv.style.display = 'none';
+                    return;
+                }
+                magDiv.style.display = 'block';
+                
+                magDiv.style.left = (e.clientX - magSize / 2) + 'px';
+                magDiv.style.top = (e.clientY - magSize / 2) + 'px';
+
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+
+                const cx = (e.clientX - rect.left) * scaleX;
+                const cy = (e.clientY - rect.top) * scaleY;
+
+                mCtx.clearRect(0, 0, magSize, magSize);
+                mCtx.drawImage(
+                    canvas,
+                    cx - srcSize / 2, cy - srcSize / 2, srcSize, srcSize,
+                    0, 0, magSize, magSize
+                );
+            }
+
+            function onClick(e) {
+                if (!isActive || e.target !== canvas) return;
+                
+                if (e.button === 0) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+                    const cx = (e.clientX - rect.left) * scaleX;
+                    const cy = (e.clientY - rect.top) * scaleY;
+
+                    try {
+                        const pixelData = ctx.getImageData(cx, cy, 1, 1).data;
+                        const r = pixelData[0], g = pixelData[1], b = pixelData[2];
+
+                        const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+                        const minDensity = 0.001; 
+                        const maxDensity = 0.008; 
+                        
+                        let newDensity = minDensity + luminance * (maxDensity - minDensity);
+                        newDensity = Math.round(newDensity * 2000) / 2000;
+
+                        hatchDensity = newDensity;
+                        if (densityInput) densityInput.value = hatchDensity;
+
+                        const midLine = document.getElementById('middleLineForHatch');
+                        const value = Number((hatchDensity * 2.5).toFixed(6));
+                        if (midLine) midLine.innerHTML = `50% = ${value} ↑`;
+
+                        if (typeof updateHatchPreview === 'function') updateHatchPreview();
+                    } catch (err) {
+                        showNotification(lang === ru ? "Ошибка пипетки" : "Error with eyedropper", true);
+                    }
+                }
+                cleanup();
+            }
+
+            function onKey(e) {
+                if (e.key === 'Escape') {
+                    cleanup();
+                }
+            }
+
+            window.addEventListener('pointermove', onMove, { capture: true });
+            window.addEventListener('pointerdown', onClick, { capture: true });
+            window.addEventListener('keydown', onKey);
+        };
+    }
+
     if (gridCheckbox) {
         gridCheckbox.onchange = (e) => {
             hatchGridEnabled = e.target.checked;

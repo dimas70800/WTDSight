@@ -325,8 +325,14 @@
                                 </div>
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <label id="hatchDensity">Плотность:</label>
-                                    <input type="number" id="hatchDensityInput" min="0.001" max="0.5" step="0.001"
-                                        value="0.03" style="width: 100px;">
+                                    <div style="display: flex; gap: 4px; align-items: center;">
+                                        <button id="hatchEyedropperBtn"
+                                            style="width: 30px; height: 30px; padding: 4px;">
+                                            <img src="images/eyedropperIcon.svg" style="height: 100%; width: 100%;">
+                                        </button>
+                                        <input type="number" id="hatchDensityInput" min="0.001" max="0.5" step="0.001"
+                                            value="0.03" style="width: 100px;">
+                                    </div>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <label id="hatchPhase">Сдвиг:</label>
@@ -608,7 +614,12 @@
                             <div class="block-with-elem" style="margin-top: 10px;">
                                 <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
                                     <span id="brushThicknessLabel">Толщина кисти</span>
-                                    <input type="range" id="brushThicknessInput" min="1" max="100" value="10">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <input type="range" id="brushThicknessInput" min="1" max="100" value="10"
+                                            oninput="document.getElementById('brushThicknessNumber').value = this.value">
+                                        <input type="number" id="brushThicknessNumber" min="1" max="100" value="10" style="width: 60px;"
+                                            oninput="document.getElementById('brushThicknessInput').value = this.value">
+                                    </div>
                                 </div>
                                 <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
                                     <span id="brushSimplificationLabel">Упрощение линий</span>
@@ -945,6 +956,11 @@
                         <input id="drawGridCheckBox" type="checkbox" onchange="toggleDrawGrid(this.checked)" checked
                             style="transform: scale(1.5);">
                     </div>
+                    <div class="settings-row">
+                        <span id="drawCrosshairCheckBoxTitleText">Отображать перекрестие прицела</span>
+                        <input type="checkbox" id="drawCrosshairCheckBox" onchange="toggleDrawCrosshair(this.checked)"
+                            checked style="transform: scale(1.5);">
+                    </div>
                     <label class="settings-row">
                         <span id="oldSelectionLabel">Старый режим выделения</span>
                         <input type="checkbox" id="oldSelectionCheckBox" style="transform: scale(1.5);">
@@ -952,7 +968,9 @@
                 </div>
 
                 <div id="settings-tab-controls" class="settings-tab-content">
-                    <button id="resetHotkeysBtn" style="width: 100%; margin-bottom: 15px; background: #eb3b3b; color: white;">Сбросить настройки</button>
+                    <button id="resetHotkeysBtn"
+                        style="width: 100%; margin-bottom: 15px; background: #eb3b3b; color: white;">Сбросить
+                        настройки</button>
                     <div id="hotkeysList" style="display: flex; flex-direction: column; gap: 8px;">
                         <div class="hotkey-row" style="height: 60px;"></div>
                         <div class="hotkey-row" style="height: 60px;"></div>
