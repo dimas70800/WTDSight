@@ -6,6 +6,31 @@ function formSaveData() {
     return JSON.stringify(data);
 }
 
+function sanitizeFileName(name) {
+    if (!name) return "sight";
+
+    if (name.toLowerCase().endsWith('.blk')) {
+        name = name.slice(0, -4);
+    }
+
+    const ru2en = {
+        'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'Yo', 'Ж': 'Zh', 'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N', 'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U', 'Ф': 'F', 'Х': 'H', 'Ц': 'Ts', 'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Sch', 'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+    };
+
+    let processedName = name.split('').map(char => ru2en[char] !== undefined ? ru2en[char] : char).join('');
+
+    processedName = processedName.replace(/[^a-zA-Z0-9_]/g, '_');
+    processedName = processedName.replace(/_+/g, '_');
+    processedName = processedName.replace(/^_|_$/g, '');
+
+    if (!processedName) {
+        return "sight";
+    }
+
+    return processedName;
+}
+
 async function save() {
     const file = new Blob([formSaveData()], { type: "application/json" });
     saver.href = URL.createObjectURL(file);
@@ -61,7 +86,7 @@ async function saveExport(data) {
     saver.href = URL.createObjectURL(file);
 
     const name = el("saveFileName").value;
-    saver.download = name.length !== 0 ? name : "sight";
+    saver.download = name.length !== 0 ? name.trim() : "sight";
     saver.click();
 }
 
@@ -83,59 +108,68 @@ function extractBlock(text, blockName) {
     return "";
 }
 
+function applyScale(str, scale) {
+    const val = parseFloat(str) * scale;
+    return parseFloat(val.toFixed(9));
+}
+ 
 function loadFromBlk(text) {
     const newObjects = new Map();
     let idx = 0;
-
+ 
     const linesBlock = extractBlock(text, "drawLines");
     const quadsBlock = extractBlock(text, "drawQuads");
-
+ 
     const lineBlockPattern = /line\s*\{[^}]*\}/gi;
     const lineBlocks = linesBlock.match(lineBlockPattern) || [];
-
+ 
     for (const block of lineBlocks) {
         const coordMatch = block.match(/line:p4\s*=\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i);
+        const lineThousandth = /thousandth\s*:\s*b\s*=\s*(yes|true)/i.test(block);
+        const scale = lineThousandth ? 0.001 : 1;
         if (coordMatch) {
             newObjects.set(String(idx), {
                 name: (typeof lang !== 'undefined' ? lang.line : "Линия") + " " + idx,
                 type: "line",
-                start: { x: parseFloat(coordMatch[1]), y: parseFloat(coordMatch[2]) },
-                end: { x: parseFloat(coordMatch[3]), y: parseFloat(coordMatch[4]) },
+                start: { x: applyScale(coordMatch[1], scale), y: applyScale(coordMatch[2], scale) },
+                end: { x: applyScale(coordMatch[3], scale), y: applyScale(coordMatch[4], scale) },
                 selected: false
             });
             idx++;
         }
     }
-
+ 
     const quadBlocks = quadsBlock.match(/quad\s*\{[^}]*\}/gi) || [];
-
+ 
     for (const block of quadBlocks) {
         const tlMatch = block.match(/tl:p2\s*=\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i);
         const trMatch = block.match(/tr:p2\s*=\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i);
         const brMatch = block.match(/br:p2\s*=\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i);
         const blMatch = block.match(/bl:p2\s*=\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i);
-
+        const quadThousandth = /thousandth\s*:\s*b\s*=\s*(yes|true)/i.test(block);
+        const scale = quadThousandth ? 0.001 : 1;
+ 
         if (tlMatch && trMatch && brMatch && blMatch) {
             newObjects.set(String(idx), {
                 name: (typeof lang !== 'undefined' ? lang.quad : "Четырёхугольник") + " " + idx,
                 type: "quad",
-                pos1: { x: parseFloat(tlMatch[1]), y: parseFloat(tlMatch[2]) },
-                pos2: { x: parseFloat(trMatch[1]), y: parseFloat(trMatch[2]) },
-                pos3: { x: parseFloat(brMatch[1]), y: parseFloat(brMatch[2]) },
-                pos4: { x: parseFloat(blMatch[1]), y: parseFloat(blMatch[2]) },
+                pos1: { x: applyScale(tlMatch[1], scale), y: applyScale(tlMatch[2], scale) },
+                pos2: { x: applyScale(trMatch[1], scale), y: applyScale(trMatch[2], scale) },
+                pos3: { x: applyScale(brMatch[1], scale), y: applyScale(brMatch[2], scale) },
+                pos4: { x: applyScale(blMatch[1], scale), y: applyScale(blMatch[2], scale) },
                 selected: false
             });
             idx++;
         }
     }
-
+ 
     if (newObjects.size === 0) {
         alert('Не найдено объектов для импорта. Проверьте формат BLK файла.');
         return;
     }
-
+ 
     const replace = document.getElementById("replaceObjectsOnLoad")?.checked !== false;
-
+ 
     if (replace) {
         objects = newObjects;
         clearEvents();
@@ -145,7 +179,7 @@ function loadFromBlk(text) {
             objects.set(newId, obj);
         }
     }
-
+ 
     refreshObjectsList();
     unselectAnyObjects();
     
@@ -236,9 +270,9 @@ function addCurrentSightToArchive() {
         let blkContent = generateBlkContent(settings);
         blkContent = addDrawingObjectsToBlk(blkContent);
 
-        let baseName = el("saveFileName").value;
-        if (!baseName || baseName.trim() === "") baseName = "sight";
-        const fileName = baseName.endsWith(".blk") ? baseName.trim().replaceAll(" ", '_') : baseName.trim().replaceAll(" ", '_') + ".blk";
+        const rawName = el("saveFileName").value;
+        const cleanName = sanitizeFileName(rawName);
+        const fileName = cleanName.endsWith(".blk") ? cleanName : cleanName + ".blk";
 
         const existingIndex = archiveFilesQueue.findIndex(f => f.name === fileName);
         if (existingIndex !== -1) {

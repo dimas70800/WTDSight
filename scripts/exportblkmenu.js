@@ -255,7 +255,7 @@ function saveBlkFile(content, fileName) {
 
 
         saver.href = url;
-        saver.download = fileName.trim().replaceAll(" ", '_') + '.blk';
+        saver.download = sanitizeFileName(fileName) + '.blk';
         saver.click();
 
         setTimeout(() => {
@@ -295,9 +295,9 @@ async function onGenerateBlkClick(saveAs = false) {
         const settings = saveExportSettings();
         let blk = generateBlkContent(settings);
         blk = addDrawingObjectsToBlk(blk);
-        const fileName = getFileName();
+        const fileName = getFileName().trim().replaceAll(" ", '_');
 
-        const suggestedName = fileName.endsWith('.blk') ? fileName : fileName + '.blk';
+        const suggestedName = sanitizeFileName(fileName);
 
         if (saveAs && window.showSaveFilePicker) {
             const handle = await window.showSaveFilePicker({
