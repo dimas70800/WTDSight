@@ -806,7 +806,7 @@ function drawGhost() {
 
                 ctx.globalAlpha = 1;
                 ctx.fillStyle = `rgba(100, 150, 255, ${fillOp})`;
-                ctx.strokeStyle = `rgba(100, 150, 255, ${Math.min(1, fillOp + 0.4)})`;
+                ctx.strokeStyle = `rgba(100, 150, 255, ${Math.min(1, fillOp * 2)})`;
                 for (const q of previewFillQuads) {
                     const p1 = v2disposSight2v2canvas(q[0]), p2 = v2disposSight2v2canvas(q[1]);
                     const p3 = v2disposSight2v2canvas(q[2]), p4 = v2disposSight2v2canvas(q[3]);
