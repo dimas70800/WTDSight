@@ -7,6 +7,10 @@ let lastHatchPoints = [];
 let isDrawingHatch = false;
 let isHatchDragging = false;
 let previewHatchLines = [];
+
+let hatchVertexDragIndex = -1;
+let hatchVertexDragMoved = false;
+let hatchVertexDragIsNew = false;
 let hatchAngle = 45;
 let hatchDensity = 0.03;
 let hatchPhase = 0;
@@ -207,6 +211,116 @@ function addHatchPoint(pos, isDragging = false) {
     lastAddedHatchPointTime = Date.now();
     hatchPoints.push(roundedPos);
     updateHatchPreview();
+}
+
+function hitTestHatchVertex(pos) {
+    if (!isDrawingHatch || !hatchPoints || hatchPoints.length === 0) return -1;
+
+    const isTouch = ('ontouchstart' in window);
+    const radius = (isTouch ? 20 : 10) / screenZoom / getBaseScale();
+
+    for (let i = 0; i < hatchPoints.length; i++) {
+        if (Math.abs(pos.x - hatchPoints[i].x) < radius && Math.abs(pos.y - hatchPoints[i].y) < radius) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+function pointToSegmentSqrDist(p, a, b) {
+    const abx = b.x - a.x, aby = b.y - a.y;
+    const apx = p.x - a.x, apy = p.y - a.y;
+    const abLenSqr = abx * abx + aby * aby;
+
+    let t = (abLenSqr > 0) ? (apx * abx + apy * aby) / abLenSqr : 0;
+    t = Math.max(0, Math.min(1, t));
+
+    const proj = { x: a.x + abx * t, y: a.y + aby * t };
+    const dx = p.x - proj.x, dy = p.y - proj.y;
+
+    return { sqrDist: dx * dx + dy * dy, proj: proj };
+}
+
+function hitTestHatchEdge(pos) {
+    if (!isDrawingHatch || !hatchPoints || hatchPoints.length < 2) return null;
+
+    const isTouch = ('ontouchstart' in window);
+    const radiusSight = (isTouch ? 20 : 10) / screenZoom / getBaseScale();
+    const maxSqrDist = radiusSight * radiusSight;
+
+    let bestAfterIndex = -1;
+    let bestPos = null;
+    let bestSqrDist = maxSqrDist;
+
+    const n = hatchPoints.length;
+    const edgeCount = (n >= 3) ? n : (n - 1);
+
+    for (let i = 0; i < edgeCount; i++) {
+        const a = hatchPoints[i];
+        const b = hatchPoints[(i + 1) % n];
+
+        const { sqrDist, proj } = pointToSegmentSqrDist(pos, a, b);
+        if (sqrDist < bestSqrDist) {
+            bestSqrDist = sqrDist;
+            bestAfterIndex = i;
+            bestPos = proj;
+        }
+    }
+
+    if (bestAfterIndex === -1) return null;
+    return { afterIndex: bestAfterIndex, pos: bestPos };
+}
+
+function insertHatchPointAfter(afterIndex, pos) {
+    const roundedPos = {
+        x: Math.round(pos.x * 1000000) / 1000000,
+        y: Math.round(pos.y * 1000000) / 1000000
+    };
+
+    const insertIndex = afterIndex + 1;
+    hatchPoints.splice(insertIndex, 0, roundedPos);
+
+    lastHatchAction = 'add';
+    lastAddedHatchPointTime = Date.now();
+
+    updateHatchPreview();
+    return insertIndex;
+}
+
+function startHatchVertexDrag(index, isNew = false) {
+    if (!isDrawingHatch || index < 0 || index >= hatchPoints.length) return;
+    hatchVertexDragIndex = index;
+    hatchVertexDragMoved = false;
+    hatchVertexDragIsNew = isNew;
+}
+
+function dragHatchVertex(pos) {
+    if (hatchVertexDragIndex < 0 || hatchVertexDragIndex >= hatchPoints.length) return;
+
+    hatchVertexDragMoved = true;
+
+    let finalPos = pos;
+
+    if (snapping || mobileSnappingActive) {
+        let snapRad = (mobileSnappingActive && !snapping) ? 40 : Infinity;
+        const snapPos = snappingPos(pos, snapRad);
+        if (snapPos != null) finalPos = snapPos;
+    }
+
+    hatchPoints[hatchVertexDragIndex] = {
+        x: Math.round(finalPos.x * 1000000) / 1000000,
+        y: Math.round(finalPos.y * 1000000) / 1000000
+    };
+
+    updateHatchPreview();
+}
+
+function endHatchVertexDrag() {
+    const result = { wasMoved: hatchVertexDragMoved, isNew: hatchVertexDragIsNew };
+    hatchVertexDragIndex = -1;
+    hatchVertexDragMoved = false;
+    hatchVertexDragIsNew = false;
+    return result;
 }
 
 function updateHatchPreview() {

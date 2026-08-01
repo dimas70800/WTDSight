@@ -7,6 +7,10 @@ let isDrawingFill = false;
 let isFillDragging = false;
 let previewFillQuads = [];
 
+let fillVertexDragIndex = -1;
+let fillVertexDragMoved = false;
+let fillVertexDragIsNew = false;
+
 let lastFillAction = null;
 let lastAddedFillPointTime = 0;
 let lastFillRemovedIndex = -1;
@@ -169,6 +173,102 @@ function addFillPoint(pos, isDragging = false) {
     lastAddedFillPointTime = Date.now();
     fillPoints.push(roundedPos);
     updateFillPreview();
+}
+
+function hitTestFillVertex(pos) {
+    if (!isDrawingFill || !fillPoints || fillPoints.length === 0) return -1;
+
+    const isTouch = ('ontouchstart' in window);
+    const radius = (isTouch ? 20 : 10) / screenZoom / getBaseScale();
+
+    for (let i = 0; i < fillPoints.length; i++) {
+        if (Math.abs(pos.x - fillPoints[i].x) < radius && Math.abs(pos.y - fillPoints[i].y) < radius) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+function hitTestFillEdge(pos) {
+    if (!isDrawingFill || !fillPoints || fillPoints.length < 2) return null;
+
+    const isTouch = ('ontouchstart' in window);
+    const radiusSight = (isTouch ? 20 : 10) / screenZoom / getBaseScale();
+    const maxSqrDist = radiusSight * radiusSight;
+
+    let bestAfterIndex = -1;
+    let bestPos = null;
+    let bestSqrDist = maxSqrDist;
+
+    const n = fillPoints.length;
+    const edgeCount = (n >= 3) ? n : (n - 1);
+
+    for (let i = 0; i < edgeCount; i++) {
+        const a = fillPoints[i];
+        const b = fillPoints[(i + 1) % n];
+
+        const { sqrDist, proj } = pointToSegmentSqrDist(pos, a, b);
+        if (sqrDist < bestSqrDist) {
+            bestSqrDist = sqrDist;
+            bestAfterIndex = i;
+            bestPos = proj;
+        }
+    }
+
+    if (bestAfterIndex === -1) return null;
+    return { afterIndex: bestAfterIndex, pos: bestPos };
+}
+
+function insertFillPointAfter(afterIndex, pos) {
+    const roundedPos = {
+        x: Math.round(pos.x * 1000000) / 1000000,
+        y: Math.round(pos.y * 1000000) / 1000000
+    };
+
+    const insertIndex = afterIndex + 1;
+    fillPoints.splice(insertIndex, 0, roundedPos);
+
+    lastFillAction = 'add';
+    lastAddedFillPointTime = Date.now();
+
+    updateFillPreview();
+    return insertIndex;
+}
+
+function startFillVertexDrag(index, isNew = false) {
+    if (!isDrawingFill || index < 0 || index >= fillPoints.length) return;
+    fillVertexDragIndex = index;
+    fillVertexDragMoved = false;
+    fillVertexDragIsNew = isNew;
+}
+
+function dragFillVertex(pos) {
+    if (fillVertexDragIndex < 0 || fillVertexDragIndex >= fillPoints.length) return;
+
+    fillVertexDragMoved = true;
+
+    let finalPos = pos;
+
+    if (snapping || mobileSnappingActive) {
+        let snapRad = (mobileSnappingActive && !snapping) ? 40 : Infinity;
+        const snapPos = snappingPos(pos, snapRad);
+        if (snapPos != null) finalPos = snapPos;
+    }
+
+    fillPoints[fillVertexDragIndex] = {
+        x: Math.round(finalPos.x * 1000000) / 1000000,
+        y: Math.round(finalPos.y * 1000000) / 1000000
+    };
+
+    updateFillPreview();
+}
+
+function endFillVertexDrag() {
+    const result = { wasMoved: fillVertexDragMoved, isNew: fillVertexDragIsNew };
+    fillVertexDragIndex = -1;
+    fillVertexDragMoved = false;
+    fillVertexDragIsNew = false;
+    return result;
 }
 
 function getEvenOddPaths(regions) {

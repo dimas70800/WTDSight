@@ -596,7 +596,8 @@ function drawGhost() {
                     let pointRadius = (window.innerWidth <= 950 || ('ontouchstart' in window)) ? 12 : 6;
                     for (let i = 0; i < rPoints.length; i++) {
                         const pointCanvas = v2disposSight2v2canvas(rPoints[i]);
-                        drawCircle(pointCanvas.x, pointCanvas.y, pointRadius);
+                        const isBeingDragged = (typeof hatchVertexDragIndex !== 'undefined' && hatchVertexDragIndex === i);
+                        drawCircle(pointCanvas.x, pointCanvas.y, isBeingDragged ? pointRadius * 1.6 : pointRadius);
                     }
                 }
             }
@@ -793,7 +794,8 @@ function drawGhost() {
                     let pointRadius = (window.innerWidth <= 950 || ('ontouchstart' in window)) ? 12 : 6;
                     for (let i = 0; i < rPoints.length; i++) {
                         const pointCanvas = v2disposSight2v2canvas(rPoints[i]);
-                        drawCircle(pointCanvas.x, pointCanvas.y, pointRadius);
+                        const isBeingDragged = (typeof fillVertexDragIndex !== 'undefined' && fillVertexDragIndex === i);
+                        drawCircle(pointCanvas.x, pointCanvas.y, isBeingDragged ? pointRadius * 1.6 : pointRadius);
                     }
                 }
             }
@@ -1730,6 +1732,12 @@ canvas.onpointerdown = (e) => {
             if (drawing && typeof clearDrawing === 'function') clearDrawing();
             if (typeof isHatchDragging !== 'undefined') isHatchDragging = false;
             if (typeof isFillDragging !== 'undefined') isFillDragging = false;
+            if (typeof hatchVertexDragIndex !== 'undefined') hatchVertexDragIndex = -1;
+            if (typeof hatchVertexDragMoved !== 'undefined') hatchVertexDragMoved = false;
+            if (typeof hatchVertexDragIsNew !== 'undefined') hatchVertexDragIsNew = false;
+            if (typeof fillVertexDragIndex !== 'undefined') fillVertexDragIndex = -1;
+            if (typeof fillVertexDragMoved !== 'undefined') fillVertexDragMoved = false;
+            if (typeof fillVertexDragIsNew !== 'undefined') fillVertexDragIsNew = false;
 
             isPullingCenter = false;
             arrowPulling = false;
@@ -2056,13 +2064,26 @@ canvas.onpointerdown = (e) => {
                 if (typeof hatchInputMode !== 'undefined' && hatchInputMode === 'wand') {
                     executeMagicWand(clickPos);
                 } else {
-                    if (snapping || mobileSnappingActive) {
-                        const snapPos = snappingPos(clickPos, snapRad);
-                        if (snapPos != null) clickPos = snapPos;
+                    const hitVertexIndex = (typeof hitTestHatchVertex === 'function') ? hitTestHatchVertex(clickPos) : -1;
+
+                    if (hitVertexIndex !== -1) {
+                        startHatchVertexDrag(hitVertexIndex);
+                    } else {
+                        const hitEdge = (typeof hitTestHatchEdge === 'function') ? hitTestHatchEdge(clickPos) : null;
+
+                        if (hitEdge !== null) {
+                            const insertedIndex = insertHatchPointAfter(hitEdge.afterIndex, hitEdge.pos);
+                            startHatchVertexDrag(insertedIndex, true);
+                        } else {
+                            if (snapping || mobileSnappingActive) {
+                                const snapPos = snappingPos(clickPos, snapRad);
+                                if (snapPos != null) clickPos = snapPos;
+                            }
+                            if (!isDrawingHatch) startHatchDrawing(clickPos);
+                            else addHatchPoint(clickPos, false);
+                            isHatchDragging = true;
+                        }
                     }
-                    if (!isDrawingHatch) startHatchDrawing(clickPos);
-                    else addHatchPoint(clickPos, false);
-                    isHatchDragging = true;
                 }
             }
             else if (tool === "fill") {
@@ -2072,13 +2093,26 @@ canvas.onpointerdown = (e) => {
                 if (typeof fillInputMode !== 'undefined' && fillInputMode === 'wand') {
                     executeFillMagicWand(clickPos);
                 } else {
-                    if (snapping || mobileSnappingActive) {
-                        const snapPos = snappingPos(clickPos, snapRad);
-                        if (snapPos != null) clickPos = snapPos;
+                    const hitVertexIndex = hitTestFillVertex(clickPos);
+
+                    if (hitVertexIndex !== -1) {
+                        startFillVertexDrag(hitVertexIndex);
+                    } else {
+                        const hitEdge = hitTestFillEdge(clickPos);
+
+                        if (hitEdge !== null) {
+                            const insertedIndex = insertFillPointAfter(hitEdge.afterIndex, hitEdge.pos);
+                            startFillVertexDrag(insertedIndex, true);
+                        } else {
+                            if (snapping || mobileSnappingActive) {
+                                const snapPos = snappingPos(clickPos, snapRad);
+                                if (snapPos != null) clickPos = snapPos;
+                            }
+                            if (!isDrawingFill) startFillDrawing(clickPos);
+                            else addFillPoint(clickPos, false);
+                            isFillDragging = true;
+                        }
                     }
-                    if (!isDrawingFill) startFillDrawing(clickPos);
-                    else addFillPoint(clickPos, false);
-                    isFillDragging = true;
                 }
             }
             else if (tool === "curve") {
@@ -2305,13 +2339,19 @@ canvas.onpointermove = (e) => {
             curvePoints.push(mousePos);
         }
     }
-    if (tool === "hatch" && isDrawingHatch && isHatchDragging && snapping) {
+    if (tool === "hatch" && isDrawingHatch && hatchVertexDragIndex !== -1) {
+        dragHatchVertex(mousePos);
+    }
+    if (tool === "hatch" && isDrawingHatch && isHatchDragging && hatchVertexDragIndex === -1 && snapping) {
         const snapPos = snappingPos(mousePos, 40);
         if (snapPos != null) {
             addHatchPoint(snapPos, true);
         }
     }
-    if (tool === "fill" && isDrawingFill && isFillDragging && snapping) {
+    if (tool === "fill" && isDrawingFill && fillVertexDragIndex !== -1) {
+        dragFillVertex(mousePos);
+    }
+    if (tool === "fill" && isDrawingFill && isFillDragging && fillVertexDragIndex === -1 && snapping) {
         const snapPos = snappingPos(mousePos, 40);
         if (snapPos != null) addFillPoint(snapPos, true);
     }
@@ -2685,6 +2725,22 @@ canvas.onpointerup = (e) => {
         isHatchDragging = false;
         isFillDragging = false;
 
+        if (tool === "hatch" && hatchVertexDragIndex !== -1) {
+            const dragResult = endHatchVertexDrag();
+            if (!dragResult.wasMoved) {
+                if (!dragResult.isNew) {
+                    const clickPos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
+                    addHatchPoint(clickPos, false);
+                }
+            }
+        }
+        if (tool === "fill" && fillVertexDragIndex !== -1) {
+            const dragResult = endFillVertexDrag();
+            if (!dragResult.wasMoved && !dragResult.isNew) {
+                const clickPos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
+                addFillPoint(clickPos, false);
+            }
+        }
         if (arrowPulling === true) {
             arrowPulling = false;
             showInfo(selectedId);
