@@ -3,6 +3,8 @@ let currentFillRegionIndex = 0;
 let isFillMultiRegionMode = false;
 let fillPoints = fillRegions[0];
 
+let lastFillPoints = [];
+
 let isDrawingFill = false;
 let isFillDragging = false;
 let previewFillQuads = [];
@@ -651,6 +653,8 @@ function finalizeFill() {
         return;
     }
 
+    lastFillPoints = regionsToRender.map(r => [...r]);
+
     let newObjects = [];
     for (const q of finalQuads) {
         const objIdStr = nextId().toString();
@@ -685,6 +689,31 @@ function cancelFill() {
     
     const quadsCountEl = document.getElementById('fillQuadsNum');
     if (quadsCountEl) quadsCountEl.innerText = "0";
+}
+
+function restoreLastFill() {
+    if (!lastFillPoints || lastFillPoints.length === 0) {
+        alert(typeof lang !== 'undefined' && lang === ru ? "Предыдущая зона отсутствует!" : "No previous zone found!");
+        return;
+    }
+
+    if (Array.isArray(lastFillPoints[0])) {
+        fillRegions = lastFillPoints.map(r => [...r]);
+    } else {
+        fillRegions = [[...lastFillPoints]];
+    }
+
+    currentFillRegionIndex = 0;
+    fillPoints = fillRegions[currentFillRegionIndex];
+
+    if (fillRegions.length > 1) {
+        setFillRegionMode('multi');
+    } else {
+        updateFillRegionUI();
+    }
+
+    isDrawingFill = true;
+    updateFillPreview();
 }
 
 let fillInputMode = 'manual';
@@ -878,6 +907,9 @@ function executeFillMagicWand(clickPos) {
 document.addEventListener('DOMContentLoaded', () => {
     const createBtn = document.getElementById('fillCreateBtn');
     const cancelBtn = document.getElementById('fillCancelBtn');
+    const restoreBtn = document.getElementById('fillRestoreBtn');
+
     if (createBtn) createBtn.onclick = () => finalizeFill();
     if (cancelBtn) cancelBtn.onclick = () => cancelFill();
+    if (restoreBtn) restoreBtn.onclick = () => restoreLastFill();
 });

@@ -1,4 +1,3 @@
-
 (function () {
 
     if (document.readyState === 'loading') {
@@ -34,6 +33,13 @@
         let isVectorizePreviewActive = false;
         let currentSourceImageData = null;
         let currentProcessedWidth = 0, currentProcessedHeight = 0;
+
+        let vectorizeMode = 'lines';
+        let vectorizeQuads = [];
+        let vectorizePreviewQuads = [];
+        let isQuadsPreviewActive = false;
+        
+        let currentQuadsOutWidth = 0, currentQuadsOutHeight = 0;
 
         const sensitivityPresets = {
             very_soft: { low: 80, high: 160 },
@@ -178,21 +184,82 @@
             return result;
         }
 
+        function convertQuadsToWorldCoordinates(rects, processedWidth, processedHeight) {
+            if (!rects.length) return [];
+
+            const ref = referenceArray[currentReference];
+            if (!ref || !ref.obj) return [];
+
+            const refX = ref.x;
+            const refY = ref.y;
+            const refSize = ref.size;
+            const refRotation = ref.rotation * Math.PI / 180;
+            const refAspectRatio = ref.obj.width / ref.obj.height;
+
+            const refWidth = refSize * refAspectRatio;
+            const refHeight = refSize;
+
+            const scaleX = refWidth / processedWidth;
+            const scaleY = refHeight / processedHeight;
+            const cos = Math.cos(refRotation);
+            const sin = Math.sin(refRotation);
+
+            function toWorld(px, py) {
+                let x = (px - processedWidth / 2) * scaleX;
+                let y = (py - processedHeight / 2) * scaleY;
+
+                x += refX;
+                y += refY;
+
+                if (refRotation !== 0) {
+                    const dx = x - refX;
+                    const dy = y - refY;
+                    x = refX + dx * cos - dy * sin;
+                    y = refY + dx * sin + dy * cos;
+                }
+
+                return { x, y };
+            }
+
+            const result = [];
+            for (const r of rects) {
+                result.push({
+                    pos1: toWorld(r.x, r.y),
+                    pos2: toWorld(r.x + r.w, r.y),
+                    pos3: toWorld(r.x + r.w, r.y + r.h),
+                    pos4: toWorld(r.x, r.y + r.h)
+                });
+            }
+
+            return result;
+        }
+
         function showVectorizePreview() {
             if (!isVectorizePreviewActive) return;
             window.vectorizeTempLines = vectorizePreviewLines;
         }
 
+        function showVectorizeQuadsPreview() {
+            if (!isQuadsPreviewActive) return;
+            window.vectorizeTempQuads = vectorizePreviewQuads;
+        }
+
         function hideVectorizePreview() {
             isVectorizePreviewActive = false;
+            isQuadsPreviewActive = false;
             window.vectorizeTempLines = null;
+            window.vectorizeTempQuads = null;
         }
 
         function scheduleVectorizeUpdate() {
             if (vectorizeUpdateTimer) clearTimeout(vectorizeUpdateTimer);
             vectorizeUpdateTimer = setTimeout(() => {
                 if (currentSourceImageData && tool === 'vectorize') {
-                    updateVectorizePreview();
+                    if (vectorizeMode === 'quads') {
+                        updateVectorizePreviewQuads();
+                    } else {
+                        updateVectorizePreview();
+                    }
                 }
                 vectorizeUpdateTimer = null;
             }, 150);
@@ -286,6 +353,83 @@
             });
         }
 
+        function updateVectorizePreviewQuads() {
+            if (!currentSourceImageData || isVectorizing) return;
+
+            isVectorizing = true;
+            const statusDiv = document.getElementById('vectorizeStatus');
+            if (statusDiv) statusDiv.innerHTML = (lang.vectorizeStatusProcessing || 'Обработка') + ' 0%...';
+
+            const maxQuads = parseInt(document.getElementById('vectorizeQuadsTarget').value);
+            const blurRadius = parseInt(document.getElementById('vectorizeQuadsBlur').value);
+            const threshold = parseInt(document.getElementById('vectorizeQuadsThresh').value);
+            const denoiseEnabled = document.getElementById('vectorizeQuadsDenoiseCheckbox').checked;
+
+            const worker = new Worker('scripts/vectorize-worker.js');
+
+            worker.onmessage = function (e) {
+                const result = e.data;
+
+                if (result.error) {
+                    console.error('Worker error:', result.error);
+                    if (statusDiv) statusDiv.innerHTML = lang.vectorizeStatusError || 'Ошибка обработки';
+                    isVectorizing = false;
+                    worker.terminate();
+                    return;
+                }
+
+                if (result.quads !== undefined) {
+                    vectorizeQuads = result.quads;
+                    currentQuadsOutWidth = result.outWidth;
+                    currentQuadsOutHeight = result.outHeight;
+                    document.getElementById('vectorizeLineCount').innerText = vectorizeQuads.length;
+
+                    if (vectorizeQuads.length === 0) {
+                        hideVectorizePreview();
+                        if (statusDiv) statusDiv.innerHTML = lang.vectorizeStatusNoContours || 'Контуры не найдены';
+                        setTimeout(() => {
+                            if (statusDiv && statusDiv.innerHTML === (lang.vectorizeStatusNoContours || 'Контуры не найдены')) statusDiv.innerHTML = '';
+                        }, 2000);
+                    } else {
+                        vectorizePreviewQuads = convertQuadsToWorldCoordinates(vectorizeQuads, currentQuadsOutWidth, currentQuadsOutHeight);
+                        isQuadsPreviewActive = true;
+                        showVectorizeQuadsPreview();
+
+                        const optimizedSuffix = result.isAutoOptimized ? ` ${lang.autoOptimizedResolution}` : '';
+                        const doneMsg = (lang.vectorizeStatusDone || 'Готово') + ` ${vectorizeQuads.length} ${lang.fillQuadsCount}${optimizedSuffix}`;
+                        if (statusDiv) statusDiv.innerHTML = doneMsg;
+                        setTimeout(() => {
+                            if (statusDiv && statusDiv.innerHTML === doneMsg) statusDiv.innerHTML = '';
+                        }, 2500);
+                    }
+                    isVectorizing = false;
+                    worker.terminate();
+                }
+            };
+
+            worker.onerror = function (e) {
+                console.error('Worker error:', e);
+                if (statusDiv) statusDiv.innerHTML = lang.vectorizeStatusError || 'Ошибка обработки';
+                isVectorizing = false;
+                worker.terminate();
+            };
+
+            worker.postMessage({
+                type: 'process_quads',
+                imageData: {
+                    data: currentSourceImageData.data,
+                    width: currentSourceImageData.width,
+                    height: currentSourceImageData.height
+                },
+                params: {
+                    maxQuads: maxQuads,
+                    blurRadius: blurRadius,
+                    threshold: threshold,
+                    denoiseEnabled: denoiseEnabled
+                }
+            });
+        }
+
         function processVectorize() {
             if (loadImageFromReference()) {
                 scheduleVectorizeUpdate();
@@ -293,6 +437,14 @@
         }
 
         function autoOptimizeVectorize() {
+            if (vectorizeMode === 'quads') {
+                autoOptimizeVectorizeQuads();
+            } else {
+                autoOptimizeVectorizeLines();
+            }
+        }
+
+        function autoOptimizeVectorizeLines() {
             if (!loadImageFromReference()) return; 
 
             const target = parseInt(document.getElementById('vectorizeTargetLines').value);
@@ -432,16 +584,130 @@
             });
         }
 
+        function autoOptimizeVectorizeQuads() {
+            if (!loadImageFromReference()) return;
+
+            const target = parseInt(document.getElementById('vectorizeQuadsTarget').value);
+            const statusDiv = document.getElementById('vectorizeStatus');
+
+            if (statusDiv) statusDiv.innerHTML = (lang.vectorizeAutoProgress || 'Автоподбор') + ": 0%...";
+
+            const blurValues = [1, 2, 3, 4, 5, 6];
+            const threshValues = [130, 150, 170, 190, 210, 230];
+
+            const tests = [];
+            let testId = 0;
+            for (const blur of blurValues) {
+                for (const thresh of threshValues) {
+                    tests.push({ blur: blur, thresh: thresh, id: testId++ });
+                }
+            }
+
+            let completedTests = 0;
+            const results = [];
+
+            const worker = new Worker('scripts/vectorize-worker.js');
+
+            function blurRangePenalty(blur) {
+                if (blur >= 2 && blur <= 4) return 0;
+                if (blur < 2) return (2 - blur);
+                return (blur - 4);
+            }
+
+            function finishQuadsOptimization() {
+                let bestResult = null;
+                let bestScore = Infinity;
+
+                for (const result of results) {
+                    if (result.error || result.quadsCount === 0) continue;
+
+                    const countDiff = Math.abs(result.quadsCount - target) / target;
+                    const singleFraction = result.singleCount / result.quadsCount;
+                    const downscalePenalty = result.isAutoOptimized ? 1 : 0;
+                    const thicknessPenalty = blurRangePenalty(result.params.blur);
+
+                    const score = countDiff * 1.0 + singleFraction * 1.5 + downscalePenalty * 2.0 + thicknessPenalty * 0.35;
+
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestResult = result;
+                    }
+                }
+
+                if (bestResult) {
+                    const bestParams = bestResult.params;
+
+                    document.getElementById('vectorizeQuadsBlur').value = bestParams.blur;
+                    document.getElementById('vectorizeQuadsBlurVal').innerText = bestParams.blur;
+                    document.getElementById('vectorizeQuadsThresh').value = bestParams.thresh;
+                    document.getElementById('vectorizeQuadsThreshVal').innerText = bestParams.thresh;
+                    document.getElementById('vectorizeQuadsDenoiseCheckbox').checked = true;
+
+                    setTimeout(() => { updateVectorizePreviewQuads(); }, 100);
+
+                    if (statusDiv) {
+                        const doneMsg = (lang.vectorizeStatusOptimized || 'Оптимизировано:') + ` ${bestResult.quadsCount} квадов`;
+                        statusDiv.innerHTML = doneMsg;
+                        setTimeout(() => {
+                            if (statusDiv && statusDiv.innerHTML === doneMsg) statusDiv.innerHTML = '';
+                        }, 3000);
+                    }
+                } else {
+                    if (statusDiv) statusDiv.innerHTML = lang.vectorizeStatusAutoOptimizationFailed || 'Автоподбор не удался';
+                }
+                worker.terminate();
+            }
+
+            worker.onmessage = function (e) {
+                if (e.data.type === 'auto_result_quads') {
+                    results.push(e.data);
+                    completedTests++;
+                    const percent = Math.round((completedTests / tests.length) * 100);
+                    if (statusDiv) statusDiv.innerHTML = (lang.vectorizeAutoProgress || 'Автоподбор') + `: ${percent}%...`;
+                }
+                else if (e.data.type === 'auto_done_quads') {
+                    finishQuadsOptimization();
+                }
+            };
+
+            worker.onerror = function (e) {
+                console.error('Worker error:', e);
+                if (statusDiv) statusDiv.innerHTML = lang.vectorizeStatusError || 'Ошибка обработки';
+                worker.terminate();
+            };
+
+            worker.postMessage({
+                type: 'auto_batch_quads',
+                imageData: {
+                    data: currentSourceImageData.data,
+                    width: currentSourceImageData.width,
+                    height: currentSourceImageData.height
+                },
+                tests: tests,
+                target: target
+            });
+        }
+
         function resetSettings() {
-            const targetSlider = document.getElementById('vectorizeTargetLines');
-            targetSlider.value = "2000";
-            document.getElementById('vectorizeTargetVal').innerText = "2000";
-            document.getElementById('vectorizeSensitivity').value = "balanced";
-            document.getElementById('vectorizeDenoise').value = "1";
-            document.getElementById('vectorizeSharpness').value = "1.0";
-            document.getElementById('vectorizeSharpnessVal').innerText = "1.0";
-            document.getElementById('vectorizeSimplify').value = "1.0";
-            document.getElementById('vectorizeSimplifyVal').innerText = "1.0";
+            if (vectorizeMode === 'quads') {
+                document.getElementById('vectorizeQuadsTarget').value = "8000";
+                document.getElementById('vectorizeQuadsTargetVal').innerText = "8000";
+                document.getElementById('vectorizeQuadsBlur').value = "3";
+                document.getElementById('vectorizeQuadsBlurVal').innerText = "3";
+                document.getElementById('vectorizeQuadsThresh').value = "220";
+                document.getElementById('vectorizeQuadsThreshVal').innerText = "220";
+                document.getElementById('vectorizeQuadsDenoiseCheckbox').checked = false;
+            } else {
+                const targetSlider = document.getElementById('vectorizeTargetLines');
+                targetSlider.value = "2000";
+                document.getElementById('vectorizeTargetVal').innerText = "2000";
+                document.getElementById('vectorizeSensitivity').value = "balanced";
+                document.getElementById('vectorizeDenoise').value = "1";
+                document.getElementById('vectorizeSharpness').value = "1.0";
+                document.getElementById('vectorizeSharpnessVal').innerText = "1.0";
+                document.getElementById('vectorizeSimplify').value = "1.0";
+                document.getElementById('vectorizeSimplifyVal').innerText = "1.0";
+            }
 
             if (currentSourceImageData) {
                 scheduleVectorizeUpdate();
@@ -449,6 +715,14 @@
         }
 
         function applyVectorizeToCanvas() {
+            if (vectorizeMode === 'quads') {
+                applyVectorizeQuadsToCanvas();
+            } else {
+                applyVectorizeLinesToCanvas();
+            }
+        }
+
+        function applyVectorizeLinesToCanvas() {
             if (!vectorizeLines.length) {
                 alert("Нет линий для применения! Сначала обработайте изображение.");
                 return;
@@ -463,6 +737,33 @@
                     type: "line",
                     start: { x: line.start.x, y: line.start.y },
                     end: { x: line.end.x, y: line.end.y },
+                    selected: false
+                };
+                objects.set(objIdStr, object);
+                pushEvent("add", { id: objIdStr, object: object });
+            }
+
+            refreshObjectsList(true);
+            hideVectorizePreview();
+        }
+
+        function applyVectorizeQuadsToCanvas() {
+            if (!vectorizeQuads.length) {
+                alert("Нет квадов для применения! Сначала обработайте изображение.");
+                return;
+            }
+
+            const worldQuads = convertQuadsToWorldCoordinates(vectorizeQuads, currentQuadsOutWidth, currentQuadsOutHeight);
+
+            for (const q of worldQuads) {
+                const objIdStr = nextId().toString();
+                const object = {
+                    name: (lang.quad || "Квад ") + objIdStr,
+                    type: "quad",
+                    pos1: { x: q.pos1.x, y: q.pos1.y },
+                    pos2: { x: q.pos2.x, y: q.pos2.y },
+                    pos3: { x: q.pos3.x, y: q.pos3.y },
+                    pos4: { x: q.pos4.x, y: q.pos4.y },
                     selected: false
                 };
                 objects.set(objIdStr, object);
@@ -516,7 +817,73 @@
             autoBtn.onclick = () => autoOptimizeVectorize();
             resetBtn.onclick = resetSettings;
             applyBtn.onclick = () => applyVectorizeToCanvas();
+
+            const quadsTarget = document.getElementById('vectorizeQuadsTarget');
+            const quadsTargetVal = document.getElementById('vectorizeQuadsTargetVal');
+            const quadsMaxSpan = document.getElementById('vectorizeQuadsMaxLines');
+            const quadsBlur = document.getElementById('vectorizeQuadsBlur');
+            const quadsBlurVal = document.getElementById('vectorizeQuadsBlurVal');
+            const quadsThresh = document.getElementById('vectorizeQuadsThresh');
+            const quadsThreshVal = document.getElementById('vectorizeQuadsThreshVal');
+            const quadsDenoise = document.getElementById('vectorizeQuadsDenoiseCheckbox');
+
+            if (quadsMaxSpan) quadsMaxSpan.innerText = quadsTarget.max;
+
+            quadsTarget.addEventListener('input', () => {
+                quadsTargetVal.innerText = quadsTarget.value;
+                if (tool === 'vectorize') scheduleVectorizeUpdate();
+            });
+
+            quadsBlur.addEventListener('input', () => {
+                quadsBlurVal.innerText = quadsBlur.value;
+                if (tool === 'vectorize') scheduleVectorizeUpdate();
+            });
+
+            quadsThresh.addEventListener('input', () => {
+                quadsThreshVal.innerText = quadsThresh.value;
+                if (tool === 'vectorize') scheduleVectorizeUpdate();
+            });
+
+            quadsDenoise.addEventListener('change', () => {
+                if (tool === 'vectorize') scheduleVectorizeUpdate();
+            });
         }
+
+        function setVectorizeMode(mode) {
+            if (mode !== 'lines' && mode !== 'quads') return;
+            if (vectorizeMode === mode) return;
+
+            vectorizeMode = mode;
+
+            const linesBtn = document.getElementById('vectorizeModeLinesBtn');
+            const quadsBtn = document.getElementById('vectorizeModeQuadsBtn');
+            const linesSettings = document.getElementById('vectorizeLinesSettings');
+            const quadsSettings = document.getElementById('vectorizeQuadsSettings');
+
+            function applyBtnStyle(btn, active) {
+                if (!btn) return;
+                if (active) {
+                    btn.style.background = 'var(--input-bg)';
+                    btn.style.border = '1px solid transparent';
+                } else {
+                    btn.style.background = 'transparent';
+                    btn.style.border = '1px solid var(--border-col)';
+                }
+            }
+
+            applyBtnStyle(linesBtn, mode === 'lines');
+            applyBtnStyle(quadsBtn, mode === 'quads');
+
+            if (linesSettings) linesSettings.style.display = (mode === 'lines') ? 'flex' : 'none';
+            if (quadsSettings) quadsSettings.style.display = (mode === 'quads') ? 'flex' : 'none';
+
+            hideVectorizePreview();
+
+            if (currentSourceImageData) {
+                scheduleVectorizeUpdate();
+            }
+        }
+        window.setVectorizeMode = setVectorizeMode;
 
         let panelVisible = false;
         function toggleVectorizePanel(forceShow) {
@@ -557,38 +924,8 @@
 
         setupVectorizeEvents();
 
-        function makeDraggableVectorizePanel(element) {
-            const dragger = element.querySelector('#vectorizePanelDragger');
-            if (!dragger) return;
-
-            let posFrom = null;
-
-            dragger.onmousedown = (e) => {
-                e.preventDefault();
-                posFrom = { x: e.clientX, y: e.clientY };
-                document.onmouseup = closeDragElement;
-                document.onmousemove = elementDrag;
-            };
-
-            function elementDrag(e) {
-                e.preventDefault();
-                const movement = { x: posFrom.x - e.clientX, y: posFrom.y - e.clientY };
-                posFrom = { x: e.clientX, y: e.clientY };
-                element.style.top = (element.offsetTop - movement.y) + "px";
-                element.style.left = (element.offsetLeft - movement.x) + "px";
-                element.style.right = "auto";
-                element.style.bottom = "auto";
-            }
-
-            function closeDragElement() {
-                document.onmouseup = null;
-                document.onmousemove = null;
-            }
-        }
-
-        makeDraggableVectorizePanel(vectorizePanel);
-
         window.vectorizeTempLines = null;
+        window.vectorizeTempQuads = null;
 
         window.hideVectorizePreview = hideVectorizePreview;
     }

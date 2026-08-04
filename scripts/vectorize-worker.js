@@ -416,6 +416,254 @@ function processMessage(data) {
             self.postMessage({ lines: [], linesCount: 0, error: error.message });
         }
     }
+
+    else if (type === 'process_quads' && params) {
+        try {
+            const result = buildQuadsForLimit(imageData, params);
+            self.postMessage({
+                quads: result.rects,
+                quadsCount: result.rects.length,
+                outWidth: result.w,
+                outHeight: result.h,
+                isAutoOptimized: result.isAutoOptimized
+            });
+        } catch (error) {
+            self.postMessage({ quads: [], quadsCount: 0, error: error.message });
+        }
+    }
+
+    else if (type === 'auto_batch_quads') {
+        const { tests, target } = data;
+
+        for (const t of tests) {
+            try {
+                const result = buildQuadsForLimit(imageData, {
+                    maxQuads: target,
+                    blurRadius: t.blur,
+                    threshold: t.thresh,
+                    denoiseEnabled: true
+                });
+
+                let singleCount = 0;
+                for (const r of result.rects) {
+                    if (r.w === 1 && r.h === 1) singleCount++;
+                }
+
+                self.postMessage({
+                    type: 'auto_result_quads',
+                    testId: t.id,
+                    quadsCount: result.rects.length,
+                    singleCount: singleCount,
+                    isAutoOptimized: result.isAutoOptimized,
+                    params: t
+                });
+            } catch (error) {
+                self.postMessage({
+                    type: 'auto_result_quads',
+                    testId: t.id,
+                    quadsCount: 0,
+                    singleCount: 0,
+                    isAutoOptimized: false,
+                    error: error.message,
+                    params: t
+                });
+            }
+        }
+
+        self.postMessage({ type: 'auto_done_quads' });
+    }
+}
+
+function boxBlurQuads(src, w, h, r) {
+    if (r <= 0) return new Float32Array(src);
+    const dst = new Float32Array(w * h);
+    const temp = new Float32Array(w * h);
+
+    for (let y = 0; y < h; y++) {
+        let sum = 0;
+        const yOffset = y * w;
+        for (let x = -r; x <= r; x++) {
+            const px = Math.min(w - 1, Math.max(0, x));
+            sum += src[yOffset + px];
+        }
+        for (let x = 0; x < w; x++) {
+            temp[yOffset + x] = sum / (2 * r + 1);
+            const removePx = Math.max(0, x - r);
+            const addPx = Math.min(w - 1, x + r + 1);
+            sum += src[yOffset + addPx] - src[yOffset + removePx];
+        }
+    }
+
+    for (let x = 0; x < w; x++) {
+        let sum = 0;
+        for (let y = -r; y <= r; y++) {
+            const py = Math.min(h - 1, Math.max(0, y));
+            sum += temp[py * w + x];
+        }
+        for (let y = 0; y < h; y++) {
+            dst[y * w + x] = sum / (2 * r + 1);
+            const removePy = Math.max(0, y - r);
+            const addPy = Math.min(h - 1, y + r + 1);
+            sum += temp[addPy * w + x] - temp[removePy * w + x];
+        }
+    }
+    return dst;
+}
+
+function resampleImageData(imageData, targetW, targetH) {
+    const { width: srcW, height: srcH, data: srcData } = imageData;
+
+    if (targetW === srcW && targetH === srcH) {
+        return srcData;
+    }
+
+    if (typeof OffscreenCanvas !== 'undefined') {
+        const srcCanvas = new OffscreenCanvas(srcW, srcH);
+        const srcCtx = srcCanvas.getContext('2d');
+        srcCtx.putImageData(new ImageData(new Uint8ClampedArray(srcData), srcW, srcH), 0, 0);
+
+        const dstCanvas = new OffscreenCanvas(targetW, targetH);
+        const dstCtx = dstCanvas.getContext('2d');
+        dstCtx.drawImage(srcCanvas, 0, 0, targetW, targetH);
+
+        return dstCtx.getImageData(0, 0, targetW, targetH).data;
+    }
+
+    const out = new Uint8ClampedArray(targetW * targetH * 4);
+    const scaleX = srcW / targetW;
+    const scaleY = srcH / targetH;
+    for (let y = 0; y < targetH; y++) {
+        const sy = Math.min(srcH - 1, Math.floor(y * scaleY));
+        for (let x = 0; x < targetW; x++) {
+            const sx = Math.min(srcW - 1, Math.floor(x * scaleX));
+            const srcIdx = (sy * srcW + sx) * 4;
+            const dstIdx = (y * targetW + x) * 4;
+            out[dstIdx] = srcData[srcIdx];
+            out[dstIdx + 1] = srcData[srcIdx + 1];
+            out[dstIdx + 2] = srcData[srcIdx + 2];
+            out[dstIdx + 3] = srcData[srcIdx + 3];
+        }
+    }
+    return out;
+}
+
+function buildGridAndRectsQuads(imageData, targetW, targetH, cleanNoise, blurRadius, threshold) {
+    const data = resampleImageData(imageData, targetW, targetH);
+
+    const gray = new Float32Array(targetW * targetH);
+    const inverted = new Float32Array(targetW * targetH);
+
+    for (let i = 0; i < data.length; i += 4) {
+        const g = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        const idx = i / 4;
+        gray[idx] = g;
+        inverted[idx] = 255 - g;
+    }
+
+    const blurredInverted = boxBlurQuads(inverted, targetW, targetH, blurRadius);
+
+    const grid = [];
+    for (let y = 0; y < targetH; y++) {
+        grid[y] = new Uint8Array(targetW);
+    }
+
+    for (let y = 0; y < targetH; y++) {
+        for (let x = 0; x < targetW; x++) {
+            const idx = y * targetW + x;
+            const g = gray[idx];
+            const b = blurredInverted[idx];
+
+            let val;
+            const denom = 255 - b;
+
+            if (denom <= 0) {
+                val = (g < 128) ? 0 : 255;
+            } else {
+                val = (g * 255) / denom;
+            }
+
+            grid[y][x] = (val < threshold || g < 20) ? 1 : 0;
+        }
+    }
+
+    if (cleanNoise) {
+        for (let y = 1; y < targetH - 1; y++) {
+            for (let x = 1; x < targetW - 1; x++) {
+                if (grid[y][x] === 1) {
+                    const n = grid[y - 1][x] + grid[y + 1][x] + grid[y][x - 1] + grid[y][x + 1];
+                    if (n === 0) grid[y][x] = 0;
+                }
+            }
+        }
+    }
+
+    const rects = [];
+    const visited = [];
+    for (let y = 0; y < targetH; y++) {
+        visited[y] = new Uint8Array(targetW);
+    }
+
+    for (let y = 0; y < targetH; y++) {
+        for (let x = 0; x < targetW; x++) {
+            if (grid[y][x] === 1 && !visited[y][x]) {
+                let width = 0;
+                while (x + width < targetW && grid[y][x + width] === 1 && !visited[y][x + width]) {
+                    width++;
+                }
+
+                let height = 1;
+                while (y + height < targetH) {
+                    let canExtend = true;
+                    for (let k = 0; k < width; k++) {
+                        if (grid[y + height][x + k] !== 1 || visited[y + height][x + k]) {
+                            canExtend = false;
+                            break;
+                        }
+                    }
+                    if (canExtend) height++;
+                    else break;
+                }
+
+                for (let dy = 0; dy < height; dy++) {
+                    for (let dx = 0; dx < width; dx++) {
+                        visited[y + dy][x + dx] = 1;
+                    }
+                }
+
+                rects.push({ x, y, w: width, h: height });
+            }
+        }
+    }
+
+    return rects;
+}
+
+function buildQuadsForLimit(imageData, params) {
+    const origW = imageData.width;
+    const origH = imageData.height;
+    const maxQuadsLimit = params.maxQuads;
+    const blurRadius = params.blurRadius;
+    const threshold = params.threshold;
+    const denoiseEnabled = params.denoiseEnabled;
+
+    let currentW = origW;
+    let currentH = origH;
+    let rects = buildGridAndRectsQuads(imageData, currentW, currentH, denoiseEnabled, blurRadius, threshold);
+    let isAutoOptimized = false;
+
+    let attempts = 0;
+    while (rects.length > maxQuadsLimit && attempts < 10) {
+        isAutoOptimized = true;
+
+        const factor = Math.sqrt(maxQuadsLimit / rects.length) * 0.95;
+        currentW = Math.max(32, Math.floor(currentW * factor));
+        currentH = Math.max(32, Math.floor(currentH * factor));
+
+        rects = buildGridAndRectsQuads(imageData, currentW, currentH, denoiseEnabled, blurRadius, threshold);
+        attempts++;
+    }
+
+    return { rects, w: currentW, h: currentH, isAutoOptimized };
 }
 
 function extractPathsFromBinary(edgesMat) {

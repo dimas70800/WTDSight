@@ -436,7 +436,7 @@ function getMousePos(offsetX, offsetY) {
 }
 
 function drawGhost() {
-    if (window.vectorizeTempLines && window.vectorizeTempLines.length > 0 && tool !== "hatch") {
+    if (window.vectorizeTempLines && window.vectorizeTempLines.length > 0) {
         ctx.save();
         ctx.globalAlpha = 0.7;
         ctx.strokeStyle = "rgba(100, 200, 100, 0.9)";
@@ -449,6 +449,27 @@ function drawGhost() {
             ctx.moveTo(from.x, from.y);
             ctx.lineTo(to.x, to.y);
             ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+    if (window.vectorizeTempQuads && window.vectorizeTempQuads.length > 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = "rgba(100, 200, 100, 0.9)";
+
+        for (const q of window.vectorizeTempQuads) {
+            const p1 = v2disposSight2v2canvas(q.pos1);
+            const p2 = v2disposSight2v2canvas(q.pos2);
+            const p3 = v2disposSight2v2canvas(q.pos3);
+            const p4 = v2disposSight2v2canvas(q.pos4);
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.lineTo(p3.x, p3.y);
+            ctx.lineTo(p4.x, p4.y);
+            ctx.closePath();
+            ctx.fill();
         }
 
         ctx.restore();

@@ -434,7 +434,19 @@
                                 <div id="vectorizeBeta" style="color: #777777; font-size: 12px; margin-bottom: 20px;">
                                     (Бета-Тест)</div>
 
-                                <div class="vectorize-section">
+                                <div class="block-with-elem">
+                                    <span style="font-size: 13px; text-align: center;" id="vectorizeModeLabel">Режим
+                                        генерации</span>
+                                    <div
+                                        style="display: flex; justify-content:space-evenly; flex-direction: row; gap: 5px;">
+                                        <button id="vectorizeModeLinesBtn" onclick="setVectorizeMode('lines')"
+                                            style="width: 60px; height: 60px; background: var(--input-bg); border-color: transparent; font-size: 22px; line-height: 1;"><img src="images/linesTool.svg" style="height: 100%; width: 100%;"></button>
+                                        <button id="vectorizeModeQuadsBtn" onclick="setVectorizeMode('quads')"
+                                            style="width: 60px; height: 60px; background: transparent; border: 1px solid var(--border-col); font-size: 22px; line-height: 1;"><img src="images/quadsTool.svg" style="height: 100%; width: 100%;"></button>
+                                    </div>
+                                </div>
+
+                                <div id="vectorizeLinesSettings" class="vectorize-section">
                                     <div
                                         style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px;">
                                         <span id="vectorizeTargetLinesLabel">Целевое количество линий:</span>
@@ -485,6 +497,45 @@
                                         </div>
                                         <input type="range" id="vectorizeSimplify" min="0.3" max="2.0" step="0.05"
                                             value="1.0">
+                                    </div>
+                                </div>
+
+                                <div id="vectorizeQuadsSettings" class="vectorize-section" style="display: none;">
+                                    <div
+                                        style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px;">
+                                        <span id="vectorizeQuadsMaxLabel">Лимит четырёхугольников:</span>
+                                        <span><span id="vectorizeQuadsTargetVal">8000</span> / <span
+                                                id="vectorizeQuadsMaxLines">8000</span></span>
+                                    </div>
+                                    <input type="range" id="vectorizeQuadsTarget" min="50" max="8000" step="10"
+                                        value="8000">
+
+                                    <div style="margin: 8px 0; font-size: 12px;">
+                                        <div style="display: flex; justify-content: space-between;">
+                                            <span id="vectorizeQuadsBlurLabel">Толщина линий:</span>
+                                            <span><span id="vectorizeQuadsBlurVal">3</span></span>
+                                        </div>
+                                        <input type="range" id="vectorizeQuadsBlur" min="1" max="10" step="1"
+                                            value="3">
+                                    </div>
+
+                                    <div style="margin: 8px 0 6px 0; font-size: 12px;">
+                                        <div style="display: flex; justify-content: space-between;">
+                                            <span id="vectorizeQuadsThreshLabel">Порог чёрного:</span>
+                                            <span><span id="vectorizeQuadsThreshVal">220</span></span>
+                                        </div>
+                                        <input type="range" id="vectorizeQuadsThresh" min="100" max="250" step="1"
+                                            value="220">
+                                    </div>
+
+                                    <div
+                                        style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0 5px;">
+                                        <label
+                                            style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px;">
+                                            <input type="checkbox" id="vectorizeQuadsDenoiseCheckbox"
+                                                style="transform: scale(1.1);">
+                                            <span id="vectorizeQuadsDenoiseLabel">Убрать одиночные пиксели</span>
+                                        </label>
                                     </div>
                                 </div>
 
@@ -676,6 +727,8 @@
                                         style="background: #eb3b3b; color: white; flex-grow: 1;">Отмена</button>
                                 </div>
                             </div>
+
+                            <button id="fillRestoreBtn">Предыдущая зона</button>
 
                             <div class="block-with-elem" style="margin-top: 5px;">
                                 <span style="font-size: 13px; text-align: center;" id="areaSelectFillLabel">Выделение

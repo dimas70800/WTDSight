@@ -310,7 +310,15 @@ const ru =
     hotkeyFillTool: "Инструмент Заливки",
     hotkeySelectTool: "Инструмент Выделение",
 
-    drawCrosshairCheckBoxTitleText: "Отображать перекрестие прицела"
+    drawCrosshairCheckBoxTitleText: "Отображать перекрестие прицела",
+
+    vectorizeModeLabel: "Режим генерации",
+    vectorizeQuadsMaxLabel: "Лимит четырёхугольников",
+    vectorizeQuadsBlurLabel: "Толщина линий",
+    vectorizeQuadsThreshLabel: "Порог чёрного",
+    vectorizeQuadsDenoiseLabel: "Убрать одиночные пиксели",
+    autoOptimizedResolution: "(авто-оптимизация разрешения)",
+    fillRestoreBtn: "Предыдущая зона"
 };
 
 const en =
@@ -618,7 +626,7 @@ const en =
     hotkeyClearSel: "Clear selection",
     hotkeyRotLeft: "Rotate canvas left",
     hotkeyRotRight: "Rotate canvas right",
-    
+
     hotkeyLinesTool: "Lines Tool",
     hotkeyCurveTool: "Curve Tool",
     hotkeyBrushTool: "Brush Tool",
@@ -626,7 +634,15 @@ const en =
     hotkeyFillTool: "Fill Tool",
     hotkeySelectTool: "Select Tool",
 
-    drawCrosshairCheckBoxTitleText: "Show sight crosshair"
+    drawCrosshairCheckBoxTitleText: "Show sight crosshair",
+
+    vectorizeModeLabel: "Generation mode",
+    vectorizeQuadsMaxLabel: "Limit quads",
+    vectorizeQuadsBlurLabel: "Line thickness",
+    vectorizeQuadsThreshLabel: "Threshold of black",
+    vectorizeQuadsDenoiseLabel: "Remove single pixels",
+    autoOptimizedResolution: "(auto-optimized resolution)",
+    fillRestoreBtn: "Previous zone"
 };
 
 const langDependent =
@@ -882,7 +898,14 @@ const langDependent =
         "controlsSettingsTabBtn",
         "resetHotkeysBtn",
 
-        "drawCrosshairCheckBoxTitleText"
+        "drawCrosshairCheckBoxTitleText",
+
+        "vectorizeModeLabel",
+        "vectorizeQuadsMaxLabel",
+        "vectorizeQuadsBlurLabel",
+        "vectorizeQuadsThreshLabel",
+        "vectorizeQuadsDenoiseLabel",
+        "fillRestoreBtn"
     ];
 
 function changeLang(to) {
