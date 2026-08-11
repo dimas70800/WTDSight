@@ -124,7 +124,7 @@ function loadFromBlk(text) {
     const lineBlocks = linesBlock.match(lineBlockPattern) || [];
  
     for (const block of lineBlocks) {
-        const coordMatch = block.match(/line:p4\s*=\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i);
+        const coordMatch = block.match(/line:p4\s*=\s*(-?\d+\.?\d*(?:[eE][-+]?\d+)?)\s*,\s*(-?\d+\.?\d*(?:[eE][-+]?\d+)?)\s*,\s*(-?\d+\.?\d*(?:[eE][-+]?\d+)?)\s*,\s*(-?\d+\.?\d*(?:[eE][-+]?\d+)?)/i);
         const lineThousandth = /thousandth\s*:\s*b\s*=\s*(yes|true)/i.test(block);
         const scale = lineThousandth ? 0.001 : 1;
         if (coordMatch) {
@@ -142,10 +142,10 @@ function loadFromBlk(text) {
     const quadBlocks = quadsBlock.match(/quad\s*\{[^}]*\}/gi) || [];
  
     for (const block of quadBlocks) {
-        const tlMatch = block.match(/tl:p2\s*=\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i);
-        const trMatch = block.match(/tr:p2\s*=\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i);
-        const brMatch = block.match(/br:p2\s*=\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i);
-        const blMatch = block.match(/bl:p2\s*=\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/i);
+        const tlMatch = block.match(/tl:p2\s*=\s*(-?\d+\.?\d*(?:[eE][-+]?\d+)?)\s*,\s*(-?\d+\.?\d*(?:[eE][-+]?\d+)?)/i);
+        const trMatch = block.match(/tr:p2\s*=\s*(-?\d+\.?\d*(?:[eE][-+]?\d+)?)\s*,\s*(-?\d+\.?\d*(?:[eE][-+]?\d+)?)/i);
+        const brMatch = block.match(/br:p2\s*=\s*(-?\d+\.?\d*(?:[eE][-+]?\d+)?)\s*,\s*(-?\d+\.?\d*(?:[eE][-+]?\d+)?)/i);
+        const blMatch = block.match(/bl:p2\s*=\s*(-?\d+\.?\d*(?:[eE][-+]?\d+)?)\s*,\s*(-?\d+\.?\d*(?:[eE][-+]?\d+)?)/i);
         const quadThousandth = /thousandth\s*:\s*b\s*=\s*(yes|true)/i.test(block);
         const scale = quadThousandth ? 0.001 : 1;
  

@@ -683,177 +683,68 @@ function setHatchInputMode(mode) {
     }
 }
 
-function executeMagicWand(clickPos) {
-    if (typeof ClipperLib === 'undefined') {
-        alert(lang === ru ? "Библиотека Clipper.js не найдена!" : "Clipper.js library not found!");
-        return;
-    }
+const magicWandWorker = new Worker('scripts/magicwand-worker.js');
+let magicWandRequestSeq = 0;
+let magicWandCallback = null;
 
-    const scale = 100000;
-    const tolerance = 0.0005;
-    const intTolerance = Math.round(tolerance * scale);
+magicWandWorker.onmessage = (e) => {
+    const data = e.data || {};
+    if (data.requestId !== magicWandRequestSeq) return;
+    const cb = magicWandCallback;
+    magicWandCallback = null;
+    if (cb) cb(data.error || null, data.regions || []);
+};
 
-    let co = new ClipperLib.ClipperOffset();
-    let coClosed = new ClipperLib.ClipperOffset();
+function collectMagicWandWalls() {
+    const lines = [];
+    const quads = [];
 
-    let hasObjects = false;
-    for (const [id, obj] of objects) {
+    for (const [, obj] of objects) {
         if (obj.type === "line") {
-            hasObjects = true;
-            let path = [
-                { X: Math.round(obj.start.x * scale), Y: Math.round(obj.start.y * scale) },
-                { X: Math.round(obj.end.x * scale), Y: Math.round(obj.end.y * scale) }
-            ];
-            co.AddPath(path, ClipperLib.JoinType.jtMiter, ClipperLib.EndType.etOpenSquare);
+            lines.push({ start: obj.start, end: obj.end });
         } else if (obj.type === "quad") {
-            hasObjects = true;
-            let path = [
-                { X: Math.round(obj.pos1.x * scale), Y: Math.round(obj.pos1.y * scale) },
-                { X: Math.round(obj.pos2.x * scale), Y: Math.round(obj.pos2.y * scale) },
-                { X: Math.round(obj.pos3.x * scale), Y: Math.round(obj.pos3.y * scale) },
-                { X: Math.round(obj.pos4.x * scale), Y: Math.round(obj.pos4.y * scale) }
-            ];
-            coClosed.AddPath(path, ClipperLib.JoinType.jtMiter, ClipperLib.EndType.etClosedPolygon);
+            quads.push({ pos1: obj.pos1, pos2: obj.pos2, pos3: obj.pos3, pos4: obj.pos4 });
         }
     }
 
-    let allThickWalls = new ClipperLib.Paths();
-    if (hasObjects) {
-        let thickWalls = new ClipperLib.Paths();
-        co.Execute(thickWalls, intTolerance);
-        let thickWallsClosed = new ClipperLib.Paths();
-        coClosed.Execute(thickWallsClosed, intTolerance);
+    return { lines, quads };
+}
 
-        let clprCombine = new ClipperLib.Clipper();
-        clprCombine.AddPaths(thickWalls, ClipperLib.PolyType.ptSubject, true);
-        clprCombine.AddPaths(thickWallsClosed, ClipperLib.PolyType.ptSubject, true);
-        clprCombine.Execute(ClipperLib.ClipType.ctUnion, allThickWalls, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
-    }
 
-    const boxX = 9 * 0.1 * scale;
-    const boxY = 5 * 0.1 * scale;
-    let bbox = [[
-        { X: -boxX, Y: -boxY }, { X: boxX, Y: -boxY },
-        { X: boxX, Y: boxY }, { X: -boxX, Y: boxY }
-    ]];
+function requestMagicWandRegions(clickPos, callback) {
+    const requestId = ++magicWandRequestSeq;
+    magicWandCallback = callback;
 
-    let clpr = new ClipperLib.Clipper();
-    clpr.AddPaths(bbox, ClipperLib.PolyType.ptSubject, true);
-    if (allThickWalls.length > 0) {
-        clpr.AddPaths(allThickWalls, ClipperLib.PolyType.ptClip, true);
-    }
+    const { lines, quads } = collectMagicWandWalls();
+    magicWandWorker.postMessage({ requestId, lines, quads, clickPos });
+}
 
-    let polyTree = new ClipperLib.PolyTree();
-    clpr.Execute(ClipperLib.ClipType.ctDifference, polyTree, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
 
-    let clickPt = { X: Math.round(clickPos.x * scale), Y: Math.round(clickPos.y * scale) };
-
-    function getChilds(node) {
-        return typeof node.Childs === 'function' ? node.Childs() : (node.Childs || []);
-    }
-    function getContour(node) {
-        return typeof node.Contour === 'function' ? node.Contour() : (node.Contour || []);
-    }
-
-    function findDeepestSpaceNode(node, pt, isSpace) {
-        let foundChild = null;
-        let childs = getChilds(node);
-        for (let i = 0; i < childs.length; i++) {
-            let child = childs[i];
-            let contour = getContour(child);
-            if (contour && contour.length > 0 && ClipperLib.Clipper.PointInPolygon(pt, contour) !== 0) {
-                foundChild = findDeepestSpaceNode(child, pt, !isSpace);
-                if (foundChild) return foundChild;
-            }
+function executeMagicWand(clickPos) {
+    requestMagicWandRegions(clickPos, (err, newRegions) => {
+        if (err) {
+            console.error('Magic wand failed:', err);
+            showNotification(lang === ru ? "Не удалось построить область (волшебная палочка)" : "Failed to build the region (magic wand)", true);
+            return;
         }
-        let nodeContour = getContour(node);
-        if (isSpace && nodeContour && nodeContour.length > 0) return node;
-        return null;
-    }
 
-    let targetNode = null;
-    let rootChilds = getChilds(polyTree);
-    for (let i = 0; i < rootChilds.length; i++) {
-        let child = rootChilds[i];
-        let contour = getContour(child);
-        if (contour && contour.length > 0 && ClipperLib.Clipper.PointInPolygon(clickPt, contour) !== 0) {
-            targetNode = findDeepestSpaceNode(child, clickPt, true);
-            if (targetNode) break;
+        if (!newRegions || newRegions.length === 0) return;
+
+        if (newRegions.length > 1 && !isMultiRegionMode) {
+            setHatchRegionMode('multi');
         }
-    }
 
-    if (targetNode) {
-        let targetContour = getContour(targetNode);
-        if (targetContour && targetContour.length > 0) {
-
-            let roomPaths = new ClipperLib.Paths();
-            roomPaths.push(targetContour);
-            let targetChilds = getChilds(targetNode);
-            for (let i = 0; i < targetChilds.length; i++) {
-                let cContour = getContour(targetChilds[i]);
-                if (cContour && cContour.length > 0) {
-                    roomPaths.push(cContour);
-                }
-            }
-
-            let coExpand = new ClipperLib.ClipperOffset();
-            coExpand.AddPaths(roomPaths, ClipperLib.JoinType.jtMiter, ClipperLib.EndType.etClosedPolygon);
-            let expandedTree = new ClipperLib.PolyTree();
-            coExpand.Execute(expandedTree, intTolerance);
-
-            let expandedChilds = getChilds(expandedTree);
-            if (expandedChilds.length > 0) {
-                let finalNode = expandedChilds[0];
-                let finalContour = getContour(finalNode);
-
-                function toSightPoints(clipperPath) {
-                    let pts = [];
-                    for (let i = 0; i < clipperPath.length; i++) {
-                        let pt = { x: clipperPath[i].X / scale, y: clipperPath[i].Y / scale };
-                        if (pts.length > 0) {
-                            let lastPt = pts[pts.length - 1];
-                            if (Math.abs(pt.x - lastPt.x) < 0.00001 && Math.abs(pt.y - lastPt.y) < 0.00001) continue;
-                        }
-                        pts.push(pt);
-                    }
-                    if (pts.length > 1) {
-                        let first = pts[0];
-                        let last = pts[pts.length - 1];
-                        if (Math.abs(first.x - last.x) < 0.00001 && Math.abs(first.y - last.y) < 0.00001) {
-                            pts.pop();
-                        }
-                    }
-                    return pts;
-                }
-
-                let newRegions = [];
-                newRegions.push(toSightPoints(finalContour));
-
-                let finalNodeChilds = getChilds(finalNode);
-                for (let i = 0; i < finalNodeChilds.length; i++) {
-                    let holeContour = getContour(finalNodeChilds[i]);
-                    if (holeContour && holeContour.length > 0) {
-                        newRegions.push(toSightPoints(holeContour));
-                    }
-                }
-
-                if (newRegions.length > 1 && !isMultiRegionMode) {
-                    setHatchRegionMode('multi');
-                }
-
-                if (hatchRegions[currentHatchRegionIndex].length === 0) {
-                    hatchRegions.splice(currentHatchRegionIndex, 1, ...newRegions);
-                } else {
-                    hatchRegions.push(...newRegions);
-                    currentHatchRegionIndex = hatchRegions.length - newRegions.length;
-                }
-
-                hatchPoints = hatchRegions[currentHatchRegionIndex];
-                isDrawingHatch = true;
-                if (typeof updateHatchPreview === 'function') updateHatchPreview();
-            }
+        if (hatchRegions[currentHatchRegionIndex].length === 0) {
+            hatchRegions.splice(currentHatchRegionIndex, 1, ...newRegions);
+        } else {
+            hatchRegions.push(...newRegions);
+            currentHatchRegionIndex = hatchRegions.length - newRegions.length;
         }
-    }
+
+        hatchPoints = hatchRegions[currentHatchRegionIndex];
+        isDrawingHatch = true;
+        if (typeof updateHatchPreview === 'function') updateHatchPreview();
+    });
 }
 
 function pointToSegmentDistSqrDP(p, v, w) {

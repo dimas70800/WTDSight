@@ -1,4 +1,3 @@
-
 let tool = "lines";
 const toolNames = ["lines", "quads", "hatch", "vectorize", "select", "curve", "text", "brush", "fill", "shapes"];
 
@@ -33,6 +32,9 @@ function switchTool(targetId) {
     if (targetId === "hatch" && typeof cancelHatch === 'function') cancelHatch();
     if (targetId === "fill" && typeof cancelFill === 'function') cancelFill();
     if (targetId === "shapes" && typeof clearShapesState === 'function') clearShapesState();
+    if (currentActiveTabId === "shapes" && targetId !== "shapes" && typeof exitFreeShapeStickyMode === 'function') {
+        exitFreeShapeStickyMode();
+    }
 
     // Подсветка кнопок
     document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));

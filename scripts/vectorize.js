@@ -51,6 +51,8 @@
             very_sharp: { low: 12, high: 75 }
         };
 
+        const rnd = (v) => Math.round(v * 1000000) / 1000000;
+
         // Функция для получения изображения из текущего референса
         function getCurrentReferenceImage() {
             const ref = referenceArray[currentReference];
@@ -735,8 +737,8 @@
                 const object = {
                     name: lang.line + objIdStr,
                     type: "line",
-                    start: { x: line.start.x, y: line.start.y },
-                    end: { x: line.end.x, y: line.end.y },
+                    start: { x: rnd(line.start.x), y: rnd(line.start.y) },
+                    end: { x: rnd(line.end.x), y: rnd(line.end.y) },
                     selected: false
                 };
                 objects.set(objIdStr, object);
@@ -760,10 +762,10 @@
                 const object = {
                     name: (lang.quad || "Квад ") + objIdStr,
                     type: "quad",
-                    pos1: { x: q.pos1.x, y: q.pos1.y },
-                    pos2: { x: q.pos2.x, y: q.pos2.y },
-                    pos3: { x: q.pos3.x, y: q.pos3.y },
-                    pos4: { x: q.pos4.x, y: q.pos4.y },
+                    pos1: { x: rnd(q.pos1.x), y: rnd(q.pos1.y) },
+                    pos2: { x: rnd(q.pos2.x), y: rnd(q.pos2.y) },
+                    pos3: { x: rnd(q.pos3.x), y: rnd(q.pos3.y) },
+                    pos4: { x: rnd(q.pos4.x), y: rnd(q.pos4.y) },
                     selected: false
                 };
                 objects.set(objIdStr, object);

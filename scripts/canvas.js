@@ -31,6 +31,8 @@ function getLineWidth(baseWidth) {
     return baseWidth * (canvas.height / 2160) * 1.5;
 }
 
+const rnd = (v) => Math.round(v * 10000000) / 10000000;
+
 // Selection tool variables
 let selectionRect = null;      // { startX, startY, endX, endY } в мировых координатах
 let isSelecting = false;
@@ -844,6 +846,35 @@ function drawGhost() {
             if (snapping) drawCircle(mousePosCanvas.x, mousePosCanvas.y, 20);
             break;
         case "shapes":
+            if (freeShapeState.active && freeShapeState.points.length > 0) {
+                ctx.save();
+                ctx.strokeStyle = el("outlineCheckBox").checked ? "rgba(255,255,255,0.8)" : "rgba(80, 130, 255, 0.9)";
+                ctx.lineWidth = getLineWidth(1.5);
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+
+                ctx.beginPath();
+                const startCanvas = v2disposSight2v2canvas(freeShapeState.points[0]);
+                ctx.moveTo(startCanvas.x, startCanvas.y);
+                for (let i = 1; i < freeShapeState.points.length; i++) {
+                    const ptCanvas = v2disposSight2v2canvas(freeShapeState.points[i]);
+                    ctx.lineTo(ptCanvas.x, ptCanvas.y);
+                }
+                ctx.stroke();
+
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                const lastCanvas = v2disposSight2v2canvas(freeShapeState.points[freeShapeState.points.length - 1]);
+                ctx.moveTo(lastCanvas.x, lastCanvas.y);
+                ctx.lineTo(mousePosCanvas.x, mousePosCanvas.y);
+                ctx.lineTo(startCanvas.x, startCanvas.y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.lineCap = "butt";
+                ctx.lineJoin = "miter";
+                ctx.restore();
+            }
             if (shapesToolState.active && shapesToolState.box) {
                 const box = shapesToolState.box;
 
@@ -1593,19 +1624,19 @@ function getObjectMoveData(obj) {
 
 function moveObject(obj, delta) {
     if (obj.type === "line") {
-        obj.start.x += delta.x;
-        obj.start.y += delta.y;
-        obj.end.x += delta.x;
-        obj.end.y += delta.y;
+        obj.start.x = rnd(obj.start.x + delta.x);
+        obj.start.y = rnd(obj.start.y + delta.y);
+        obj.end.x = rnd(obj.end.x + delta.x);
+        obj.end.y = rnd(obj.end.y + delta.y);
     } else if (obj.type === "quad") {
-        obj.pos1.x += delta.x;
-        obj.pos1.y += delta.y;
-        obj.pos2.x += delta.x;
-        obj.pos2.y += delta.y;
-        obj.pos3.x += delta.x;
-        obj.pos3.y += delta.y;
-        obj.pos4.x += delta.x;
-        obj.pos4.y += delta.y;
+        obj.pos1.x = rnd(obj.pos1.x + delta.x);
+        obj.pos1.y = rnd(obj.pos1.y + delta.y);
+        obj.pos2.x = rnd(obj.pos2.x + delta.x);
+        obj.pos2.y = rnd(obj.pos2.y + delta.y);
+        obj.pos3.x = rnd(obj.pos3.x + delta.x);
+        obj.pos3.y = rnd(obj.pos3.y + delta.y);
+        obj.pos4.x = rnd(obj.pos4.x + delta.x);
+        obj.pos4.y = rnd(obj.pos4.y + delta.y);
     }
 }
 
@@ -1943,7 +1974,9 @@ canvas.onpointerdown = (e) => {
             const clickCanvas = getMousePos(e.offsetX, e.offsetY);
             let clickPos = v2canvas2v2disposSight(clickCanvas);
 
-            if (!shapesToolState.active) {
+            if (freeShapeState.active) {
+                freeShapeState.points = [clickPos];
+            } else if (!shapesToolState.active) {
                 shapesToolState.active = true;
                 shapesToolState.box.cx = clickPos.x;
                 shapesToolState.box.cy = clickPos.y;
@@ -2508,8 +2541,8 @@ canvas.onpointermove = (e) => {
                     return { x: initialBox.cx + rx * cos - ry * sin, y: initialBox.cy + rx * sin + ry * cos };
                 });
 
-                if (obj.type === 'line') { obj.start.x = newPts[0].x; obj.start.y = newPts[0].y; obj.end.x = newPts[1].x; obj.end.y = newPts[1].y; }
-                else { obj.pos1.x = newPts[0].x; obj.pos1.y = newPts[0].y; obj.pos2.x = newPts[1].x; obj.pos2.y = newPts[1].y; obj.pos3.x = newPts[2].x; obj.pos3.y = newPts[2].y; obj.pos4.x = newPts[3].x; obj.pos4.y = newPts[3].y; }
+                if (obj.type === 'line') { obj.start.x = rnd(newPts[0].x); obj.start.y = rnd(newPts[0].y); obj.end.x = rnd(newPts[1].x); obj.end.y = rnd(newPts[1].y); }
+                else { obj.pos1.x = rnd(newPts[0].x); obj.pos1.y = rnd(newPts[0].y); obj.pos2.x = rnd(newPts[1].x); obj.pos2.y = rnd(newPts[1].y); obj.pos3.x = rnd(newPts[2].x); obj.pos3.y = rnd(newPts[2].y); obj.pos4.x = rnd(newPts[3].x); obj.pos4.y = rnd(newPts[3].y); }
             }
         } else {
             const dx = mousePos.x - initialBox.cx, dy = mousePos.y - initialBox.cy;
@@ -2588,8 +2621,8 @@ canvas.onpointermove = (e) => {
                     };
                 });
 
-                if (obj.type === 'line') { obj.start.x = newPts[0].x; obj.start.y = newPts[0].y; obj.end.x = newPts[1].x; obj.end.y = newPts[1].y; }
-                else { obj.pos1.x = newPts[0].x; obj.pos1.y = newPts[0].y; obj.pos2.x = newPts[1].x; obj.pos2.y = newPts[1].y; obj.pos3.x = newPts[2].x; obj.pos3.y = newPts[2].y; obj.pos4.x = newPts[3].x; obj.pos4.y = newPts[3].y; }
+                if (obj.type === 'line') { obj.start.x = rnd(newPts[0].x); obj.start.y = rnd(newPts[0].y); obj.end.x = rnd(newPts[1].x); obj.end.y = rnd(newPts[1].y); }
+                else { obj.pos1.x = rnd(newPts[0].x); obj.pos1.y = rnd(newPts[0].y); obj.pos2.x = rnd(newPts[1].x); obj.pos2.y = rnd(newPts[1].y); obj.pos3.x = rnd(newPts[2].x); obj.pos3.y = rnd(newPts[2].y); obj.pos4.x = rnd(newPts[3].x); obj.pos4.y = rnd(newPts[3].y); }
             }
         }
         return;
@@ -2605,23 +2638,23 @@ canvas.onpointermove = (e) => {
             const targetPos = snapP != null ? snapP : mousePos;
 
             if (object.type === "line") {
-                if (centerPullSource === 0) { object.start.x = targetPos.x; object.start.y = targetPos.y; }
-                else if (centerPullSource === 1) { object.end.x = targetPos.x; object.end.y = targetPos.y; }
+                if (centerPullSource === 0) { object.start.x = rnd(targetPos.x); object.start.y = rnd(targetPos.y); }
+                else if (centerPullSource === 1) { object.end.x = rnd(targetPos.x); object.end.y = rnd(targetPos.y); }
             } else if (object.type === "quad") {
-                if (centerPullSource === 0) { object.pos1.x = targetPos.x; object.pos1.y = targetPos.y; }
-                else if (centerPullSource === 1) { object.pos2.x = targetPos.x; object.pos2.y = targetPos.y; }
-                else if (centerPullSource === 2) { object.pos3.x = targetPos.x; object.pos3.y = targetPos.y; }
-                else if (centerPullSource === 3) { object.pos4.x = targetPos.x; object.pos4.y = targetPos.y; }
+                if (centerPullSource === 0) { object.pos1.x = rnd(targetPos.x); object.pos1.y = rnd(targetPos.y); }
+                else if (centerPullSource === 1) { object.pos2.x = rnd(targetPos.x); object.pos2.y = rnd(targetPos.y); }
+                else if (centerPullSource === 2) { object.pos3.x = rnd(targetPos.x); object.pos3.y = rnd(targetPos.y); }
+                else if (centerPullSource === 3) { object.pos4.x = rnd(targetPos.x); object.pos4.y = rnd(targetPos.y); }
             }
         } else {
             if (object.type === "line") {
-                if (centerPullSource === 0) { object.start.x = mousePos.x; object.start.y = mousePos.y; }
-                else if (centerPullSource === 1) { object.end.x = mousePos.x; object.end.y = mousePos.y; }
+                if (centerPullSource === 0) { object.start.x = rnd(mousePos.x); object.start.y = rnd(mousePos.y); }
+                else if (centerPullSource === 1) { object.end.x = rnd(mousePos.x); object.end.y = rnd(mousePos.y); }
             } else if (object.type === "quad") {
-                if (centerPullSource === 0) { object.pos1.x = mousePos.x; object.pos1.y = mousePos.y; }
-                else if (centerPullSource === 1) { object.pos2.x = mousePos.x; object.pos2.y = mousePos.y; }
-                else if (centerPullSource === 2) { object.pos3.x = mousePos.x; object.pos3.y = mousePos.y; }
-                else if (centerPullSource === 3) { object.pos4.x = mousePos.x; object.pos4.y = mousePos.y; }
+                if (centerPullSource === 0) { object.pos1.x = rnd(mousePos.x); object.pos1.y = rnd(mousePos.y); }
+                else if (centerPullSource === 1) { object.pos2.x = rnd(mousePos.x); object.pos2.y = rnd(mousePos.y); }
+                else if (centerPullSource === 2) { object.pos3.x = rnd(mousePos.x); object.pos3.y = rnd(mousePos.y); }
+                else if (centerPullSource === 3) { object.pos4.x = rnd(mousePos.x); object.pos4.y = rnd(mousePos.y); }
             }
         }
     }
@@ -2636,24 +2669,24 @@ canvas.onpointermove = (e) => {
                 switch (object.type) {
                     case "line":
                         switch (index) {
-                            case 0: object.start.x += pullMovement.x; break;
-                            case 1: object.start.y += pullMovement.y; break;
-                            case 2: object.end.x += pullMovement.x; break;
-                            case 3: object.end.y += pullMovement.y; break;
+                            case 0: object.start.x = rnd(object.start.x + pullMovement.x); break;
+                            case 1: object.start.y = rnd(object.start.y + pullMovement.y); break;
+                            case 2: object.end.x = rnd(object.end.x + pullMovement.x); break;
+                            case 3: object.end.y = rnd(object.end.y + pullMovement.y); break;
                         }
 
                         break;
 
                     case "quad":
                         switch (index) {
-                            case 0: object.pos1.x += pullMovement.x; break;
-                            case 1: object.pos1.y += pullMovement.y; break;
-                            case 2: object.pos2.x += pullMovement.x; break;
-                            case 3: object.pos2.y += pullMovement.y; break;
-                            case 4: object.pos3.x += pullMovement.x; break;
-                            case 5: object.pos3.y += pullMovement.y; break;
-                            case 6: object.pos4.x += pullMovement.x; break;
-                            case 7: object.pos4.y += pullMovement.y; break;
+                            case 0: object.pos1.x = rnd(object.pos1.x + pullMovement.x); break;
+                            case 1: object.pos1.y = rnd(object.pos1.y + pullMovement.y); break;
+                            case 2: object.pos2.x = rnd(object.pos2.x + pullMovement.x); break;
+                            case 3: object.pos2.y = rnd(object.pos2.y + pullMovement.y); break;
+                            case 4: object.pos3.x = rnd(object.pos3.x + pullMovement.x); break;
+                            case 5: object.pos3.y = rnd(object.pos3.y + pullMovement.y); break;
+                            case 6: object.pos4.x = rnd(object.pos4.x + pullMovement.x); break;
+                            case 7: object.pos4.y = rnd(object.pos4.y + pullMovement.y); break;
                         }
 
                         break;
@@ -2708,6 +2741,12 @@ canvas.onpointermove = (e) => {
         let lastPoint = brushPoints[brushPoints.length - 1];
         if (v2sqrmag(mousePos, lastPoint) > 0.0000001) {
             brushPoints.push(mousePos);
+        }
+    } if (tool === "shapes" && freeShapeState.active && freeShapeState.points.length > 0) {
+        let mousePos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
+        let lastPoint = freeShapeState.points[freeShapeState.points.length - 1];
+        if (v2sqrmag(mousePos, lastPoint) > 0.0000001) {
+            freeShapeState.points.push(mousePos);
         }
     }
 };
@@ -2807,6 +2846,8 @@ canvas.onpointerup = (e) => {
             }
 
             finishBrush();
+        } else if (tool === "shapes" && freeShapeState.active && freeShapeState.points.length > 0) {
+            finishFreeShape();
         }
         else {
             if (!(snapping || mobileSnappingActive))
