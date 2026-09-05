@@ -731,6 +731,7 @@
             }
 
             const worldLines = convertLinesToWorldCoordinates(vectorizeLines, currentProcessedWidth, currentProcessedHeight);
+            const addedItems = [];
 
             for (const line of worldLines) {
                 const objIdStr = nextId().toString();
@@ -742,8 +743,10 @@
                     selected: false
                 };
                 objects.set(objIdStr, object);
-                pushEvent("add", { id: objIdStr, object: object });
+                addedItems.push({ id: objIdStr, object: object });
             }
+
+            pushEvent("add_multiple", addedItems);
 
             refreshObjectsList(true);
             hideVectorizePreview();
@@ -756,6 +759,7 @@
             }
 
             const worldQuads = convertQuadsToWorldCoordinates(vectorizeQuads, currentQuadsOutWidth, currentQuadsOutHeight);
+            const addedItems = [];
 
             for (const q of worldQuads) {
                 const objIdStr = nextId().toString();
@@ -769,8 +773,10 @@
                     selected: false
                 };
                 objects.set(objIdStr, object);
-                pushEvent("add", { id: objIdStr, object: object });
+                addedItems.push({ id: objIdStr, object: object });
             }
+
+            pushEvent("add_multiple", addedItems);
 
             refreshObjectsList(true);
             hideVectorizePreview();

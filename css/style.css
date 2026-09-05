@@ -429,6 +429,10 @@ input[type="range"] {
     height: 350px;
 }
 
+#objectsToggleBtn:hover {
+    filter: brightness(1.2);
+}
+
 #infoMenu {
     bottom: 1em;
     top: auto;
@@ -549,7 +553,7 @@ input[type="range"] {
     font-size: 18px;
 }
 
-.settings-modal-close img{
+.settings-modal-close img {
     filter: var(--invert-color-image);
 }
 
@@ -778,6 +782,7 @@ option:checked {
     top: 90px;
     display: none;
 }
+
 .shapes-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -852,7 +857,7 @@ option:checked {
     pointer-events: none;
 }
 
-.preview-menu-wrapper > * {
+.preview-menu-wrapper>* {
     pointer-events: auto;
 }
 
@@ -863,10 +868,18 @@ option:checked {
 
 #previewToggleBtn {
     position: absolute;
-    left: -60px;
+    right: calc(100% + 15px);
     top: 15px;
+    box-sizing: border-box;
     width: 45px;
     height: 45px;
+    min-width: 45px;
+    min-height: 45px;
+    margin: 0;
+    padding: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    line-height: 1;
     background: var(--bg-main-panel);
     box-shadow: 2px 0 15px rgba(0, 0, 0, 0.3);
     border: 1px solid var(--border-col);
@@ -881,6 +894,10 @@ option:checked {
     transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
+#previewToggleBtn:hover {
+    filter: brightness(1.2);
+}
+
 .preview-menu-wrapper.collapsed #previewControlsIsland {
     transform: scale(0);
     opacity: 0;
@@ -888,7 +905,7 @@ option:checked {
 }
 
 .preview-menu-wrapper.collapsed #previewToggleBtn {
-    left: calc(100% - 45px);
+    right: 0;
     top: 0;
 }
 
@@ -900,7 +917,7 @@ option:checked {
     display: flex;
     overflow-x: auto;
     overflow-y: hidden;
-    box-shadow: inset 0 -1px 0 var(--border-col); 
+    box-shadow: inset 0 -1px 0 var(--border-col);
     padding: 10px 15px 0 15px;
     gap: 5px;
     flex-shrink: 0;
@@ -933,6 +950,7 @@ option:checked {
     background: var(--bg-main-panel);
     opacity: 1;
 }
+
 .settings-tab-content {
     display: none;
 }
@@ -1035,6 +1053,34 @@ option:checked {
     to { opacity: 1; }
 }
 
+@media screen and (min-width: 951px) and (max-width: 1400px) and (pointer: coarse) {
+    #fullscreenBtn {
+        display: flex;
+        top: 75px !important;
+    }
+
+    #undoBtn, #redoBtn, #snapBtn {
+        display: flex !important;
+    }
+
+    #undoBtn {
+        top: 130px !important;
+    }
+
+    #redoBtn {
+        top: 185px !important;
+    }
+
+    #snapBtn {
+        top: 240px !important;
+        font-size: 20px;
+    }
+
+    #sightPreviewBtn {
+        top: 295px !important;
+    }
+}
+
 @media screen and (max-width: 950px) {
     :root {
         --sidebar-width: 50px;
@@ -1053,15 +1099,15 @@ option:checked {
     #undoBtn, #redoBtn, #snapBtn {
         display: flex !important;
     }
-    
+
     #undoBtn {
         top: 105px !important;
     }
-    
+
     #redoBtn {
         top: 150px !important;
     }
-    
+
     #snapBtn {
         top: 195px !important;
     }
@@ -1074,11 +1120,15 @@ option:checked {
         margin: 0px 5px
     }
 
-    #objectsToggleBtn{
+    #objectsToggleBtn {
         width: 35px;
         height: 35px;
         left: -45px;
         border-radius: 10px;
+    }
+
+    #objectsToggleBtn:hover {
+        filter: brightness(1.2);
     }
 
     #clearButton {
@@ -1137,6 +1187,17 @@ option:checked {
         border-radius: 10px;
     }
 
+    #previewToggleBtn {
+        width: 35px;
+        height: 35px;
+        min-width: 35px;
+        min-height: 35px;
+        right: calc(100% + 10px);
+        top: 15px;
+        font-size: 14px;
+        border-radius: 10px;
+    }
+
     #objectsMenu {
         top: 10px;
         right: 10px;
@@ -1159,7 +1220,7 @@ option:checked {
         max-width: 60%;
     }
 
-    #infoDeleteButton{
+    #infoDeleteButton {
         margin: 0px 5px 5px;
     }
 
@@ -1168,8 +1229,14 @@ option:checked {
         font-size: 11px;
     }
 
-    .preview-controls{
-        max-width: 20vw;
+    .preview-menu-wrapper {
+        top: 15px;
+        width: min(260px, 50vw);
+    }
+
+    .preview-controls {
+        right: 0;
+        max-width: 50vw;
         max-height: 85vh;
         overflow-y: auto;
     }
@@ -1226,7 +1293,7 @@ option:checked {
         width: 100%;
         justify-content: space-between;
     }
-    
+
 }
 
 @media screen and (max-height: 500px) and (orientation: landscape) {

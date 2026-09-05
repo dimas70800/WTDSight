@@ -10,12 +10,14 @@ function switchTool(targetId) {
         return;
     }
 
+    if (typeof isPullingCenter !== 'undefined') isPullingCenter = false;
+    if (typeof arrowPulling !== 'undefined') arrowPulling = false;
+
     // Смена инструмента
     tool = targetId;
 
     // Очистка состояний
     if (typeof clearIntermediateDrawing === 'function') clearIntermediateDrawing();
-    if (targetId === "hatch" && typeof cancelHatch === 'function') cancelHatch();
     if (targetId === "vectorize") {
         if (typeof toggleVectorizePanel === 'function') toggleVectorizePanel(true);
     } else {

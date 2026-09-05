@@ -1147,6 +1147,7 @@ let hoveredArrowHitbox = null;
 function drawArrows() {
     if (selectedId == null) return;
     const object = objects.get(selectedId);
+    if (!object) return;
 
     ctx.globalAlpha = 0.5;
 
@@ -1222,6 +1223,7 @@ function drawArrows() {
 function getArrowHitboxes() {
     if (selectedId == null) return [];
     const object = objects.get(selectedId);
+    if (!object) return [];
     const arrowSources = getArrowSources(object);
     const arrowHitboxes = [];
 
@@ -2034,7 +2036,9 @@ canvas.onpointerdown = (e) => {
                     transformState.initialData = [];
                     for (const id of selectedObjectsSet) {
                         const obj = objects.get(id);
-                        transformState.initialData.push({ id: id, object: obj, startData: getObjectMoveData(obj) });
+                        if (obj) {
+                            transformState.initialData.push({ id: id, object: obj, startData: getObjectMoveData(obj) });
+                        }
                     }
                     return;
                 }
@@ -2633,7 +2637,9 @@ canvas.onpointermove = (e) => {
     if (isPullingCenter && selectedId != null) {
         const object = objects.get(selectedId);
 
-        if (snapping || mobileSnappingActive) {
+        if (!object) {
+            isPullingCenter = false;
+        } else if (snapping || mobileSnappingActive) {
             const snapP = snappingPos(mousePos, 100, selectedId);
             const targetPos = snapP != null ? snapP : mousePos;
 
@@ -2660,6 +2666,9 @@ canvas.onpointermove = (e) => {
     }
     if (arrowPulling) {
         if (selectedId == null) {
+            arrowPulling = false;
+        }
+        else if (!objects.get(selectedId)) {
             arrowPulling = false;
         }
         else {
@@ -2803,22 +2812,24 @@ canvas.onpointerup = (e) => {
         }
         if (arrowPulling === true) {
             arrowPulling = false;
-            showInfo(selectedId);
+            if (selectedId != null) showInfo(selectedId);
         } if (isPullingCenter) {
             isPullingCenter = false;
             const object = objects.get(selectedId);
 
-            pushEvent("move_multiple", {
-                objectsData: [{
-                    id: selectedId,
-                    prevData: centerPullStartData,
-                    newData: getObjectMoveData(object)
-                }]
-            });
-            showInfo(selectedId);
+            if (object) {
+                pushEvent("move_multiple", {
+                    objectsData: [{
+                        id: selectedId,
+                        prevData: centerPullStartData,
+                        newData: getObjectMoveData(object)
+                    }]
+                });
+                showInfo(selectedId);
+            }
         } else if (arrowPulling === true) {
             arrowPulling = false;
-            showInfo(selectedId);
+            if (selectedId != null) showInfo(selectedId);
         } else if (tool === "curve" && isDrawingCurve) {
             isDrawingCurve = false;
 
