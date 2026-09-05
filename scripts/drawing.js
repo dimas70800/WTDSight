@@ -505,15 +505,6 @@ function toggleMobileSnapping() {
 let isCtrlUsedInCombo = false;
 let altGrActive = false;
 
-function handleControlLeftDown() {
-    if (altGrActive) return;
-
-    if (!snapping && typeof canvasHover !== 'undefined' && canvasHover && (selectedId !== null || selectedObjectsSet.size > 0)) {
-        unselectAnyObjects();
-    }
-    snapping = true;
-}
-
 const modifierOnlyCodes = new Set(['ControlLeft', 'ControlRight', 'AltLeft', 'AltRight', 'ShiftLeft', 'ShiftRight']);
 
 function checkHotkey(actionKey, e) {
@@ -525,9 +516,9 @@ function checkHotkey(actionKey, e) {
     }
 
     return e.code === hk.code &&
-           !!e.ctrlKey === !!hk.ctrl &&
-           !!e.altKey === !!hk.alt &&
-           !!e.shiftKey === !!hk.shift;
+        !!e.ctrlKey === !!hk.ctrl &&
+        !!e.altKey === !!hk.alt &&
+        !!e.shiftKey === !!hk.shift;
 }
 
 document.onkeydown = (e) => {
@@ -544,30 +535,30 @@ document.onkeydown = (e) => {
 
         return;
     }
-    
+
     if (typeof isRebinding !== 'undefined' && isRebinding !== null) return;
 
-    if(checkHotkey('actionLinesTool', e)) {
+    if (checkHotkey('actionLinesTool', e)) {
         e.preventDefault();
         switchTool('lines');
     }
-    if(checkHotkey('actionCurveTool', e)) {
+    if (checkHotkey('actionCurveTool', e)) {
         e.preventDefault();
         switchTool('curve');
     }
-    if(checkHotkey('actionBrushTool', e)) {
+    if (checkHotkey('actionBrushTool', e)) {
         e.preventDefault();
         switchTool('brush');
     }
-    if(checkHotkey('actionHatchTool', e)) {
+    if (checkHotkey('actionHatchTool', e)) {
         e.preventDefault();
         switchTool('hatch');
     }
-    if(checkHotkey('actionFillTool', e)) {
+    if (checkHotkey('actionFillTool', e)) {
         e.preventDefault();
         switchTool('fill');
     }
-    if(checkHotkey('actionSelectTool', e)) {
+    if (checkHotkey('actionSelectTool', e)) {
         e.preventDefault();
         switchTool('select');
     }
@@ -658,7 +649,12 @@ document.onkeydown = (e) => {
     }
 
     if (e.code === "ControlLeft") {
-        setTimeout(handleControlLeftDown, 0);
+        if (altGrActive) return;
+
+        if (!snapping && typeof canvasHover !== 'undefined' && canvasHover && (selectedId !== null || selectedObjectsSet.size > 0)) {
+            unselectAnyObjects();
+        }
+        snapping = true;
     }
 
     if (checkHotkey('actionClearSel', e)) {
