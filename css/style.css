@@ -1270,8 +1270,7 @@ option:checked {
         font-size: 10px !important;
     }
 
-    .settings-modal-content,
-    .export-modal-content {
+    .settings-modal-content, .export-modal-content {
         max-height: none;
         width: 95%;
         height: 90%;
