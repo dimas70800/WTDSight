@@ -196,19 +196,81 @@ function applyMassTransform() {
 
 const objectsList = el("objectsList");
 
+let lastClickedListId = null;
+
 function refreshObjectsList(scrollDown) {
     el("objCount").innerHTML = objects.size;
     objectsList.innerHTML = "";
+
+    const hasMultiSelection = typeof selectedObjectsSet !== 'undefined' && selectedObjectsSet.size > 0;
 
     for (const [id, obj] of objects) {
         const span = document.createElement("span");
         objectsList.appendChild(span);
         span.innerHTML = obj.name;
         span.className = "objectRow";
-        span.onclick = () => { showInfo(id); };
+        span.dataset.id = id;
+
+        const isSelected = hasMultiSelection
+            ? selectedObjectsSet.has(id)
+            : (selectedId === id);
+
+        if (isSelected) span.classList.add("selected");
+
+        span.onclick = (e) => { handleObjectRowClick(id, e); };
     }
 
     if (scrollDown) objectsList.scrollTop = objectsList.scrollHeight;
+}
+
+function handleObjectRowClick(id, e) {
+    const isShift = e && e.shiftKey;
+    const isCtrl = e && (e.ctrlKey || e.metaKey);
+
+    const orderedIds = Array.from(objects.keys());
+
+    if (isShift && lastClickedListId !== null && objects.has(lastClickedListId)) {
+        const fromIdx = orderedIds.indexOf(lastClickedListId);
+        const toIdx = orderedIds.indexOf(id);
+
+        if (fromIdx !== -1 && toIdx !== -1) {
+            const start = Math.min(fromIdx, toIdx);
+            const end = Math.max(fromIdx, toIdx);
+            const rangeIds = orderedIds.slice(start, end + 1);
+            selectObjectsByIds(rangeIds);
+            return;
+        }
+    }
+
+    if (isCtrl) {
+        const currentIds = new Set(
+            typeof selectedObjectsSet !== 'undefined' ? selectedObjectsSet : []
+        );
+
+        if (currentIds.size === 0 && selectedId !== null) {
+            currentIds.add(selectedId);
+        }
+
+        if (currentIds.has(id)) {
+            currentIds.delete(id);
+        } else {
+            currentIds.add(id);
+        }
+
+        lastClickedListId = id;
+
+        if (currentIds.size <= 1) {
+            const remainingId = currentIds.size === 1 ? Array.from(currentIds)[0] : null;
+            if (typeof clearSelection === 'function') clearSelection();
+            showInfo(remainingId);
+        } else {
+            selectObjectsByIds(Array.from(currentIds));
+        }
+        return;
+    }
+
+    lastClickedListId = id;
+    showInfo(id);
 }
 
 function unselectAnyObjects() {
@@ -441,12 +503,30 @@ function toggleMobileSnapping() {
 }
 
 let isCtrlUsedInCombo = false;
+let altGrActive = false;
+
+function handleControlLeftDown() {
+    if (altGrActive) return;
+
+    if (!snapping && typeof canvasHover !== 'undefined' && canvasHover && (selectedId !== null || selectedObjectsSet.size > 0)) {
+        unselectAnyObjects();
+    }
+    snapping = true;
+}
+
+const modifierOnlyCodes = new Set(['ControlLeft', 'ControlRight', 'AltLeft', 'AltRight', 'ShiftLeft', 'ShiftRight']);
 
 function checkHotkey(actionKey, e) {
     const hk = currentHotkeys[actionKey];
-    return e.code === hk.code && 
-           !!e.ctrlKey === !!hk.ctrl && 
-           !!e.altKey === !!hk.alt && 
+
+    if (modifierOnlyCodes.has(hk.code)) {
+        if (e.repeat) return false;
+        return e.code === hk.code;
+    }
+
+    return e.code === hk.code &&
+           !!e.ctrlKey === !!hk.ctrl &&
+           !!e.altKey === !!hk.alt &&
            !!e.shiftKey === !!hk.shift;
 }
 
@@ -493,7 +573,7 @@ document.onkeydown = (e) => {
     }
 
     if (checkHotkey('actionCreate', e)) {
-        event.preventDefault();
+        e.preventDefault();
         switch (tool) {
             case 'hatch':
                 document.getElementById('hatchCreateBtn')?.click();
@@ -511,7 +591,7 @@ document.onkeydown = (e) => {
     }
 
     if (checkHotkey('actionCancel', e)) {
-        event.preventDefault();
+        e.preventDefault();
         switch (tool) {
             case 'hatch':
                 document.getElementById('hatchCancelBtn')?.click();
@@ -573,8 +653,12 @@ document.onkeydown = (e) => {
         }
     }
 
+    if (e.code === "AltRight") {
+        altGrActive = true;
+    }
+
     if (e.code === "ControlLeft") {
-        snapping = true;
+        setTimeout(handleControlLeftDown, 0);
     }
 
     if (checkHotkey('actionClearSel', e)) {
@@ -590,13 +674,14 @@ document.onkeyup = (e) => {
             activeElem.blur();
         }
     }
+    if (e.code === "AltRight") {
+        altGrActive = false;
+    }
     if (e.code === "ControlLeft") {
         snapping = false;
-        if (!arrowPulling && !isPullingCenter) {
-            showInfo(null);
-        }
     }
 };
+
 
 function snappingPos(mouse, maxPixelRadius = Infinity, ignoreId = null) {
     let closestPos = null;

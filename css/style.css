@@ -515,6 +515,10 @@ input[type="range"] {
     background: var(--border-col);
 }
 
+.objectRow.selected {
+    background: var(--border-col);
+}
+
 /* Модальные окна */
 .modal-overlay {
     position: fixed;

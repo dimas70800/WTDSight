@@ -1379,6 +1379,7 @@ function updateSelectionFromLasso() {
         }
     }
     updateSelectionInfo();
+    if (typeof refreshObjectsList === 'function') refreshObjectsList();
 }
 
 function updateSelectionFromRect() {
@@ -1409,6 +1410,7 @@ function updateSelectionFromRect() {
     }
 
     updateSelectionInfo();
+    if (typeof refreshObjectsList === 'function') refreshObjectsList();
 }
 
 let selectionFilterMode = 'all';
@@ -1499,6 +1501,44 @@ function clearSelection() {
         showInfo(null);
     }
     updateSelectionInfo();
+    if (typeof refreshObjectsList === 'function') refreshObjectsList();
+}
+
+function selectObjectsByIds(ids) {
+    if (selectedId !== null && objects.has(selectedId)) {
+        objects.get(selectedId).selected = false;
+    }
+    selectedId = null;
+
+    for (const [id, obj] of objects) {
+        obj.selected = false;
+    }
+
+    selectedObjectsSet.clear();
+    selectionRect = null;
+    lassoPoints = [];
+    isSelecting = false;
+
+    const uniqueIds = Array.from(new Set(ids)).filter(id => objects.has(id));
+
+    if (uniqueIds.length === 1) {
+        refreshObjectsList();
+        showInfo(uniqueIds[0]);
+        return;
+    }
+
+    for (const id of uniqueIds) {
+        const obj = objects.get(id);
+        obj.selected = true;
+        selectedObjectsSet.add(id);
+    }
+
+    if (typeof updateTransformBoxFromSelection === 'function') {
+        updateTransformBoxFromSelection();
+    }
+
+    updateSelectionInfo();
+    refreshObjectsList();
 }
 
 function updateSelectionInfo() {

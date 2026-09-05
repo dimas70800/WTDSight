@@ -153,6 +153,7 @@ function initHotkeysSystem() {
     }
 
     window.addEventListener('keydown', handleHotkeyCapture, true);
+    window.addEventListener('keyup', handleHotkeyCaptureModifierUp, true);
 
     document.addEventListener('click', (e) => {
         if (activeHotkeyRebindAction !== null) {
@@ -184,6 +185,16 @@ function saveHotkeysToStorage() {
 }
 
 function getReadableHotkeyString(hotkey) {
+    const modifierOnlyLabels = {
+        'ControlLeft': 'Ctrl', 'ControlRight': 'Ctrl',
+        'AltLeft': 'Alt', 'AltRight': 'Alt',
+        'ShiftLeft': 'Shift', 'ShiftRight': 'Shift'
+    };
+
+    if (modifierOnlyLabels[hotkey.code]) {
+        return modifierOnlyLabels[hotkey.code];
+    }
+
     let parts = [];
     if (hotkey.ctrl) parts.push('Ctrl');
     if (hotkey.alt) parts.push('Alt');
@@ -247,15 +258,55 @@ function renderHotkeysUI() {
 function handleHotkeyCapture(e) {
     if (activeHotkeyRebindAction === null) return;
 
-    if (['Control', 'Shift', 'Alt', 'Meta', 'AltGraph'].includes(e.key)) return;
+    if (['Control', 'Shift', 'Alt', 'Meta', 'AltGraph'].includes(e.key)) {
+        modifierCaptureOtherKeyPressed = false;
+        return;
+    }
 
     e.preventDefault();
     e.stopPropagation();
+
+    modifierCaptureOtherKeyPressed = true;
 
     currentHotkeys[activeHotkeyRebindAction].code = e.code;
     currentHotkeys[activeHotkeyRebindAction].ctrl = e.ctrlKey;
     currentHotkeys[activeHotkeyRebindAction].shift = e.shiftKey;
     currentHotkeys[activeHotkeyRebindAction].alt = e.altKey;
+
+    saveHotkeysToStorage();
+    activeHotkeyRebindAction = null;
+    renderHotkeysUI();
+}
+
+let modifierCaptureOtherKeyPressed = false;
+
+function handleHotkeyCaptureModifierUp(e) {
+    if (activeHotkeyRebindAction === null) return;
+
+    const modifierCodes = {
+        'ControlLeft': { ctrl: true, alt: false, shift: false },
+        'ControlRight': { ctrl: true, alt: false, shift: false },
+        'AltLeft': { ctrl: false, alt: true, shift: false },
+        'AltRight': { ctrl: false, alt: true, shift: false },
+        'ShiftLeft': { ctrl: false, alt: false, shift: true },
+        'ShiftRight': { ctrl: false, alt: false, shift: true }
+    };
+
+    const flags = modifierCodes[e.code];
+    if (!flags) return;
+
+    if (modifierCaptureOtherKeyPressed) {
+        modifierCaptureOtherKeyPressed = false;
+        return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    currentHotkeys[activeHotkeyRebindAction].code = e.code;
+    currentHotkeys[activeHotkeyRebindAction].ctrl = flags.ctrl;
+    currentHotkeys[activeHotkeyRebindAction].alt = flags.alt;
+    currentHotkeys[activeHotkeyRebindAction].shift = flags.shift;
 
     saveHotkeysToStorage();
     activeHotkeyRebindAction = null;
