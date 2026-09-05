@@ -1297,7 +1297,6 @@ option:checked {
 }
 
 @media screen and (max-height: 500px) and (orientation: landscape) {
-
     #objectsMenu,
     #infoMenu {
         max-height: 45vh !important;
