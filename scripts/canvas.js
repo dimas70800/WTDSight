@@ -1610,6 +1610,22 @@ function deleteSelectedObjects() {
     showInfo(null);
 }
 
+function deleteCurrentSelection() {
+    if (selectedObjectsSet.size > 0) {
+        deleteSelectedObjects();
+        return;
+    }
+
+    if (selectedId !== null) {
+        const obj = objects.get(selectedId);
+        if (obj) {
+            pushEvent("delete", { id: selectedId, object: obj });
+            deleteObject(selectedId);
+            refreshObjectsList();
+        }
+    }
+}
+
 function distanceToLine(point, lineStart, lineEnd) {
     const dx = lineEnd.x - lineStart.x;
     const dy = lineEnd.y - lineStart.y;
@@ -3003,3 +3019,385 @@ onwheel = (e) => {
 
     //console.log("Zoom: " + screenZoom);
 };
+
+let clipboardObjects = [];
+let contextMenuEl = null;
+let contextMenuOpenedAtCanvasPos = null;
+
+function getSelectedObjectsIds() {
+    if (typeof selectedObjectsSet !== 'undefined' && selectedObjectsSet.size > 0) {
+        return Array.from(selectedObjectsSet);
+    }
+    if (typeof selectedId !== 'undefined' && selectedId !== null && objects.has(selectedId)) {
+        return [selectedId];
+    }
+    return [];
+}
+
+function isValidCanvasObject(obj) {
+    if (!obj || typeof obj !== "object") return false;
+    if (obj.type === "line") {
+        return obj.start && obj.end &&
+            typeof obj.start.x === "number" && typeof obj.start.y === "number" &&
+            typeof obj.end.x === "number" && typeof obj.end.y === "number";
+    }
+    if (obj.type === "quad") {
+        return ["pos1", "pos2", "pos3", "pos4"].every(k =>
+            obj[k] && typeof obj[k].x === "number" && typeof obj[k].y === "number"
+        );
+    }
+    return false;
+}
+
+function getObjectPoints(obj) {
+    return obj.type === "line"
+        ? [obj.start, obj.end]
+        : [obj.pos1, obj.pos2, obj.pos3, obj.pos4];
+}
+
+function hasValidClipboard() {
+    return clipboardObjects.some(obj => isValidCanvasObject(obj));
+}
+
+function getObjectsCenter(objsArray) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+    for (const obj of objsArray) {
+        for (const p of getObjectPoints(obj)) {
+            if (p.x < minX) minX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y > maxY) maxY = p.y;
+        }
+    }
+
+    if (minX === Infinity) return { x: 0, y: 0 };
+
+    return { x: minX + (maxX - minX) / 2, y: minY + (maxY - minY) / 2 };
+}
+
+function copySelectedObjects() {
+    const ids = getSelectedObjectsIds();
+    if (ids.length === 0) return false;
+
+    clipboardObjects = ids
+        .map(id => objects.get(id))
+        .filter(obj => isValidCanvasObject(obj))
+        .map(obj => JSON.parse(JSON.stringify(obj)));
+
+    if (clipboardObjects.length > 0) {
+        showNotification(lang.ctxCopiedNotif + clipboardObjects.length);
+        return true;
+    }
+    return false;
+}
+
+
+function pasteObjectsAtCenter(targetWorldPos) {
+    if (!clipboardObjects || clipboardObjects.length === 0) return;
+
+    const validObjects = clipboardObjects.filter(obj => isValidCanvasObject(obj));
+    if (validObjects.length === 0) return;
+
+    const clipboardCenter = getObjectsCenter(validObjects);
+    const delta = {
+        x: targetWorldPos.x - clipboardCenter.x,
+        y: targetWorldPos.y - clipboardCenter.y
+    };
+
+    const newObjectsForEvent = [];
+    const newIds = [];
+
+    for (const srcObj of validObjects) {
+        const objIdStr = nextId().toString();
+        const obj = JSON.parse(JSON.stringify(srcObj));
+        obj.selected = false;
+
+        if (obj.type === "line") {
+            obj.name = lang.line + " " + objIdStr;
+        } else if (obj.type === "quad") {
+            obj.name = lang.quad + " " + objIdStr;
+        }
+
+        moveObject(obj, delta);
+
+        objects.set(objIdStr, obj);
+        newObjectsForEvent.push({ id: objIdStr, object: obj });
+        newIds.push(objIdStr);
+    }
+
+    if (newObjectsForEvent.length > 0) {
+        pushEvent("add_multiple", newObjectsForEvent);
+    }
+
+    refreshObjectsList(true);
+
+    if (typeof selectObjectsByIds === 'function') {
+        selectObjectsByIds(newIds);
+    }
+
+    showNotification(lang.ctxPastedNotif + newIds.length);
+}
+
+function openExportSightModal() {
+    if (typeof openModal === 'function') {
+        openModal();
+        return;
+    }
+
+    const modal = document.getElementById('exportModal');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+function getContextMenuElement() {
+    const menu = document.getElementById('canvasContextMenu');
+    if (!menu) return null;
+
+    if (!menu.dataset.bound) {
+        menu.addEventListener('click', (e) => {
+            const btn = e.target.closest('.ctx-menu-item');
+            if (!btn || btn.disabled) return;
+
+            const action = btn.getAttribute('data-action');
+            handleContextMenuAction(action);
+            hideContextMenu();
+        });
+
+        menu.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        menu.dataset.bound = 'true';
+    }
+
+    return menu;
+}
+
+function handleContextMenuAction(action) {
+    switch (action) {
+        case 'delete': {
+            deleteCurrentSelection();
+            break;
+        }
+        case 'copy': {
+            copySelectedObjects();
+            break;
+        }
+        case 'paste': {
+            const target = contextMenuOpenedAtCanvasPos || { x: screenPos.x, y: screenPos.y };
+            pasteObjectsAtCenter(target);
+            break;
+        }
+        case 'undo': {
+            if (typeof popEvent === 'function') popEvent();
+            break;
+        }
+        case 'redo': {
+            if (typeof popRedo === 'function') popRedo();
+            break;
+        }
+        case 'save': {
+            forcedSave();
+            showNotification(lang.savedNotificationText);
+            break;
+        }
+        case 'export': {
+            openExportSightModal();
+            break;
+        }
+    }
+}
+
+function setMenuItemEnabled(btn, enabled) {
+    if (!btn) return;
+    btn.disabled = !enabled;
+    btn.classList.toggle('ctx-menu-item-disabled', !enabled);
+}
+
+function updateContextMenuState() {
+    if (!contextMenuEl) return;
+
+    const hasSelection = getSelectedObjectsIds().length > 0;
+    const hasClipboard = hasValidClipboard();
+    const canUndo = typeof events !== 'undefined' && events.length > 0;
+    const canRedo = typeof redoEvents !== 'undefined' && redoEvents.length > 0;
+
+    const deleteBtn = contextMenuEl.querySelector('[data-action="delete"]');
+    const copyBtn = contextMenuEl.querySelector('[data-action="copy"]');
+    const pasteBtn = contextMenuEl.querySelector('[data-action="paste"]');
+    const undoBtn = contextMenuEl.querySelector('[data-action="undo"]');
+    const redoBtn = contextMenuEl.querySelector('[data-action="redo"]');
+
+    if (deleteBtn) deleteBtn.style.display = hasSelection ? 'flex' : 'none';
+    if (copyBtn) copyBtn.style.display = hasSelection ? 'flex' : 'none';
+
+    setMenuItemEnabled(pasteBtn, hasClipboard);
+    setMenuItemEnabled(undoBtn, canUndo);
+    setMenuItemEnabled(redoBtn, canRedo);
+}
+
+function showContextMenu(clientX, clientY, worldPos) {
+    if (!contextMenuEl) {
+        contextMenuEl = getContextMenuElement();
+    }
+    if (!contextMenuEl) return;
+
+    updateContextMenuState();
+
+    contextMenuOpenedAtCanvasPos = worldPos;
+
+    contextMenuEl.style.visibility = 'hidden';
+    contextMenuEl.style.display = 'flex';
+
+    const menuRect = contextMenuEl.getBoundingClientRect();
+    const margin = 6;
+
+    let left = clientX;
+    let top = clientY;
+
+    if (left + menuRect.width + margin > window.innerWidth) {
+        left = window.innerWidth - menuRect.width - margin;
+    }
+    if (top + menuRect.height + margin > window.innerHeight) {
+        top = window.innerHeight - menuRect.height - margin;
+    }
+    left = Math.max(margin, left);
+    top = Math.max(margin, top);
+
+    contextMenuEl.style.left = left + 'px';
+    contextMenuEl.style.top = top + 'px';
+    contextMenuEl.style.visibility = 'visible';
+
+    document.addEventListener('pointerdown', onDocPointerDownCloseMenu, true);
+    window.addEventListener('blur', hideContextMenu);
+    window.addEventListener('resize', hideContextMenu);
+}
+
+function hideContextMenu() {
+    if (!contextMenuEl) return;
+    contextMenuEl.style.display = 'none';
+    contextMenuOpenedAtCanvasPos = null;
+
+    document.removeEventListener('pointerdown', onDocPointerDownCloseMenu, true);
+    window.removeEventListener('blur', hideContextMenu);
+    window.removeEventListener('resize', hideContextMenu);
+}
+
+function onDocPointerDownCloseMenu(e) {
+    if (contextMenuEl && !contextMenuEl.contains(e.target)) {
+        hideContextMenu();
+    }
+}
+
+function isContextMenuOpen() {
+    return !!(contextMenuEl && contextMenuEl.style.display === 'flex');
+}
+
+const CONTEXT_MENU_CLICK_TOLERANCE_PX = 5;
+let rmbDownClientPos = null;
+let rmbWasDrag = false;
+
+canvas.addEventListener('pointerdown', (e) => {
+    if (e.button !== 2) return;
+    rmbDownClientPos = { x: e.clientX, y: e.clientY };
+    rmbWasDrag = false;
+}, true);
+
+canvas.addEventListener('pointermove', (e) => {
+    if (rmbDownClientPos === null) return;
+    const dx = e.clientX - rmbDownClientPos.x;
+    const dy = e.clientY - rmbDownClientPos.y;
+    if ((dx * dx + dy * dy) > (CONTEXT_MENU_CLICK_TOLERANCE_PX * CONTEXT_MENU_CLICK_TOLERANCE_PX)) {
+        rmbWasDrag = true;
+    }
+}, true);
+
+canvas.addEventListener('pointerup', (e) => {
+    if (e.button !== 2) return;
+
+    if (!rmbWasDrag) {
+        const worldPos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
+        showContextMenu(e.clientX, e.clientY, worldPos);
+    }
+
+    rmbDownClientPos = null;
+    rmbWasDrag = false;
+}, true);
+
+canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.code === 'Escape' && isContextMenuOpen()) {
+        hideContextMenu();
+    }
+});
+
+
+document.addEventListener('keydown', (e) => {
+    const activeElem = document.activeElement;
+    if (activeElem && (activeElem.tagName === 'INPUT' || activeElem.tagName === 'TEXTAREA' || activeElem.isContentEditable)) {
+        return;
+    }
+
+    if ((e.ctrlKey || e.metaKey) && e.code === 'KeyC') {
+        if (getSelectedObjectsIds().length > 0) {
+            e.preventDefault();
+            copySelectedObjects();
+        }
+    }
+
+    if ((e.ctrlKey || e.metaKey) && e.code === 'KeyV') {
+        if (hasValidClipboard()) {
+            e.preventDefault();
+            const target = { x: screenPos.x, y: screenPos.y };
+            pasteObjectsAtCenter(target);
+        }
+    }
+});
+
+function reconcileSelectionAfterHistoryChange() {
+    if (typeof selectedObjectsSet !== 'undefined' && selectedObjectsSet.size > 0) {
+        for (const id of Array.from(selectedObjectsSet)) {
+            if (!objects.has(id)) {
+                selectedObjectsSet.delete(id);
+            }
+        }
+    }
+
+    if (typeof selectedId !== 'undefined' && selectedId !== null && !objects.has(selectedId)) {
+        selectedId = null;
+    }
+
+    if (typeof updateTransformBoxFromSelection === 'function') {
+        if (selectedObjectsSet.size > 0) {
+            updateTransformBoxFromSelection();
+        } else if (typeof transformState !== 'undefined') {
+            transformState.box = null;
+            transformState.active = false;
+            transformState.action = null;
+            transformState.selectedIdsHash = "";
+        }
+    }
+
+    if (typeof updateSelectionInfo === 'function') updateSelectionInfo();
+}
+
+if (typeof popEvent === 'function') {
+    const originalPopEvent = popEvent;
+    popEvent = function (...args) {
+        const result = originalPopEvent.apply(this, args);
+        reconcileSelectionAfterHistoryChange();
+        return result;
+    };
+}
+
+if (typeof popRedo === 'function') {
+    const originalPopRedo = popRedo;
+    popRedo = function (...args) {
+        const result = originalPopRedo.apply(this, args);
+        reconcileSelectionAfterHistoryChange();
+        return result;
+    };
+}

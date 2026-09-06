@@ -522,17 +522,16 @@ function checkHotkey(actionKey, e) {
 }
 
 document.onkeydown = (e) => {
+    if (e.ctrlKey && e.key !== 'Control') {
+        isCtrlUsedInCombo = true;
+    }
+    else if (e.key === 'Control') {
+        isCtrlUsedInCombo = false;
+    }
+
     const activeElem = document.activeElement;
     if (activeElem.tagName === 'INPUT' || activeElem.tagName === 'TEXTAREA' || activeElem.isContentEditable) {
         if (e.code === "Escape") activeElem.blur();
-
-        if (e.ctrlKey && e.key !== 'Control') {
-            isCtrlUsedInCombo = true;
-        }
-        else if (e.key === 'Control') {
-            isCtrlUsedInCombo = false;
-        }
-
         return;
     }
 
@@ -631,17 +630,7 @@ document.onkeydown = (e) => {
 
     if (checkHotkey('actionDelete', e)) {
         e.preventDefault();
-        if (selectedObjectsSet.size > 0) {
-            deleteSelectedObjects();
-        }
-        else if (selectedId !== null) {
-            const obj = objects.get(selectedId);
-            if (obj) {
-                pushEvent("delete", { id: selectedId, object: obj });
-                deleteObject(selectedId);
-                refreshObjectsList();
-            }
-        }
+        deleteCurrentSelection();
     }
 
     if (e.code === "AltRight") {
@@ -651,9 +640,6 @@ document.onkeydown = (e) => {
     if (e.code === "ControlLeft") {
         if (altGrActive) return;
 
-        if (!snapping && typeof canvasHover !== 'undefined' && canvasHover && (selectedId !== null || selectedObjectsSet.size > 0)) {
-            unselectAnyObjects();
-        }
         snapping = true;
     }
 
@@ -675,6 +661,12 @@ document.onkeyup = (e) => {
     }
     if (e.code === "ControlLeft") {
         snapping = false;
+
+        if (!isCtrlUsedInCombo && typeof canvasHover !== 'undefined' && canvasHover && (selectedId !== null || selectedObjectsSet.size > 0)) {
+            unselectAnyObjects();
+        }
+
+        isCtrlUsedInCombo = false;
     }
 };
 

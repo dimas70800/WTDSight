@@ -42,9 +42,9 @@ const ru =
     line: "Линия",
     quad: "Четырёхугольник",
 
-    hintsText: "[ПКМ] - Двигать холст, [ЛКМ] - Рисовать, [СКМ] - Выбрать объект, [Ctrl] - Приклеить курсор к существующей вершине<br>" +
+    hintsText: "[ПКМ] - Двигать холст / Открыть меню, [ЛКМ] - Рисовать, [СКМ] - Выбрать объект, [Ctrl] - Приклеить курсор к существующей вершине<br>" +
         "[Колёсико] - Масштабирование, [Ctrl+Z] - Отмена, [Ctrl+Y] - Вернуть, [Ctrl+A] - Сброс выбора объекта, [Delete] - Удалить выбранный объект, [Q/E] - Поворот холста, " +
-        "[Ctrl+S] - Сохранить",
+        "[Ctrl+S] - Сохранить, [Ctrl+C] - Копировать, [Ctrl+V] - Вставить",
 
     massLabel: "Преобразование рисунка",
     massXLabel: "Смещение X",
@@ -318,7 +318,17 @@ const ru =
     vectorizeQuadsThreshLabel: "Порог чёрного",
     vectorizeQuadsDenoiseLabel: "Убрать одиночные пиксели",
     autoOptimizedResolution: "(авто-оптимизация разрешения)",
-    fillRestoreBtn: "Предыдущая зона"
+    fillRestoreBtn: "Предыдущая зона",
+
+    ctxDelete: "Удалить",
+    ctxCopy: "Копировать",
+    ctxPaste: "Вставить",
+    ctxUndo: "Отмена",
+    ctxRedo: "Вернуть",
+    ctxSave: "Принудительно сохранить",
+    ctxExport: "Экспортировать прицел",
+    ctxCopiedNotif: "Скопировано ",
+    ctxPastedNotif: "Вставлено "
 };
 
 const en =
@@ -365,9 +375,9 @@ const en =
     line: "Line",
     quad: "Quad",
 
-    hintsText: "[RMB] - Move canvas, [LMB] - Draw, [MMB] - Select object, [Ctrl] - Snap to vertices<br>" +
+    hintsText: "[RMB] - Move canvas / Open menu, [LMB] - Draw, [MMB] - Select object, [Ctrl] - Snap to vertices<br>" +
         "[Mouse Wheel] - Zoom, [Ctrl+Z] - Undo, [Ctrl+Y] - Redo, [Ctrl+A] - Clear selection, [Delete] - Delete selected object, [Q/E] - Rotate canvas, " +
-        "[Ctrl+S] - Save",
+        "[Ctrl+S] - Save, [Ctrl+C] - Copy, [Ctrl+V] - Paste",
 
     massLabel: "Drawing transform",
     massXLabel: "Shift X",
@@ -642,7 +652,17 @@ const en =
     vectorizeQuadsThreshLabel: "Threshold of black",
     vectorizeQuadsDenoiseLabel: "Remove single pixels",
     autoOptimizedResolution: "(auto-optimized resolution)",
-    fillRestoreBtn: "Previous zone"
+    fillRestoreBtn: "Previous zone",
+
+    ctxDelete: "Delete",
+    ctxCopy: "Copy",
+    ctxPaste: "Paste",
+    ctxUndo: "Undo",
+    ctxRedo: "Redo",
+    ctxSave: "Force save",
+    ctxExport: "Export sight",
+    ctxCopiedNotif: "Copied ",
+    ctxPastedNotif: "Pasted "
 };
 
 const langDependent =
@@ -670,8 +690,6 @@ const langDependent =
 
         "selObjectTitle",
         "saveFileNameTitle",
-
-        "hintsText",
 
         "massLabel",
         "massXLabel",
@@ -905,7 +923,15 @@ const langDependent =
         "vectorizeQuadsBlurLabel",
         "vectorizeQuadsThreshLabel",
         "vectorizeQuadsDenoiseLabel",
-        "fillRestoreBtn"
+        "fillRestoreBtn",
+
+        "ctxDelete",
+        "ctxCopy",
+        "ctxPaste",
+        "ctxUndo",
+        "ctxRedo",
+        "ctxSave",
+        "ctxExport"
     ];
 
 function changeLang(to) {

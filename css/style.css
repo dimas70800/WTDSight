@@ -1047,6 +1047,64 @@ option:checked {
     animation: blinkCursor 1s step-end infinite;
 }
 
+.canvas-context-menu {
+    position: fixed;
+    display: none;
+    flex-direction: column;
+    min-width: 220px;
+    padding: 6px;
+    background: var(--bg-main-panel);
+    border: 1px solid var(--border-col);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    z-index: 5000;
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    user-select: none;
+}
+
+.canvas-context-menu .ctx-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-white);
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+}
+
+.canvas-context-menu .ctx-menu-item:hover {
+    background: var(--input-bg);
+}
+
+.canvas-context-menu .ctx-menu-item:active {
+    background: var(--border-col);
+}
+
+.canvas-context-menu .ctx-menu-item-disabled,
+.canvas-context-menu .ctx-menu-item:disabled {
+    opacity: 0.4;
+    cursor: default;
+    pointer-events: none;
+}
+
+.canvas-context-menu .ctx-menu-label {
+    flex-grow: 1;
+    color: var(--text-white);
+}
+
+.canvas-context-menu .ctx-menu-separator {
+    height: 1px;
+    margin: 6px 4px;
+    background: var(--border-col);
+}
+
 @keyframes blinkCursor {
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }

@@ -211,6 +211,34 @@ function getReadableHotkeyString(hotkey) {
     return parts.join(' + ');
 }
 
+function updateHintsText() {
+    const hintsTextEl = document.getElementById('hintsText');
+    if (!hintsTextEl) return;
+
+    const isRu = typeof lang !== 'undefined' && lang === ru;
+    const rot = getReadableHotkeyString(currentHotkeys.actionRotLeft) + '/' + getReadableHotkeyString(currentHotkeys.actionRotRight);
+
+    if (isRu) {
+        hintsTextEl.innerHTML =
+            `[ПКМ] - Двигать холст / Открыть меню, [ЛКМ] - Рисовать, [СКМ] - Выбрать объект, [Ctrl] - Приклеить курсор к существующей вершине<br>` +
+            `[Колёсико] - Масштабирование, [${getReadableHotkeyString(currentHotkeys.actionUndo)}] - Отмена, ` +
+            `[${getReadableHotkeyString(currentHotkeys.actionRedo)}] - Вернуть, ` +
+            `[${getReadableHotkeyString(currentHotkeys.actionClearSel)}] - Сброс выбора объекта, ` +
+            `[${getReadableHotkeyString(currentHotkeys.actionDelete)}] - Удалить выбранный объект, ` +
+            `[${rot}] - Поворот холста, ` +
+            `[${getReadableHotkeyString(currentHotkeys.actionSave)}] - Сохранить, [Ctrl + C] - Копировать, [Ctrl + V] - Вставить`;
+    } else {
+        hintsTextEl.innerHTML =
+            `[RMB] - Move canvas / Open menu, [LMB] - Draw, [MMB] - Select object, [Ctrl] - Snap to vertices<br>` +
+            `[Mouse Wheel] - Zoom, [${getReadableHotkeyString(currentHotkeys.actionUndo)}] - Undo, ` +
+            `[${getReadableHotkeyString(currentHotkeys.actionRedo)}] - Redo, ` +
+            `[${getReadableHotkeyString(currentHotkeys.actionClearSel)}] - Clear selection, ` +
+            `[${getReadableHotkeyString(currentHotkeys.actionDelete)}] - Delete selected object, ` +
+            `[${rot}] - Rotate canvas, ` +
+            `[${getReadableHotkeyString(currentHotkeys.actionSave)}] - Save, [Ctrl + C] - Copy, [Ctrl + V] - Paste`;
+    }
+}
+
 function renderHotkeysUI() {
     const listContainer = document.getElementById('hotkeysList');
     if (!listContainer) return;
@@ -253,6 +281,8 @@ function renderHotkeysUI() {
         row.appendChild(btn);
         listContainer.appendChild(row);
     });
+
+    updateHintsText();
 }
 
 function handleHotkeyCapture(e) {
