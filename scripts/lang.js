@@ -317,6 +317,7 @@ const ru =
     vectorizeQuadsBlurLabel: "Толщина линий",
     vectorizeQuadsThreshLabel: "Порог чёрного",
     vectorizeQuadsDenoiseLabel: "Убрать одиночные пиксели",
+    vectorizeQuadsSmoothLabel: "Сглаживание",
     autoOptimizedResolution: "(авто-оптимизация разрешения)",
     fillRestoreBtn: "Предыдущая зона",
 
@@ -651,6 +652,7 @@ const en =
     vectorizeQuadsBlurLabel: "Line thickness",
     vectorizeQuadsThreshLabel: "Threshold of black",
     vectorizeQuadsDenoiseLabel: "Remove single pixels",
+    vectorizeQuadsSmoothLabel: "Smoothing",
     autoOptimizedResolution: "(auto-optimized resolution)",
     fillRestoreBtn: "Previous zone",
 
@@ -923,6 +925,7 @@ const langDependent =
         "vectorizeQuadsBlurLabel",
         "vectorizeQuadsThreshLabel",
         "vectorizeQuadsDenoiseLabel",
+        "vectorizeQuadsSmoothLabel",
         "fillRestoreBtn",
 
         "ctxDelete",

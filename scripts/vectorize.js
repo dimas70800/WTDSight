@@ -225,12 +225,21 @@
 
             const result = [];
             for (const r of rects) {
-                result.push({
-                    pos1: toWorld(r.x, r.y),
-                    pos2: toWorld(r.x + r.w, r.y),
-                    pos3: toWorld(r.x + r.w, r.y + r.h),
-                    pos4: toWorld(r.x, r.y + r.h)
-                });
+                if (Array.isArray(r)) {
+                    result.push({
+                        pos1: toWorld(r[0].x, r[0].y),
+                        pos2: toWorld(r[1].x, r[1].y),
+                        pos3: toWorld(r[2].x, r[2].y),
+                        pos4: toWorld(r[3].x, r[3].y)
+                    });
+                } else {
+                    result.push({
+                        pos1: toWorld(r.x, r.y),
+                        pos2: toWorld(r.x + r.w, r.y),
+                        pos3: toWorld(r.x + r.w, r.y + r.h),
+                        pos4: toWorld(r.x, r.y + r.h)
+                    });
+                }
             }
 
             return result;
@@ -366,6 +375,8 @@
             const blurRadius = parseInt(document.getElementById('vectorizeQuadsBlur').value);
             const threshold = parseInt(document.getElementById('vectorizeQuadsThresh').value);
             const denoiseEnabled = document.getElementById('vectorizeQuadsDenoiseCheckbox').checked;
+            const smoothModeEl = document.getElementById('vectorizeQuadsSmoothCheckbox');
+            const smoothMode = smoothModeEl ? smoothModeEl.checked : false;
 
             const worker = new Worker('scripts/vectorize-worker.js');
 
@@ -427,7 +438,8 @@
                     maxQuads: maxQuads,
                     blurRadius: blurRadius,
                     threshold: threshold,
-                    denoiseEnabled: denoiseEnabled
+                    denoiseEnabled: denoiseEnabled,
+                    smoothMode: smoothMode
                 }
             });
         }
@@ -699,6 +711,8 @@
                 document.getElementById('vectorizeQuadsThresh').value = "220";
                 document.getElementById('vectorizeQuadsThreshVal').innerText = "220";
                 document.getElementById('vectorizeQuadsDenoiseCheckbox').checked = false;
+                const smoothCb = document.getElementById('vectorizeQuadsSmoothCheckbox');
+                if (smoothCb) smoothCb.checked = false;
             } else {
                 const targetSlider = document.getElementById('vectorizeTargetLines');
                 targetSlider.value = "2000";
@@ -834,6 +848,7 @@
             const quadsThresh = document.getElementById('vectorizeQuadsThresh');
             const quadsThreshVal = document.getElementById('vectorizeQuadsThreshVal');
             const quadsDenoise = document.getElementById('vectorizeQuadsDenoiseCheckbox');
+            const quadsSmooth = document.getElementById('vectorizeQuadsSmoothCheckbox');
 
             if (quadsMaxSpan) quadsMaxSpan.innerText = quadsTarget.max;
 
@@ -855,6 +870,12 @@
             quadsDenoise.addEventListener('change', () => {
                 if (tool === 'vectorize') scheduleVectorizeUpdate();
             });
+
+            if (quadsSmooth) {
+                quadsSmooth.addEventListener('change', () => {
+                    if (tool === 'vectorize') scheduleVectorizeUpdate();
+                });
+            }
         }
 
         function setVectorizeMode(mode) {
