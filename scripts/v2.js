@@ -10,7 +10,7 @@ function v2inv(a)
 
 function v2sub(a, b)
 {
-    return v2add(a, v2inv(b));
+    return { x: a.x - b.x, y: a.y - b.y };
 }
 
 function v2mul(a, c)
@@ -35,14 +35,15 @@ function v2copy(a)
 
 function v2avg(positions)
 {
-    let avg = { x: 0, y: 0 };
+    const len = positions.length;
+    if (len === 0) return { x: 0, y: 0 };
 
-    for (const pos of positions)
+    let sumX = 0, sumY = 0;
+    for (let i = 0; i < len; i++)
     {
-        avg = v2add(avg, pos);
+        sumX += positions[i].x;
+        sumY += positions[i].y;
     }
 
-    avg = v2mul(avg, 1 / positions.length);
-
-    return avg;
+    return { x: sumX / len, y: sumY / len };
 }

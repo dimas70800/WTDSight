@@ -224,7 +224,11 @@ function v2pixel2v2sight(pixel) {
 }
 
 function v2disposSight2v2canvas(disposSight) {
-    return v2pixel2v2canvas(v2sight2v2pixel(v2disposSight2v2sight(disposSight)));
+    const scale = screenZoom * getBaseScale();
+    return {
+        x: (disposSight.x - screenPos.x) * scale + canvas.width / 2,
+        y: (disposSight.y - screenPos.y) * scale + canvas.height / 2
+    };
 }
 
 function v2canvas2v2pixel(canv) {
@@ -236,7 +240,11 @@ function v2sight2v2disposSight(sight) {
 }
 
 function v2canvas2v2disposSight(canv) {
-    return v2sight2v2disposSight(v2pixel2v2sight(v2canvas2v2pixel(canv)));
+    const scale = screenZoom * getBaseScale();
+    return {
+        x: (canv.x - canvas.width / 2) / scale + screenPos.x,
+        y: (canv.y - canvas.height / 2) / scale + screenPos.y
+    };
 }
 
 function drawCrosshair() {
@@ -325,13 +333,16 @@ function drawStuff() {
         el("massB").disabled = true;
     }
 
-    const opacity = el("opacityInput").value;
+    const opacityInputEl = el("opacityInput");
+    const opacity = opacityInputEl ? opacityInputEl.value : "1";
+    const outlineCheckBoxEl = el("outlineCheckBox");
+    const outlineCheckBoxVal = outlineCheckBoxEl ? outlineCheckBoxEl.checked : false;
+    const outlineColor = `rgba(255, 255, 255, ${opacity})`;
+    const defaultColor = "rgba(0, 0, 0, " + opacity + ")";
+    const selectedColor = "rgba(0, 0, 255, " + timeSin.toString() + ")";
+    const noTransform = (point) => point;
 
     function drawStuffObject(object, c, w, transformationFunc) {
-        const opacity = el("opacityInput").value;
-        const outlineColor = `rgba(255, 255, 255, ${opacity})`;
-        const outlineCheckBoxVal = el("outlineCheckBox").checked;
-
         switch (object.type) {
             case "line":
                 const from = v2disposSight2v2canvas(transformationFunc(object.start, mass.x, mass.y, mass.r, mass.sx, mass.sy));
@@ -389,8 +400,7 @@ function drawStuff() {
         for (const object of animatedObjectsList) {
             if (count > animationProgress) break;
 
-            const color = "rgba(0, 0, 0, " + opacity + ")";
-            drawStuffObject(object, color, 1, (point, x, y, r, sx, sy) => { return point; });
+            drawStuffObject(object, defaultColor, 1, noTransform);
             count++;
         }
 
@@ -400,10 +410,10 @@ function drawStuff() {
         }
     } else {
         for (const [id, object] of objects) {
-            const color = !object.selected ? "rgba(0, 0, 0, " + opacity + ")" : "rgba(0, 0, 255, " + timeSin.toString() + ")";
+            const color = !object.selected ? defaultColor : selectedColor;
             const width = !object.selected ? 1 : 3;
 
-            drawStuffObject(object, color, width, (point, x, y, r, sx, sy) => { return point; });
+            drawStuffObject(object, color, width, noTransform);
         }
     }
 
@@ -559,33 +569,30 @@ function drawGhost() {
                 }
             }
             else if (quadPos.length === 1) {
+                const qp0 = v2disposSight2v2canvas(quadPos[0]);
                 if (!drawing) {
-                    drawCircle(v2disposSight2v2canvas(quadPos[0]).x, v2disposSight2v2canvas(quadPos[0]).y, 10);
+                    drawCircle(qp0.x, qp0.y, 10);
                 }
 
-                drawLine(v2disposSight2v2canvas(quadPos[0]).x, v2disposSight2v2canvas(quadPos[0]).y, mousePosCanvas.x, mousePosCanvas.y);
+                drawLine(qp0.x, qp0.y, mousePosCanvas.x, mousePosCanvas.y);
             }
             else if (quadPos.length === 2) {
+                const qp0 = v2disposSight2v2canvas(quadPos[0]);
+                const qp1 = v2disposSight2v2canvas(quadPos[1]);
                 if (!drawing) {
-                    drawLine(v2disposSight2v2canvas(quadPos[0]).x, v2disposSight2v2canvas(quadPos[0]).y, v2disposSight2v2canvas(quadPos[1]).x, v2disposSight2v2canvas(quadPos[1]).y);
+                    drawLine(qp0.x, qp0.y, qp1.x, qp1.y);
                 }
                 else {
-                    drawQuad([
-                        { x: v2disposSight2v2canvas(quadPos[0]).x, y: v2disposSight2v2canvas(quadPos[0]).y },
-                        { x: v2disposSight2v2canvas(quadPos[1]).x, y: v2disposSight2v2canvas(quadPos[1]).y },
-                        { x: mousePosCanvas.x, y: mousePosCanvas.y },
-                    ]);
+                    drawQuad([qp0, qp1, mousePosCanvas]);
                 }
 
-                drawLine(v2disposSight2v2canvas(quadPos[1]).x, v2disposSight2v2canvas(quadPos[1]).y, mousePosCanvas.x, mousePosCanvas.y);
+                drawLine(qp1.x, qp1.y, mousePosCanvas.x, mousePosCanvas.y);
             }
             else if (quadPos.length === 3) {
-                drawQuad([
-                    { x: v2disposSight2v2canvas(quadPos[0]).x, y: v2disposSight2v2canvas(quadPos[0]).y },
-                    { x: v2disposSight2v2canvas(quadPos[1]).x, y: v2disposSight2v2canvas(quadPos[1]).y },
-                    { x: v2disposSight2v2canvas(quadPos[2]).x, y: v2disposSight2v2canvas(quadPos[2]).y },
-                    { x: mousePosCanvas.x, y: mousePosCanvas.y },
-                ]);
+                const qp0 = v2disposSight2v2canvas(quadPos[0]);
+                const qp1 = v2disposSight2v2canvas(quadPos[1]);
+                const qp2 = v2disposSight2v2canvas(quadPos[2]);
+                drawQuad([qp0, qp1, qp2, mousePosCanvas]);
             }
 
             break;
@@ -1152,7 +1159,7 @@ function drawArrows() {
     ctx.globalAlpha = 0.5;
 
     const arrowSources = getArrowSources(object);
-    const arrowHitboxes = getArrowHitboxes();
+    const arrowHitboxes = getArrowHitboxes(arrowSources);
 
     hoveredArrowHitbox = null;
 
@@ -1220,11 +1227,11 @@ function drawArrows() {
     ctx.globalAlpha = 1;
 }
 
-function getArrowHitboxes() {
+function getArrowHitboxes(cachedArrowSources) {
     if (selectedId == null) return [];
     const object = objects.get(selectedId);
     if (!object) return [];
-    const arrowSources = getArrowSources(object);
+    const arrowSources = cachedArrowSources || getArrowSources(object);
     const arrowHitboxes = [];
 
     const isTouch = ('ontouchstart' in window);

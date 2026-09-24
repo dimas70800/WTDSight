@@ -470,162 +470,163 @@ function updateFillPreview() {
 }
 
 function generateFillQuads(points) {
-    if (points.length < 3) return [];
-    
-    let pts = [];
+    if (!points || points.length < 3) return [];
+
+    // 1. Очистка дубликатов и лишних коллинеарных точек на прямых ребрах
+    let clean = [];
     for (let p of points) {
-        if (pts.length === 0 || Math.hypot(p.x - pts[pts.length-1].x, p.y - pts[pts.length-1].y) > 1e-8) {
-            pts.push({ x: p.x, y: p.y });
+        if (!clean.length || Math.hypot(p.x - clean[clean.length - 1].x, p.y - clean[clean.length - 1].y) > 1e-6) {
+            clean.push({ x: p.x, y: p.y });
         }
     }
-    if (pts.length > 1 && Math.hypot(pts[0].x - pts[pts.length-1].x, pts[0].y - pts[pts.length-1].y) < 1e-8) {
-        pts.pop();
+    if (clean.length > 1 && Math.hypot(clean[0].x - clean[clean.length - 1].x, clean[0].y - clean[clean.length - 1].y) <= 1e-6) {
+        clean.pop();
+    }
+    let pts = [];
+    const n = clean.length;
+    for (let i = 0; i < n; i++) {
+        const prev = clean[(i - 1 + n) % n], curr = clean[i], next = clean[(i + 1) % n];
+        const cr = (curr.x - prev.x) * (next.y - curr.y) - (curr.y - prev.y) * (next.x - curr.x);
+        const dot = (curr.x - prev.x) * (next.x - curr.x) + (curr.y - prev.y) * (next.y - curr.y);
+        if (Math.abs(cr) < 1e-8 && dot > 0) continue;
+        pts.push(curr);
     }
     if (pts.length < 3) return [];
-
-    let area = 0;
-    for (let i = 0; i < pts.length; i++) {
-        let j = (i + 1) % pts.length;
-        area += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
-    }
-    if (area < 0) pts.reverse();
 
     function cross(a, b, c) {
         return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
     }
-
-    function samePoint(p1, p2) {
-        return Math.abs(p1.x - p2.x) < 1e-8 && Math.abs(p1.y - p2.y) < 1e-8;
+    function samePt(a, b) {
+        return Math.abs(a.x - b.x) < 1e-7 && Math.abs(a.y - b.y) < 1e-7;
+    }
+    function isConvex4(q) {
+        let pos = 0, neg = 0;
+        for (let i = 0; i < 4; i++) {
+            let cr = cross(q[i], q[(i + 1) % 4], q[(i + 2) % 4]);
+            if (cr > 1e-9) pos++; else if (cr < -1e-9) neg++; else return false;
+        }
+        return pos === 4 || neg === 4;
     }
 
-    function isPointInTriangle(p, a, b, c) {
-        if (samePoint(p, a) || samePoint(p, b) || samePoint(p, c)) return false;
-        
-        let denominator = ((b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y));
-        if (Math.abs(denominator) < 1e-12) return false;
-        
-        let w1 = ((b.y - c.y) * (p.x - c.x) + (c.x - b.x) * (p.y - c.y)) / denominator;
-        let w2 = ((c.y - a.y) * (p.x - c.x) + (a.x - c.x) * (p.y - c.y)) / denominator;
-        let w3 = 1 - w1 - w2;
-        
-        return w1 >= -1e-8 && w2 >= -1e-8 && w3 >= -1e-8;
-    }
+    if (pts.length === 3) return [[pts[0], pts[1], pts[2], pts[2]]];
+    if (pts.length === 4 && isConvex4(pts)) return [pts];
 
+    // 2. Качественная триангуляция через earcut (с надежным fallback ear-clipping)
     let triangles = [];
-    let bailout = 0;
-    
-    while (pts.length >= 3 && bailout < 2000) {
-        bailout++;
-        let n = pts.length;
-        let earFound = false;
-        
-        for (let i = 0; i < n; i++) {
-            let prev = (i - 1 + n) % n;
-            let next = (i + 1) % n;
-            let a = pts[prev], b = pts[i], c = pts[next];
-
-            if (cross(a, b, c) <= 1e-10) continue;
-
-            let isEar = true;
-            for (let j = 0; j < n; j++) {
-                if (j === prev || j === i || j === next) continue;
-                if (isPointInTriangle(pts[j], a, b, c)) {
-                    isEar = false;
+    const earcutFn = (typeof earcut !== 'undefined' ? (earcut.default || earcut) : null);
+    if (earcutFn) {
+        try {
+            const flat = [];
+            for (let p of pts) flat.push(p.x, p.y);
+            const indices = earcutFn(flat, null, 2);
+            for (let i = 0; i < indices.length; i += 3) {
+                triangles.push([pts[indices[i]], pts[indices[i + 1]], pts[indices[i + 2]]]);
+            }
+        } catch (e) {
+            triangles = [];
+        }
+    }
+    if (triangles.length === 0) {
+        let temp = [...pts];
+        while (temp.length >= 3) {
+            let earFound = false;
+            for (let i = 0; i < temp.length; i++) {
+                let p = temp[(i - 1 + temp.length) % temp.length], c = temp[i], nx = temp[(i + 1) % temp.length];
+                if (cross(p, c, nx) <= 1e-9) continue;
+                let inside = false;
+                for (let j = 0; j < temp.length; j++) {
+                    if (j === (i - 1 + temp.length) % temp.length || j === i || j === (i + 1) % temp.length) continue;
+                    let pt = temp[j];
+                    if (cross(p, c, pt) >= -1e-9 && cross(c, nx, pt) >= -1e-9 && cross(nx, p, pt) >= -1e-9) { inside = true; break; }
+                }
+                if (!inside) {
+                    triangles.push([p, c, nx]);
+                    temp.splice(i, 1);
+                    earFound = true;
                     break;
                 }
             }
-
-            if (isEar) {
-                triangles.push([a, b, c]);
-                pts.splice(i, 1);
-                earFound = true;
-                break;
-            }
+            if (!earFound) break;
         }
-        
-        if (!earFound) {
-            let bestIdx = -1;
-            let maxCross = -Infinity;
-            for (let i = 0; i < pts.length; i++) {
-                let prev = (i - 1 + pts.length) % pts.length;
-                let next = (i + 1) % pts.length;
-                let cr = cross(pts[prev], pts[i], pts[next]);
-                if (cr > maxCross) {
-                    maxCross = cr;
-                    bestIdx = i;
-                }
-            }
-            
-            if (bestIdx !== -1) {
-                let prev = (bestIdx - 1 + pts.length) % pts.length;
-                let next = (bestIdx + 1) % pts.length;
-                
-                if (maxCross > 1e-10) { 
-                    triangles.push([pts[prev], pts[bestIdx], pts[next]]);
-                }
-                pts.splice(bestIdx, 1);
-            } else {
-                pts.splice(0, 1);
+    }
+
+    // 3. Поиск пар треугольников, образующих строго выпуклые квады
+    function tryMerge(t1, t2) {
+        let shared = 0;
+        for (let p of t1) if (t2.some(q => samePt(p, q))) shared++;
+        if (shared !== 2) return null;
+
+        let qPts = [...t1];
+        for (let p of t2) if (!qPts.some(q => samePt(p, q))) qPts.push(p);
+        if (qPts.length !== 4) return null;
+
+        let cx = (qPts[0].x + qPts[1].x + qPts[2].x + qPts[3].x) / 4;
+        let cy = (qPts[0].y + qPts[1].y + qPts[2].y + qPts[3].y) / 4;
+        qPts.sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
+        return isConvex4(qPts) ? qPts : null;
+    }
+
+    const m = triangles.length;
+    const quadPairs = new Map();
+    const adj = Array.from({ length: m }, () => []);
+
+    for (let i = 0; i < m; i++) {
+        for (let j = i + 1; j < m; j++) {
+            const q = tryMerge(triangles[i], triangles[j]);
+            if (q) {
+                adj[i].push(j);
+                adj[j].push(i);
+                quadPairs.set(i + ':' + j, q);
             }
         }
     }
 
-    let quads = [];
-    let usedTriangles = new Array(triangles.length).fill(false);
-    
-    function rebuildQuad(t1, t2) {
-        let ptsList = [];
-        for (let p of t1) ptsList.push(p);
-        for (let p of t2) {
-            if (!ptsList.some(pt => samePoint(pt, p))) ptsList.push(p);
-        }
-        if (ptsList.length !== 4) return null;
+    // 4. Точное максимальное паросочетание на графе (Augmenting Paths)
+    const match = new Int32Array(m).fill(-1);
+    const vis = new Uint8Array(m);
 
-        let cx = (ptsList[0].x + ptsList[1].x + ptsList[2].x + ptsList[3].x) / 4;
-        let cy = (ptsList[0].y + ptsList[1].y + ptsList[2].y + ptsList[3].y) / 4;
-        ptsList.sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
-        return ptsList;
-    }
-
-    function isConvexQuad(q) {
-        let signs = [];
-        for(let i = 0; i < 4; i++) {
-            let cr = cross(q[i], q[(i+1)%4], q[(i+2)%4]);
-            if (cr <= 1e-10) return false;
-            signs.push(cr > 0);
-        }
-        return signs.every(s => s === true) || signs.every(s => s === false);
-    }
-
-    for (let i = 0; i < triangles.length; i++) {
-        if (usedTriangles[i]) continue;
-        let merged = false;
-        
-        for (let j = i + 1; j < triangles.length; j++) {
-            if (usedTriangles[j]) continue;
-            
-            let sharedCount = 0;
-            for(let p1 of triangles[i]) {
-                if(triangles[j].some(p2 => samePoint(p1, p2))) sharedCount++;
-            }
-
-            if (sharedCount === 2) {
-                let quadPoints = rebuildQuad(triangles[i], triangles[j]);
-                if (quadPoints && isConvexQuad(quadPoints)) {
-                    quads.push(quadPoints);
-                    usedTriangles[i] = true;
-                    usedTriangles[j] = true;
-                    merged = true;
-                    break;
-                }
+    function dfs(u) {
+        for (const v of adj[u]) {
+            if (vis[v]) continue;
+            vis[v] = 1;
+            if (match[v] < 0 || dfs(match[v])) {
+                match[v] = u;
+                match[u] = v;
+                return true;
             }
         }
-        if (!merged) {
-             let t = triangles[i];
-             if (Math.abs(cross(t[0], t[1], t[2])) > 1e-10) {
-                 quads.push([t[0], t[1], t[2], t[2]]);
-             }
-             usedTriangles[i] = true;
+        return false;
+    }
+
+    for (let u = 0; u < m; u++) {
+        if (match[u] < 0) {
+            for (const v of adj[u]) {
+                if (match[v] < 0) { match[u] = v; match[v] = u; break; }
+            }
+        }
+    }
+    for (let u = 0; u < m; u++) {
+        if (match[u] < 0) {
+            vis.fill(0);
+            dfs(u);
+        }
+    }
+
+    // 5. Сборка итоговых квадов и минимального числа непарных треугольников
+    const quads = [];
+    const used = new Uint8Array(m);
+    for (let i = 0; i < m; i++) {
+        if (used[i]) continue;
+        const j = match[i];
+        if (j > i) {
+            quads.push(quadPairs.get(i + ':' + j));
+            used[i] = used[j] = 1;
+        } else if (j < 0) {
+            const t = triangles[i];
+            if (Math.abs(cross(t[0], t[1], t[2])) > 1e-10) {
+                quads.push([t[0], t[1], t[2], t[2]]);
+            }
+            used[i] = 1;
         }
     }
 

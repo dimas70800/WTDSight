@@ -86,7 +86,7 @@ function applyAllSettings(settings) {
         toggleDrawGrid(settings.drawGrid !== undefined ? settings.drawGrid : true);
     }
 
-    if (typeof toggleDrawGrid === 'function') {
+    if (typeof toggleDrawCrosshair === 'function') {
         toggleDrawCrosshair(settings.drawCrosshair !== undefined ? settings.drawCrosshair : true);
     }
 

@@ -22,29 +22,76 @@ function applyObjectCoordinates(obj, coords) {
     }
 }
 
-function pushEvent(type, data) {
-
-    redoEvents = [];
-
-    let eventData;
-    switch (type) {
-        case 'add':
-            eventData = data;
-            break;
-        case 'delete':
-            eventData = data;
-            break;
-        case 'move':
-            eventData = data;
-            break;
-        case 'move_multiple':
-            eventData = data;
-            break;
-        default:
-            eventData = data;
+function cloneObjectCoordinates(coords) {
+    if (!coords) return null;
+    if (coords.type === "line" || coords.start) {
+        return {
+            type: "line",
+            start: { x: coords.start.x, y: coords.start.y },
+            end: { x: coords.end.x, y: coords.end.y }
+        };
+    } else if (coords.type === "quad" || coords.pos1) {
+        return {
+            type: "quad",
+            pos1: { x: coords.pos1.x, y: coords.pos1.y },
+            pos2: { x: coords.pos2.x, y: coords.pos2.y },
+            pos3: { x: coords.pos3.x, y: coords.pos3.y },
+            pos4: { x: coords.pos4.x, y: coords.pos4.y }
+        };
     }
+    return coords;
+}
 
-    events.push({ type, data: eventData });
+function getObjectVertexCoord(obj, index) {
+    if (!obj) return 0;
+    if (obj.type === 'line') {
+        switch (index) {
+            case 0: return obj.start.x;
+            case 1: return obj.start.y;
+            case 2: return obj.end.x;
+            case 3: return obj.end.y;
+        }
+    } else if (obj.type === 'quad') {
+        switch (index) {
+            case 0: return obj.pos1.x;
+            case 1: return obj.pos1.y;
+            case 2: return obj.pos2.x;
+            case 3: return obj.pos2.y;
+            case 4: return obj.pos3.x;
+            case 5: return obj.pos3.y;
+            case 6: return obj.pos4.x;
+            case 7: return obj.pos4.y;
+        }
+    }
+    return 0;
+}
+
+function setObjectVertexCoord(obj, index, value) {
+    if (!obj) return;
+    if (obj.type === 'line') {
+        switch (index) {
+            case 0: obj.start.x = value; break;
+            case 1: obj.start.y = value; break;
+            case 2: obj.end.x = value; break;
+            case 3: obj.end.y = value; break;
+        }
+    } else if (obj.type === 'quad') {
+        switch (index) {
+            case 0: obj.pos1.x = value; break;
+            case 1: obj.pos1.y = value; break;
+            case 2: obj.pos2.x = value; break;
+            case 3: obj.pos2.y = value; break;
+            case 4: obj.pos3.x = value; break;
+            case 5: obj.pos3.y = value; break;
+            case 6: obj.pos4.x = value; break;
+            case 7: obj.pos4.y = value; break;
+        }
+    }
+}
+
+function pushEvent(type, data) {
+    redoEvents = [];
+    events.push({ type, data });
     if (events.length > capacity) events.shift();
 }
 
@@ -81,53 +128,8 @@ function popEvent() {
             const obj = objects.get(id);
             if (!obj) break;
 
-            let currentValue;
-            switch (obj.type) {
-                case 'line':
-                    switch (posPulled) {
-                        case 0: currentValue = obj.start.x; break;
-                        case 1: currentValue = obj.start.y; break;
-                        case 2: currentValue = obj.end.x; break;
-                        case 3: currentValue = obj.end.y; break;
-                    }
-                    break;
-                case 'quad':
-                    switch (posPulled) {
-                        case 0: currentValue = obj.pos1.x; break;
-                        case 1: currentValue = obj.pos1.y; break;
-                        case 2: currentValue = obj.pos2.x; break;
-                        case 3: currentValue = obj.pos2.y; break;
-                        case 4: currentValue = obj.pos3.x; break;
-                        case 5: currentValue = obj.pos3.y; break;
-                        case 6: currentValue = obj.pos4.x; break;
-                        case 7: currentValue = obj.pos4.y; break;
-                    }
-                    break;
-                default: break;
-            }
-
-            switch (obj.type) {
-                case 'line':
-                    switch (posPulled) {
-                        case 0: obj.start.x = prevValue; break;
-                        case 1: obj.start.y = prevValue; break;
-                        case 2: obj.end.x = prevValue; break;
-                        case 3: obj.end.y = prevValue; break;
-                    }
-                    break;
-                case 'quad':
-                    switch (posPulled) {
-                        case 0: obj.pos1.x = prevValue; break;
-                        case 1: obj.pos1.y = prevValue; break;
-                        case 2: obj.pos2.x = prevValue; break;
-                        case 3: obj.pos2.y = prevValue; break;
-                        case 4: obj.pos3.x = prevValue; break;
-                        case 5: obj.pos3.y = prevValue; break;
-                        case 6: obj.pos4.x = prevValue; break;
-                        case 7: obj.pos4.y = prevValue; break;
-                    }
-                    break;
-            }
+            const currentValue = getObjectVertexCoord(obj, posPulled);
+            setObjectVertexCoord(obj, posPulled, prevValue);
 
             redoEvent = {
                 type: 'move',
@@ -169,8 +171,8 @@ function popEvent() {
 
                 newRedoData.push({
                     id: item.id,
-                    prevData: JSON.parse(JSON.stringify(item.prevData)),
-                    newData: JSON.parse(JSON.stringify(item.newData))
+                    prevData: cloneObjectCoordinates(item.prevData),
+                    newData: cloneObjectCoordinates(item.newData)
                 });
 
                 applyObjectCoordinates(obj, item.prevData);

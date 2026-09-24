@@ -1013,153 +1013,104 @@ function triangulateSmoothPolygon(outer, holes) {
         addEdge(t[2], t[0], i);
     }
 
-    const used = new Uint8Array(
-        triangles.length
-    );
-
-    const quads = [];
+    const adj = Array.from({ length: triangles.length }, () => []);
+    const quadPairs = new Map();
 
     for (let i = 0; i < triangles.length; i++) {
-        if (used[i]) {
-            continue;
-        }
-
         const t = triangles[i];
-
-        let bestCandidate = -1;
-        let bestQuad = null;
-
         const candidates = new Set();
-
         for (const [a, b] of [
             [t[0], t[1]],
             [t[1], t[2]],
             [t[2], t[0]]
         ]) {
-            const list = edgeMap.get(
-                edgeKey(a, b)
-            );
-
-            if (!list) {
-                continue;
-            }
-
+            const list = edgeMap.get(edgeKey(a, b));
+            if (!list) continue;
             for (const j of list) {
-                if (j !== i && !used[j]) {
-                    candidates.add(j);
-                }
+                if (j > i) candidates.add(j);
             }
         }
 
         for (const j of candidates) {
-            if (used[j]) {
-                continue;
-            }
-
             const quad = rebuildQuad(
                 triangles[i],
                 triangles[j],
                 points
             );
-
-            if (!quad) {
-                continue;
-            }
-
-            let triArea1 =
-                Math.abs(
-                    cross(
-                        points[t[0]],
-                        points[t[1]],
-                        points[t[2]]
-                    )
-                ) * 0.5;
+            if (!quad) continue;
 
             const t2 = triangles[j];
-
-            let triArea2 =
-                Math.abs(
-                    cross(
-                        points[t2[0]],
-                        points[t2[1]],
-                        points[t2[2]]
-                    )
-                ) * 0.5;
-
+            let triArea1 = Math.abs(cross(points[t[0]], points[t[1]], points[t[2]])) * 0.5;
+            let triArea2 = Math.abs(cross(points[t2[0]], points[t2[1]], points[t2[2]])) * 0.5;
             let quadArea = 0;
-
             for (let k = 0; k < 4; k++) {
                 const p = quad[k];
                 const q = quad[(k + 1) % 4];
-
-                quadArea +=
-                    p.x * q.y -
-                    q.x * p.y;
+                quadArea += p.x * q.y - q.x * p.y;
             }
+            quadArea = Math.abs(quadArea * 0.5);
 
-            quadArea = Math.abs(
-                quadArea * 0.5
-            );
-
-            const expectedArea =
-                triArea1 + triArea2;
-
-            const tolerance =
-                Math.max(
-                    1e-6,
-                    expectedArea * 1e-5
-                );
-
-            if (
-                Math.abs(
-                    quadArea - expectedArea
-                ) > tolerance
-            ) {
-                continue;
-            }
-
-            if (
-                !bestQuad ||
-                quadArea > (
-                    (() => {
-                        let a = 0;
-
-                        for (let k = 0; k < 4; k++) {
-                            const p = bestQuad[k];
-                            const q =
-                                bestQuad[(k + 1) % 4];
-
-                            a +=
-                                p.x * q.y -
-                                q.x * p.y;
-                        }
-
-                        return Math.abs(a * 0.5);
-                    })()
-                )
-            ) {
-                bestCandidate = j;
-                bestQuad = quad;
+            const expectedArea = triArea1 + triArea2;
+            const tolerance = Math.max(1e-6, expectedArea * 1e-5);
+            if (Math.abs(quadArea - expectedArea) <= tolerance) {
+                adj[i].push(j);
+                adj[j].push(i);
+                quadPairs.set(i + ':' + j, quad);
             }
         }
+    }
 
-        if (
-            bestCandidate !== -1 &&
-            bestQuad
-        ) {
-            quads.push(bestQuad);
+    const match = new Int32Array(triangles.length).fill(-1);
+    const vis = new Uint8Array(triangles.length);
 
+    function dfs(u) {
+        for (const v of adj[u]) {
+            if (vis[v]) continue;
+            vis[v] = 1;
+            if (match[v] < 0 || dfs(match[v])) {
+                match[v] = u;
+                match[u] = v;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    for (let u = 0; u < triangles.length; u++) {
+        if (match[u] < 0) {
+            for (const v of adj[u]) {
+                if (match[v] < 0) {
+                    match[u] = v;
+                    match[v] = u;
+                    break;
+                }
+            }
+        }
+    }
+    for (let u = 0; u < triangles.length; u++) {
+        if (match[u] < 0) {
+            vis.fill(0);
+            dfs(u);
+        }
+    }
+
+    const quads = [];
+    const used = new Uint8Array(triangles.length);
+    for (let i = 0; i < triangles.length; i++) {
+        if (used[i]) continue;
+        const j = match[i];
+        if (j > i) {
+            quads.push(quadPairs.get(i + ':' + j));
             used[i] = 1;
-            used[bestCandidate] = 1;
-        } else {
+            used[j] = 1;
+        } else if (j < 0) {
             quads.push(
                 makeTriangleQuad(
-                    points[t[0]],
-                    points[t[1]],
-                    points[t[2]]
+                    points[triangles[i][0]],
+                    points[triangles[i][1]],
+                    points[triangles[i][2]]
                 )
             );
-
             used[i] = 1;
         }
     }

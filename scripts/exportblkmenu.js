@@ -199,30 +199,24 @@ function generateBlkContent(settings) {
 function addDrawingObjectsToBlk(blk) {
     if (typeof objects === 'undefined' || !objects) return blk;
 
-    let areLinesPresent = false;
-    let areQuadsPresent = false;
+    let linesStr = '';
+    let quadsStr = '';
 
     objects.forEach((obj) => {
-        if (obj && obj.type === "line") areLinesPresent = true;
-        else if (obj && obj.type === "quad") areQuadsPresent = true;
+        if (!obj) return;
+        if (obj.type === "line") {
+            linesStr += `  line {line:p4=${obj.start.x},${obj.start.y},${obj.end.x},${obj.end.y}; move:b=false;}\n`;
+        } else if (obj.type === "quad") {
+            quadsStr += `  quad {tl:p2=${obj.pos1.x},${obj.pos1.y}; tr:p2=${obj.pos2.x},${obj.pos2.y}; br:p2=${obj.pos3.x},${obj.pos3.y}; bl:p2=${obj.pos4.x},${obj.pos4.y};}\n`;
+        }
     });
 
-    if (areLinesPresent) {
-        blk += `drawLines{\n`;
-        objects.forEach((obj) => {
-            if (!obj || obj.type !== "line") return;
-            blk += `  line {line:p4=${obj.start.x},${obj.start.y},${obj.end.x},${obj.end.y}; move:b=false;}\n`;
-        });
-        blk += `}\n\n`;
+    if (linesStr) {
+        blk += `drawLines{\n${linesStr}}\n\n`;
     }
 
-    if (areQuadsPresent) {
-        blk += `drawQuads{\n`;
-        objects.forEach((obj) => {
-            if (!obj || obj.type !== "quad") return;
-            blk += `  quad {tl:p2=${obj.pos1.x},${obj.pos1.y}; tr:p2=${obj.pos2.x},${obj.pos2.y}; br:p2=${obj.pos3.x},${obj.pos3.y}; bl:p2=${obj.pos4.x},${obj.pos4.y};}\n`;
-        });
-        blk += `}\n`;
+    if (quadsStr) {
+        blk += `drawQuads{\n${quadsStr}}\n`;
     }
 
     blk += '\n//Made in WTDSight by dimas7080';

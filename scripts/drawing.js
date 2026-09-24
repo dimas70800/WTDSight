@@ -17,19 +17,9 @@ function clearIntermediateDrawing() {
 
 function nextId() {
     let i = 0;
-    let release = false;
-
-    while (!release) {
-        release = true;
-
-        for (const [id, obj] of objects) {
-            if (id === i.toString()) {
-                release = false;
-                i++;
-            }
-        }
+    while (objects.has(i.toString())) {
+        i++;
     }
-
     return i;
 }
 
@@ -199,15 +189,15 @@ const objectsList = el("objectsList");
 let lastClickedListId = null;
 
 function refreshObjectsList(scrollDown) {
-    el("objCount").innerHTML = objects.size;
+    el("objCount").textContent = objects.size;
     objectsList.innerHTML = "";
 
     const hasMultiSelection = typeof selectedObjectsSet !== 'undefined' && selectedObjectsSet.size > 0;
+    const fragment = document.createDocumentFragment();
 
     for (const [id, obj] of objects) {
         const span = document.createElement("span");
-        objectsList.appendChild(span);
-        span.innerHTML = obj.name;
+        span.textContent = obj.name;
         span.className = "objectRow";
         span.dataset.id = id;
 
@@ -218,7 +208,10 @@ function refreshObjectsList(scrollDown) {
         if (isSelected) span.classList.add("selected");
 
         span.onclick = (e) => { handleObjectRowClick(id, e); };
+        fragment.appendChild(span);
     }
+
+    objectsList.appendChild(fragment);
 
     if (scrollDown) objectsList.scrollTop = objectsList.scrollHeight;
 }
@@ -707,10 +700,10 @@ function snappingPos(mouse, maxPixelRadius = Infinity, ignoreId = null) {
                 comp(obj.pos4);
 
                 if (tool !== "hatch" && tool !== "fill") {
-                    comp(v2avg([obj.pos1, obj.pos2]), { isEdge: true, p1: obj.pos1, p2: obj.pos2 });
-                    comp(v2avg([obj.pos2, obj.pos3]), { isEdge: true, p1: obj.pos2, p2: obj.pos3 });
-                    comp(v2avg([obj.pos3, obj.pos4]), { isEdge: true, p1: obj.pos3, p2: obj.pos4 });
-                    comp(v2avg([obj.pos4, obj.pos1]), { isEdge: true, p1: obj.pos4, p2: obj.pos1 });
+                    comp({ x: (obj.pos1.x + obj.pos2.x) * 0.5, y: (obj.pos1.y + obj.pos2.y) * 0.5 }, { isEdge: true, p1: obj.pos1, p2: obj.pos2 });
+                    comp({ x: (obj.pos2.x + obj.pos3.x) * 0.5, y: (obj.pos2.y + obj.pos3.y) * 0.5 }, { isEdge: true, p1: obj.pos2, p2: obj.pos3 });
+                    comp({ x: (obj.pos3.x + obj.pos4.x) * 0.5, y: (obj.pos3.y + obj.pos4.y) * 0.5 }, { isEdge: true, p1: obj.pos3, p2: obj.pos4 });
+                    comp({ x: (obj.pos4.x + obj.pos1.x) * 0.5, y: (obj.pos4.y + obj.pos1.y) * 0.5 }, { isEdge: true, p1: obj.pos4, p2: obj.pos1 });
                     break;
                 }
         }
