@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 800"><desc>by dimas7080</desc>
+
+  <defs>
+    <style>
+      .st0, .st1 {
+        fill: #777;
+      }
+
+      .st1, .st2 {
+        stroke: #777;
+        stroke-linecap: round;
+        stroke-miterlimit: 10;
+        stroke-width: 40px;
+      }
+
+      .st2 {
+        fill: none;
+      }
+    </style>
+  </defs>
+  <rect class="st0" x="277.92" y="647" width="425" height="40" rx="20" ry="20"/>
+  <g>
+    <path class="st2" d="M458.97,526.32l-127.6,127.59c-17.59,17.59-46.01,17.69-63.47.23l-159.44-159.44c-17.46-17.46-17.36-45.88.23-63.47l127.59-127.59"/>
+    <path class="st1" d="M242.84,308.4c-3.13-3.13-3.13-8.2,0-11.33l176.27-176.27c17.59-17.59,46.01-17.69,63.47-.23l159.44,159.44c17.46,17.46,17.36,45.88-.23,63.47l-176.27,176.27c-3.13,3.13-8.2,3.13-11.33,0l-211.36-211.36Z"/>
+  </g>
+</svg>

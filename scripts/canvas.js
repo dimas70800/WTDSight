@@ -794,6 +794,41 @@ function drawGhost() {
                 drawCircle(mousePosCanvas.x, mousePosCanvas.y, 20);
             }
             break;
+        case "eraser":
+            let eraserThicknessInput = el("eraserThicknessInput");
+            let eraserThicknessVal = eraserThicknessInput ? parseFloat(eraserThicknessInput.value) : 10;
+            let eraserRadiusSight = (eraserThicknessVal * 0.001) / 2;
+            let eraserRadiusPixel = sight2pixel(eraserRadiusSight);
+
+            if (isDrawingEraser && eraserPoints.length > 0) {
+                ctx.beginPath();
+                const startCanvas = v2disposSight2v2canvas(eraserPoints[0]);
+                ctx.moveTo(startCanvas.x, startCanvas.y);
+
+                for (let i = 1; i < eraserPoints.length; i++) {
+                    const ptCanvas = v2disposSight2v2canvas(eraserPoints[i]);
+                    ctx.lineTo(ptCanvas.x, ptCanvas.y);
+                }
+                const curCanvas = v2disposSight2v2canvas(mousePos);
+                ctx.lineTo(curCanvas.x, curCanvas.y);
+
+                ctx.strokeStyle = "rgba(235, 59, 59, 0.4)";
+                ctx.lineWidth = eraserRadiusPixel * 2;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+                ctx.stroke();
+
+                ctx.lineCap = "butt";
+                ctx.lineJoin = "miter";
+                ctx.lineWidth = getLineWidth(1);
+            }
+
+            ctx.beginPath();
+            ctx.arc(mousePosCanvas.x, mousePosCanvas.y, eraserRadiusPixel, 0, 2 * Math.PI, false);
+            ctx.strokeStyle = "rgba(235, 59, 59, 0.8)";
+            ctx.lineWidth = getLineWidth(1.5);
+            ctx.stroke();
+            break;
         case "fill":
             let fRegions = (typeof isFillMultiRegionMode !== 'undefined' && isFillMultiRegionMode) ? fillRegions : [fillPoints];
             if (!fRegions) fRegions = [];
@@ -2268,6 +2303,11 @@ canvas.onpointerdown = (e) => {
                     }
                 }
                 brushPoints.push(clickPos);
+            } else if (tool === "eraser") {
+                const clickCanvas = getMousePos(e.offsetX, e.offsetY);
+                let clickPos = v2canvas2v2disposSight(clickCanvas);
+                isDrawingEraser = true;
+                eraserPoints = [clickPos];
             }
             else {
                 if (!(snapping || mobileSnappingActive))
@@ -2814,6 +2854,12 @@ canvas.onpointermove = (e) => {
         if (v2sqrmag(mousePos, lastPoint) > 0.0000001) {
             brushPoints.push(mousePos);
         }
+    } if (tool === "eraser" && isDrawingEraser) {
+        let mousePos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
+        let lastPoint = eraserPoints[eraserPoints.length - 1];
+        if (!lastPoint || v2sqrmag(mousePos, lastPoint) > 0.0000001) {
+            eraserPoints.push(mousePos);
+        }
     } if (tool === "shapes" && freeShapeState.active && freeShapeState.points.length > 0) {
         let mousePos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
         let lastPoint = freeShapeState.points[freeShapeState.points.length - 1];
@@ -2920,6 +2966,9 @@ canvas.onpointerup = (e) => {
             }
 
             finishBrush();
+        } else if (tool === "eraser" && isDrawingEraser) {
+            isDrawingEraser = false;
+            if (typeof finishEraser === 'function') finishEraser();
         } else if (tool === "shapes" && freeShapeState.active && freeShapeState.points.length > 0) {
             finishFreeShape();
         }

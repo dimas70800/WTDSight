@@ -161,6 +161,29 @@ function popEvent() {
             redoEvent = { type: 'delete_multiple', data: data };
             break;
         }
+        case 'replace_multiple': {
+            if (data.added) {
+                for (const item of data.added) {
+                    if (objects.has(item.id)) {
+                        objects.delete(item.id);
+                        if (typeof selectedId !== 'undefined' && selectedId === item.id) {
+                            unselectAnyObjects();
+                            showInfo(null);
+                        }
+                    }
+                }
+            }
+            if (data.deleted) {
+                for (const item of data.deleted) {
+                    if (!objects.has(item.id)) {
+                        item.object.selected = false;
+                        objects.set(item.id, item.object);
+                    }
+                }
+            }
+            redoEvent = { type: 'replace_multiple', data: data };
+            break;
+        }
         case 'move_multiple': {
             const { objectsData } = data;
             const newRedoData = [];

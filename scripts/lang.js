@@ -306,6 +306,7 @@ const ru =
     hotkeyLinesTool: "Инструмент Линии",
     hotkeyCurveTool: "Инструмент Кривая",
     hotkeyBrushTool: "Инструмент Кисть",
+    hotkeyEraserTool: "Инструмент Ластик",
     hotkeyHatchTool: "Инструмент Штриховка",
     hotkeyFillTool: "Инструмент Заливки",
     hotkeySelectTool: "Инструмент Выделение",
@@ -329,7 +330,11 @@ const ru =
     ctxSave: "Принудительно сохранить",
     ctxExport: "Экспортировать прицел",
     ctxCopiedNotif: "Скопировано ",
-    ctxPastedNotif: "Вставлено "
+    ctxPastedNotif: "Вставлено ",
+
+    eraserTitleText: "Ластик",
+    eraserDescription: "Проведите по холсту, чтобы стереть линии или четырёхугольники",
+    eraserThicknessLabel: "Толщина ластика"
 };
 
 const en =
@@ -641,6 +646,7 @@ const en =
     hotkeyLinesTool: "Lines Tool",
     hotkeyCurveTool: "Curve Tool",
     hotkeyBrushTool: "Brush Tool",
+    hotkeyEraserTool: "Eraser Tool",
     hotkeyHatchTool: "Hatch Tool",
     hotkeyFillTool: "Fill Tool",
     hotkeySelectTool: "Select Tool",
@@ -664,7 +670,11 @@ const en =
     ctxSave: "Force save",
     ctxExport: "Export sight",
     ctxCopiedNotif: "Copied ",
-    ctxPastedNotif: "Pasted "
+    ctxPastedNotif: "Pasted ",
+
+    eraserTitleText: "Eraser",
+    eraserDescription: "Drag across the canvas to erase lines or quads",
+    eraserThicknessLabel: "Eraser thickness"
 };
 
 const langDependent =
@@ -934,7 +944,11 @@ const langDependent =
         "ctxUndo",
         "ctxRedo",
         "ctxSave",
-        "ctxExport"
+        "ctxExport",
+
+        "eraserTitleText",
+        "eraserDescription",
+        "eraserThicknessLabel"
     ];
 
 function changeLang(to) {

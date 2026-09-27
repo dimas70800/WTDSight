@@ -67,6 +67,9 @@
                     <button id="toolsBrushButton" class="tab-button" data-target="brush">
                         <img src="images/brushTool.svg" alt="Brush">
                     </button>
+                    <button id="toolsEraserButton" class="tab-button" data-target="eraser">
+                        <img src="images/eraserTool.svg" alt="Eraser">
+                    </button>
                     <button id="toolsQuadsButton" class="tab-button" data-target="quads">
                         <img src="images/quadsTool.svg" alt="Quads">
                     </button>
@@ -712,6 +715,40 @@
                             </div>
                         </div>
 
+                        <div id="panel-eraser" class="panel-content">
+                            <h2 class="panel-title" id="eraserTitleText">Ластик</h2>
+                            <p style="font-size: 13px; color: #aaa; margin-top:0;" id="eraserDescription">
+                                Проведите по холсту, чтобы стереть линии или четырёхугольники
+                            </p>
+
+                            <div class="block-with-elem" style="margin-top: 10px; margin-bottom: 10px;">
+                                <div style="display: flex; flex-direction: column; gap: 5px;">
+                                    <span id="eraserThicknessLabel">Толщина ластика</span>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <input type="range" id="eraserThicknessInput" min="1" max="100" value="10" step="0.1"
+                                            oninput="document.getElementById('eraserThicknessNumber').value = this.value">
+                                        <input type="number" id="eraserThicknessNumber" min="1" max="100" value="10" step="0.1" style="width: 60px;"
+                                            oninput="document.getElementById('eraserThicknessInput').value = this.value">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="block-with-elem"
+                                style="display: flex; justify-content:space-evenly; flex-direction: row;">
+                                <button id="eraserModeAll" onclick="setEraserMode('all')"
+                                    style="width: 60px; height: 60px;">
+                                    <img src="images/allSelectIcon.svg" alt="Все" style="height: 100%; width: 100%;">
+                                </button>
+                                <button id="eraserModeLines" onclick="setEraserMode('lines')"
+                                    style="width: 60px; height: 60px;">
+                                    <img src="images/linesTool.svg" alt="Линии" style="height: 100%; width: 100%;">
+                                </button>
+                                <button id="eraserModeQuads" onclick="setEraserMode('quads')"
+                                    style="width: 60px; height: 60px;">
+                                    <img src="images/quadsTool.svg" alt="Квады" style="height: 100%; width: 100%;">
+                                </button>
+                            </div>
+                        </div>
+
                         <div id="panel-fill" class="panel-content">
                             <h2 class="panel-title" id="fillTitleText">Заливка</h2>
                             <p style="font-size: 13px; color: #aaa;" id="fillDescription">Кликайте по холсту, чтобы
@@ -1316,6 +1353,7 @@
     <script src="scripts/brush.js"></script>
     <script src="scripts/fill.js"></script>
     <script src="scripts/shapes.js"></script>
+    <script src="scripts/eraser.js"></script>
 </body>
 
 </html>

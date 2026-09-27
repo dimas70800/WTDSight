@@ -129,6 +129,7 @@ const defaultHotkeys = {
     actionLinesTool:{ code: 'KeyL',   ctrl: false, alt: false, shift: false, descId: 'hotkeyLinesTool' },
     actionCurveTool:{ code: 'KeyC',   ctrl: false, alt: false, shift: false, descId: 'hotkeyCurveTool' },
     actionBrushTool:{ code: 'KeyB',   ctrl: false, alt: false, shift: false, descId: 'hotkeyBrushTool' },
+    actionEraserTool:{ code: 'KeyX',   ctrl: false, alt: false, shift: false, descId: 'hotkeyEraserTool' },
     actionHatchTool:{ code: 'KeyH',   ctrl: false, alt: false, shift: false, descId: 'hotkeyHatchTool' },
     actionFillTool:{ code: 'KeyF',   ctrl: false, alt: false, shift: false, descId: 'hotkeyFillTool' },
     actionSelectTool:{ code: 'KeyS',   ctrl: false, alt: false, shift: false, descId: 'hotkeySelectTool' }

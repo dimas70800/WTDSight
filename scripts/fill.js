@@ -472,7 +472,6 @@ function updateFillPreview() {
 function generateFillQuads(points) {
     if (!points || points.length < 3) return [];
 
-    // 1. Очистка дубликатов и лишних коллинеарных точек на прямых ребрах
     let clean = [];
     for (let p of points) {
         if (!clean.length || Math.hypot(p.x - clean[clean.length - 1].x, p.y - clean[clean.length - 1].y) > 1e-6) {
@@ -511,7 +510,6 @@ function generateFillQuads(points) {
     if (pts.length === 3) return [[pts[0], pts[1], pts[2], pts[2]]];
     if (pts.length === 4 && isConvex4(pts)) return [pts];
 
-    // 2. Качественная триангуляция через earcut (с надежным fallback ear-clipping)
     let triangles = [];
     const earcutFn = (typeof earcut !== 'undefined' ? (earcut.default || earcut) : null);
     if (earcutFn) {
@@ -550,7 +548,6 @@ function generateFillQuads(points) {
         }
     }
 
-    // 3. Поиск пар треугольников, образующих строго выпуклые квады
     function tryMerge(t1, t2) {
         let shared = 0;
         for (let p of t1) if (t2.some(q => samePt(p, q))) shared++;
@@ -581,7 +578,6 @@ function generateFillQuads(points) {
         }
     }
 
-    // 4. Точное максимальное паросочетание на графе (Augmenting Paths)
     const match = new Int32Array(m).fill(-1);
     const vis = new Uint8Array(m);
 
@@ -612,7 +608,6 @@ function generateFillQuads(points) {
         }
     }
 
-    // 5. Сборка итоговых квадов и минимального числа непарных треугольников
     const quads = [];
     const used = new Uint8Array(m);
     for (let i = 0; i < m; i++) {

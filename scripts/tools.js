@@ -1,5 +1,5 @@
 let tool = "lines";
-const toolNames = ["lines", "quads", "hatch", "vectorize", "select", "curve", "text", "brush", "fill", "shapes"];
+const toolNames = ["lines", "quads", "hatch", "vectorize", "select", "curve", "text", "brush", "eraser", "fill", "shapes"];
 
 
 function switchTool(targetId) {
@@ -33,6 +33,7 @@ function switchTool(targetId) {
     }
     if (targetId === "hatch" && typeof cancelHatch === 'function') cancelHatch();
     if (targetId === "fill" && typeof cancelFill === 'function') cancelFill();
+    if (targetId === "eraser" && typeof cancelEraser === 'function') cancelEraser();
     if (targetId === "shapes" && typeof clearShapesState === 'function') clearShapesState();
     if (currentActiveTabId === "shapes" && targetId !== "shapes" && typeof exitFreeShapeStickyMode === 'function') {
         exitFreeShapeStickyMode();
@@ -52,7 +53,7 @@ function switchTool(targetId) {
     // Общие настройки
     const sharedTools = document.getElementById('shared-drawing-tools');
     if (sharedTools) {
-        sharedTools.style.display = ['lines', 'quads', 'select', 'hatch', 'file', 'vectorize', 'reference', "curve", "text", "brush", 'fill', 'shapes'].includes(targetId) ? 'flex' : 'none';
+        sharedTools.style.display = ['lines', 'quads', 'select', 'hatch', 'file', 'vectorize', 'reference', "curve", "text", "brush", "eraser", 'fill', 'shapes'].includes(targetId) ? 'flex' : 'none';
         el("panel-with-refOpacityShared").style.display = (targetId === 'reference') ? 'none' : 'flex';
     }
 

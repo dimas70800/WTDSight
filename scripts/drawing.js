@@ -13,6 +13,9 @@ function clearIntermediateDrawing() {
     if (typeof clearHatchState === 'function') {
         clearHatchState();
     }
+    if (typeof cancelEraser === 'function') {
+        cancelEraser();
+    }
 }
 
 function nextId() {
@@ -542,6 +545,10 @@ document.onkeydown = (e) => {
         e.preventDefault();
         switchTool('brush');
     }
+    if (checkHotkey('actionEraserTool', e)) {
+        e.preventDefault();
+        switchTool('eraser');
+    }
     if (checkHotkey('actionHatchTool', e)) {
         e.preventDefault();
         switchTool('hatch');
@@ -986,3 +993,4 @@ function transformAllObjects(type, axis, useCenter = false) {
         updateTransformBoxFromSelection();
     }
 }
+
