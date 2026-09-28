@@ -354,19 +354,38 @@
                                         ↑</span>
                                 </div>
                                 <div
-                                    style="font-size: 12px; color: #888; text-align: center; margin-top: 10px; border-top: 1px solid var(--border-col); padding-top: 8px;">
-                                    <span id="hatchPointsCount">Точек</span>: <span id="hatchPointsNum">0</span>
+                                    style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="checkbox" id="hatchBrushCheckbox" style="transform: scale(1.2);">
+                                        <span id="hatchBrushLabel">Кисть</span>
+                                    </label>
                                 </div>
-                                <div style="display: flex; gap: 8px; margin-top: 5px;">
-                                    <button id="hatchCreateBtn"
-                                        style="background: #228025; color: white; flex-grow: 1;">Создать</button>
-                                    <button id="hatchCancelBtn"
-                                        style="background: #eb3b3b; color: white; flex-grow: 1;">Отмена</button>
+                                <div id="hatchBrushThicknessContainer"
+                                    style="display: none; flex-direction: column; gap: 5px; margin-top: 5px;">
+                                    <span id="hatchBrushThicknessLabel">Толщина кисти</span>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <input type="range" id="hatchBrushThicknessInput" min="1" max="100" value="10" step="0.1"
+                                            oninput="document.getElementById('hatchBrushThicknessNumber').value = this.value">
+                                        <input type="number" id="hatchBrushThicknessNumber" min="1" max="100" value="10" step="0.1" style="width: 60px;"
+                                            oninput="document.getElementById('hatchBrushThicknessInput').value = this.value">
+                                    </div>
+                                </div>
+                                <div id="hatchContourControls">
+                                    <div
+                                        style="font-size: 12px; color: #888; text-align: center; margin-top: 10px; border-top: 1px solid var(--border-col); padding-top: 8px;">
+                                        <span id="hatchPointsCount">Точек</span>: <span id="hatchPointsNum">0</span>
+                                    </div>
+                                    <div style="display: flex; gap: 8px; margin-top: 5px;">
+                                        <button id="hatchCreateBtn"
+                                            style="background: #228025; color: white; flex-grow: 1;">Создать</button>
+                                        <button id="hatchCancelBtn"
+                                            style="background: #eb3b3b; color: white; flex-grow: 1;">Отмена</button>
+                                    </div>
                                 </div>
                             </div>
                             <button id="hatchRestoreBtn">Предыдущая зона</button>
 
-                            <div class="block-with-elem" style="margin-top: 5px;">
+                            <div id="hatchAreaSelectContainer" class="block-with-elem" style="margin-top: 5px;">
                                 <span style="font-size: 13px; text-align: center;" id="areaSelectHatchLabel">Выделение
                                     области</span>
                                 <div
@@ -400,7 +419,7 @@
                                         value="0.005" style="width: 100px;">
                                 </div>
                             </div>
-                            <div class="block-with-elem">
+                            <div id="hatchAreaModeContainer" class="block-with-elem">
                                 <span id="hatchAreaModeLabel" style="font-size: 13px; text-align: center;">Режим
                                     области</span>
                                 <div

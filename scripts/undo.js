@@ -166,10 +166,6 @@ function popEvent() {
                 for (const item of data.added) {
                     if (objects.has(item.id)) {
                         objects.delete(item.id);
-                        if (typeof selectedId !== 'undefined' && selectedId === item.id) {
-                            unselectAnyObjects();
-                            showInfo(null);
-                        }
                     }
                 }
             }
@@ -181,6 +177,10 @@ function popEvent() {
                     }
                 }
             }
+
+            if (typeof unselectAnyObjects === 'function') unselectAnyObjects();
+            if (typeof showInfo === 'function') showInfo(null);
+
             redoEvent = { type: 'replace_multiple', data: data };
             break;
         }

@@ -70,10 +70,6 @@ function popRedo() {
                 for (const item of data.deleted) {
                     if (objects.has(item.id)) {
                         objects.delete(item.id);
-                        if (typeof selectedId !== 'undefined' && selectedId === item.id) {
-                            unselectAnyObjects();
-                            showInfo(null);
-                        }
                     }
                 }
             }
@@ -85,6 +81,10 @@ function popRedo() {
                     }
                 }
             }
+
+            if (typeof unselectAnyObjects === 'function') unselectAnyObjects();
+            if (typeof showInfo === 'function') showInfo(null);
+
             undoEvent = { type: 'replace_multiple', data: data };
             break;
         }

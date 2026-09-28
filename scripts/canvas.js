@@ -597,6 +597,79 @@ function drawGhost() {
 
             break;
         case "hatch":
+            if (typeof hatchBrushEnabled !== 'undefined' && hatchBrushEnabled) {
+                const hbInput = el("hatchBrushThicknessInput");
+                const hbVal = hbInput ? parseFloat(hbInput.value) : 10;
+                const hbRadiusSight = (hbVal * 0.001) / 2;
+                const hbRadiusPixel = sight2pixel(hbRadiusSight);
+
+                if (typeof isDrawingHatchBrush !== 'undefined' && isDrawingHatchBrush && typeof hatchBrushPoints !== 'undefined' && hatchBrushPoints.length > 0) {
+                    ctx.beginPath();
+                    const startCanvas = v2disposSight2v2canvas(hatchBrushPoints[0]);
+                    ctx.moveTo(startCanvas.x, startCanvas.y);
+                    for (let i = 1; i < hatchBrushPoints.length; i++) {
+                        const ptCanvas = v2disposSight2v2canvas(hatchBrushPoints[i]);
+                        ctx.lineTo(ptCanvas.x, ptCanvas.y);
+                    }
+                    const curCanvas = v2disposSight2v2canvas(mousePos);
+                    ctx.lineTo(curCanvas.x, curCanvas.y);
+
+                    ctx.strokeStyle = "rgba(100, 200, 100, 0.35)";
+                    ctx.lineWidth = hbRadiusPixel * 2;
+                    ctx.lineCap = "round";
+                    ctx.lineJoin = "round";
+                    ctx.stroke();
+
+                    ctx.lineCap = "butt";
+                    ctx.lineJoin = "miter";
+                    ctx.lineWidth = getLineWidth(1);
+                }
+
+                if (canvasHover || (typeof isDrawingHatchBrush !== 'undefined' && isDrawingHatchBrush)) {
+                    ctx.beginPath();
+                    ctx.arc(mousePosCanvas.x, mousePosCanvas.y, hbRadiusPixel, 0, 2 * Math.PI, false);
+                    ctx.fillStyle = "rgba(100, 200, 100, 0.15)";
+                    ctx.fill();
+                    ctx.strokeStyle = "rgba(100, 200, 100, 0.8)";
+                    ctx.lineWidth = getLineWidth(1.5);
+                    ctx.stroke();
+                }
+
+                if (typeof previewHatchBrushLines !== 'undefined' && previewHatchBrushLines && previewHatchBrushLines.length > 0) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.8;
+                    ctx.strokeStyle = "rgba(100, 200, 100, 0.9)";
+                    ctx.fillStyle = "rgba(100, 200, 100, 0.5)";
+                    ctx.lineWidth = getLineWidth(2);
+
+                    for (const item of previewHatchBrushLines) {
+                        if (item.type === 'line' || !item.type) {
+                            const from = v2disposSight2v2canvas(item.start);
+                            const to = v2disposSight2v2canvas(item.end);
+                            ctx.beginPath();
+                            ctx.moveTo(from.x, from.y);
+                            ctx.lineTo(to.x, to.y);
+                            ctx.stroke();
+                        } else if (item.type === 'quad') {
+                            const p1 = v2disposSight2v2canvas(item.pos1);
+                            const p2 = v2disposSight2v2canvas(item.pos2);
+                            const p3 = v2disposSight2v2canvas(item.pos3);
+                            const p4 = v2disposSight2v2canvas(item.pos4);
+                            ctx.beginPath();
+                            ctx.moveTo(p1.x, p1.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.lineTo(p3.x, p3.y);
+                            ctx.lineTo(p4.x, p4.y);
+                            ctx.closePath();
+                            ctx.fill();
+                            ctx.stroke();
+                        }
+                    }
+                    ctx.restore();
+                }
+                break;
+            }
+
             let hRegions = (typeof isMultiRegionMode !== 'undefined' && isMultiRegionMode) ? hatchRegions : [hatchPoints];
             if (!hRegions) hRegions = [];
 
@@ -1786,6 +1859,9 @@ canvas.onpointerleave = (e) => {
     canvasHover = false;
     isHatchDragging = false;
     isFillDragging = false;
+    if (typeof isDrawingHatchBrush !== 'undefined') isDrawingHatchBrush = false;
+    if (typeof hatchBrushPoints !== 'undefined') hatchBrushPoints = [];
+    if (typeof previewHatchBrushLines !== 'undefined') previewHatchBrushLines = [];
     if (tool !== "hatch" || !isDrawingHatch) {
         clearDrawing();
     }
@@ -2214,30 +2290,38 @@ canvas.onpointerdown = (e) => {
             let snapRad = (mobileSnappingActive && !snapping) ? 40 : Infinity;
 
             if (tool === "hatch") {
-                const clickCanvas = getMousePos(e.offsetX, e.offsetY);
-                let clickPos = v2canvas2v2disposSight(clickCanvas);
-
-                if (typeof hatchInputMode !== 'undefined' && hatchInputMode === 'wand') {
-                    executeMagicWand(clickPos);
+                if (typeof hatchBrushEnabled !== 'undefined' && hatchBrushEnabled) {
+                    const clickCanvas = getMousePos(e.offsetX, e.offsetY);
+                    let clickPos = v2canvas2v2disposSight(clickCanvas);
+                    isDrawingHatchBrush = true;
+                    hatchBrushPoints = [clickPos];
+                    if (typeof updateHatchBrushPreview === 'function') updateHatchBrushPreview();
                 } else {
-                    const hitVertexIndex = (typeof hitTestHatchVertex === 'function') ? hitTestHatchVertex(clickPos) : -1;
+                    const clickCanvas = getMousePos(e.offsetX, e.offsetY);
+                    let clickPos = v2canvas2v2disposSight(clickCanvas);
 
-                    if (hitVertexIndex !== -1) {
-                        startHatchVertexDrag(hitVertexIndex);
+                    if (typeof hatchInputMode !== 'undefined' && hatchInputMode === 'wand') {
+                        executeMagicWand(clickPos);
                     } else {
-                        const hitEdge = (typeof hitTestHatchEdge === 'function') ? hitTestHatchEdge(clickPos) : null;
+                        const hitVertexIndex = (typeof hitTestHatchVertex === 'function') ? hitTestHatchVertex(clickPos) : -1;
 
-                        if (hitEdge !== null) {
-                            const insertedIndex = insertHatchPointAfter(hitEdge.afterIndex, hitEdge.pos);
-                            startHatchVertexDrag(insertedIndex, true);
+                        if (hitVertexIndex !== -1) {
+                            startHatchVertexDrag(hitVertexIndex);
                         } else {
-                            if (snapping || mobileSnappingActive) {
-                                const snapPos = snappingPos(clickPos, snapRad);
-                                if (snapPos != null) clickPos = snapPos;
+                            const hitEdge = (typeof hitTestHatchEdge === 'function') ? hitTestHatchEdge(clickPos) : null;
+
+                            if (hitEdge !== null) {
+                                const insertedIndex = insertHatchPointAfter(hitEdge.afterIndex, hitEdge.pos);
+                                startHatchVertexDrag(insertedIndex, true);
+                            } else {
+                                if (snapping || mobileSnappingActive) {
+                                    const snapPos = snappingPos(clickPos, snapRad);
+                                    if (snapPos != null) clickPos = snapPos;
+                                }
+                                if (!isDrawingHatch) startHatchDrawing(clickPos);
+                                else addHatchPoint(clickPos, false);
+                                isHatchDragging = true;
                             }
-                            if (!isDrawingHatch) startHatchDrawing(clickPos);
-                            else addHatchPoint(clickPos, false);
-                            isHatchDragging = true;
                         }
                     }
                 }
@@ -2500,13 +2584,15 @@ canvas.onpointermove = (e) => {
             curvePoints.push(mousePos);
         }
     }
-    if (tool === "hatch" && isDrawingHatch && hatchVertexDragIndex !== -1) {
-        dragHatchVertex(mousePos);
-    }
-    if (tool === "hatch" && isDrawingHatch && isHatchDragging && hatchVertexDragIndex === -1 && snapping) {
-        const snapPos = snappingPos(mousePos, 40);
-        if (snapPos != null) {
-            addHatchPoint(snapPos, true);
+    if (tool === "hatch" && (typeof hatchBrushEnabled === 'undefined' || !hatchBrushEnabled)) {
+        if (isDrawingHatch && hatchVertexDragIndex !== -1) {
+            dragHatchVertex(mousePos);
+        }
+        if (isDrawingHatch && isHatchDragging && hatchVertexDragIndex === -1 && snapping) {
+            const snapPos = snappingPos(mousePos, 40);
+            if (snapPos != null) {
+                addHatchPoint(snapPos, true);
+            }
         }
     }
     if (tool === "fill" && isDrawingFill && fillVertexDragIndex !== -1) {
@@ -2866,6 +2952,15 @@ canvas.onpointermove = (e) => {
         if (v2sqrmag(mousePos, lastPoint) > 0.0000001) {
             freeShapeState.points.push(mousePos);
         }
+    } if (tool === "hatch" && typeof hatchBrushEnabled !== 'undefined' && hatchBrushEnabled) {
+        if (isDrawingHatchBrush) {
+            let curMousePos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
+            let lastPoint = hatchBrushPoints[hatchBrushPoints.length - 1];
+            if (!lastPoint || v2sqrmag(curMousePos, lastPoint) > 0.0000001) {
+                hatchBrushPoints.push(curMousePos);
+            }
+        }
+        if (typeof updateHatchBrushPreview === 'function') updateHatchBrushPreview();
     }
 };
 
@@ -2966,6 +3061,9 @@ canvas.onpointerup = (e) => {
             }
 
             finishBrush();
+        } else if (tool === "hatch" && typeof hatchBrushEnabled !== 'undefined' && hatchBrushEnabled && isDrawingHatchBrush) {
+            isDrawingHatchBrush = false;
+            if (typeof finishHatchBrush === 'function') finishHatchBrush();
         } else if (tool === "eraser" && isDrawingEraser) {
             isDrawingEraser = false;
             if (typeof finishEraser === 'function') finishEraser();
@@ -3073,7 +3171,9 @@ onwheel = (e) => {
         if (screenZoom <= 0.1) screenZoom = 0.1;
     }
 
-    //console.log("Zoom: " + screenZoom);
+    if (tool === 'hatch' && typeof hatchBrushEnabled !== 'undefined' && hatchBrushEnabled && typeof updateHatchBrushPreview === 'function') {
+        updateHatchBrushPreview();
+    }
 };
 
 let clipboardObjects = [];

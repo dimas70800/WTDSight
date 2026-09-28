@@ -38,6 +38,9 @@ function switchTool(targetId) {
     if (currentActiveTabId === "shapes" && targetId !== "shapes" && typeof exitFreeShapeStickyMode === 'function') {
         exitFreeShapeStickyMode();
     }
+    if (currentActiveTabId === "hatch" && targetId !== "hatch" && typeof cancelHatch === 'function') {
+        cancelHatch();
+    }
 
     // Подсветка кнопок
     document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));

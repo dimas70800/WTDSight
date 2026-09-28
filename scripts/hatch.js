@@ -26,6 +26,50 @@ let lastAddedHatchPointTime = 0;
 let lastHatchRemovedIndex = -1;
 let lastHatchRemovedPoint = null;
 
+let hatchBrushEnabled = false;
+let isDrawingHatchBrush = false;
+let hatchBrushPoints = [];
+let previewHatchBrushLines = [];
+
+function getHatchBrushThickness() {
+    const input = document.getElementById('hatchBrushThicknessInput');
+    const val = input ? parseFloat(input.value) : 10;
+    return (isNaN(val) || val <= 0 ? 10 : val) * 0.001;
+}
+
+function setHatchBrushMode(enabled) {
+    hatchBrushEnabled = enabled;
+    const checkbox = document.getElementById('hatchBrushCheckbox');
+    if (checkbox) checkbox.checked = enabled;
+
+    const thickCont = document.getElementById('hatchBrushThicknessContainer');
+    if (thickCont) thickCont.style.display = enabled ? 'flex' : 'none';
+
+    const contourControls = document.getElementById('hatchContourControls');
+    const restoreBtn = document.getElementById('hatchRestoreBtn');
+    const areaSelect = document.getElementById('hatchAreaSelectContainer');
+    const areaMode = document.getElementById('hatchAreaModeContainer');
+
+    if (contourControls) contourControls.style.display = enabled ? 'none' : 'block';
+    if (restoreBtn) restoreBtn.style.display = enabled ? 'none' : 'block';
+    if (areaSelect) areaSelect.style.display = enabled ? 'none' : 'block';
+    if (areaMode) areaMode.style.display = enabled ? 'none' : 'block';
+
+    if (enabled) {
+        cancelHatch();
+        if (typeof updateHatchBrushPreview === 'function') {
+            updateHatchBrushPreview();
+        }
+    } else {
+        isDrawingHatchBrush = false;
+        hatchBrushPoints = [];
+        previewHatchBrushLines = [];
+        if (typeof updateHatchPreview === 'function') {
+            updateHatchPreview();
+        }
+    }
+}
+
 function setHatchRegionMode(mode) {
     isMultiRegionMode = (mode === 'multi');
     const btnSingle = document.getElementById('hatchRegionSingleBtn');
@@ -326,6 +370,11 @@ function endHatchVertexDrag() {
 function updateHatchPreview() {
     updateHatchRegionUI();
 
+    if (hatchBrushEnabled) {
+        updateHatchBrushPreview();
+        return;
+    }
+
     if (!isDrawingHatch) {
         previewHatchLines = [];
         return;
@@ -343,6 +392,107 @@ function updateHatchPreview() {
         }
     } else {
         previewHatchLines = [];
+    }
+}
+
+function getCirclePolygon(center, radius, numPoints = 32) {
+    const poly = [];
+    for (let i = 0; i < numPoints; i++) {
+        const a = (i / numPoints) * 2 * Math.PI;
+        poly.push({
+            x: center.x + radius * Math.cos(a),
+            y: center.y + radius * Math.sin(a)
+        });
+    }
+    return poly;
+}
+
+function getHatchBrushStrokeRegions(pts, radius) {
+    if (!pts || pts.length === 0) return [];
+    if (pts.length === 1) {
+        return [getCirclePolygon(pts[0], radius, 32)];
+    }
+
+    const SCALE = 1000000;
+    const intRadius = Math.round(radius * SCALE);
+
+    let cleanPts = pts;
+    if (cleanPts.length > 2 && typeof simplifyRDP === 'function') {
+        cleanPts = simplifyRDP(cleanPts, Math.max(1e-5, radius * 0.05));
+        if (cleanPts.length < 2) cleanPts = pts;
+    }
+
+    const clipperStroke = cleanPts.map(p => ({
+        X: Math.round(p.x * SCALE),
+        Y: Math.round(p.y * SCALE)
+    }));
+
+    if (typeof ClipperLib === 'undefined' || !ClipperLib.ClipperOffset) {
+        return [getCirclePolygon(pts[pts.length - 1], radius, 32)];
+    }
+
+    const co = new ClipperLib.ClipperOffset();
+    co.ArcTolerance = Math.max(1, Math.round(intRadius * 0.02));
+    co.AddPath(clipperStroke, ClipperLib.JoinType.jtRound, ClipperLib.EndType.etOpenRound);
+
+    const rawPolys = new ClipperLib.Paths();
+    co.Execute(rawPolys, intRadius);
+
+    if (!rawPolys || rawPolys.length === 0) {
+        return [getCirclePolygon(pts[pts.length - 1], radius, 32)];
+    }
+
+    const clprUnion = new ClipperLib.Clipper();
+    clprUnion.AddPaths(rawPolys, ClipperLib.PolyType.ptSubject, true);
+    const unionPolys = new ClipperLib.Paths();
+    clprUnion.Execute(ClipperLib.ClipType.ctUnion, unionPolys, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
+
+    const targetPolys = (unionPolys && unionPolys.length > 0) ? unionPolys : rawPolys;
+    const regions = [];
+    for (let poly of targetPolys) {
+        if (poly.length >= 3) {
+            regions.push(poly.map(pt => ({
+                x: pt.X / SCALE,
+                y: pt.Y / SCALE
+            })));
+        }
+    }
+    return regions;
+}
+
+function updateHatchBrushPreview() {
+    if (!hatchBrushEnabled || (typeof tool !== 'undefined' && tool !== 'hatch')) {
+        previewHatchBrushLines = [];
+        return;
+    }
+
+    if (typeof canvasHover !== 'undefined' && !canvasHover && !isDrawingHatchBrush) {
+        previewHatchBrushLines = [];
+        return;
+    }
+
+    const radius = getHatchBrushThickness() / 2;
+    let regions = [];
+
+    if (isDrawingHatchBrush && hatchBrushPoints.length > 0) {
+        let pts = [...hatchBrushPoints];
+        if (typeof mousePos !== 'undefined' && mousePos && (pts.length === 0 || v2sqrmag(mousePos, pts[pts.length - 1]) > 1e-10)) {
+            pts.push(mousePos);
+        }
+        regions = getHatchBrushStrokeRegions(pts, radius);
+    } else if (typeof mousePos !== 'undefined' && mousePos) {
+        regions = [getCirclePolygon(mousePos, radius, 32)];
+    }
+
+    if (!regions || regions.length === 0) {
+        previewHatchBrushLines = [];
+        return;
+    }
+
+    previewHatchBrushLines = generateHatchData(regions, hatchAngle, hatchDensity, hatchPhase, hatchMode, hatchThickness);
+    if (hatchGridEnabled) {
+        const gridLines = generateHatchData(regions, hatchAngle + hatchGridAngle, hatchDensity, hatchPhase, hatchMode, hatchThickness);
+        previewHatchBrushLines = previewHatchBrushLines.concat(gridLines);
     }
 }
 
@@ -490,6 +640,263 @@ function generateHatchData(regions, angleDeg, spacing, phase, mode, thickness) {
     return results;
 }
 
+function tryMergeTwoSegments(A, B, C, D) {
+    const dx1 = B.x - A.x;
+    const dy1 = B.y - A.y;
+    const len1 = Math.hypot(dx1, dy1);
+    if (len1 < 1e-7) return null;
+
+    const dx2 = D.x - C.x;
+    const dy2 = D.y - C.y;
+    const len2 = Math.hypot(dx2, dy2);
+    if (len2 < 1e-7) return null;
+
+    let R1, R2, P1, P2, Lref, Lother;
+    if (len1 >= len2) {
+        R1 = A; R2 = B; Lref = len1;
+        P1 = C; P2 = D; Lother = len2;
+    } else {
+        R1 = C; R2 = D; Lref = len2;
+        P1 = A; P2 = B; Lother = len1;
+    }
+
+    const ux = (R2.x - R1.x) / Lref;
+    const uy = (R2.y - R1.y) / Lref;
+    const nx = -uy;
+    const ny = ux;
+
+    const distTol = Math.min(0.0004, (typeof hatchDensity !== 'undefined' && hatchDensity > 0 ? hatchDensity * 0.1 : 0.0004));
+
+    const dist1 = Math.abs((P1.x - R1.x) * nx + (P1.y - R1.y) * ny);
+    const dist2 = Math.abs((P2.x - R1.x) * nx + (P2.y - R1.y) * ny);
+    if (dist1 > distTol || dist2 > distTol) return null;
+
+    const vx = (P2.x - P1.x) / Lother;
+    const vy = (P2.y - P1.y) / Lother;
+    const dot = Math.abs(ux * vx + uy * vy);
+    if (Lother > distTol && dot < 0.95) return null;
+
+    const tR1 = R1.x * ux + R1.y * uy;
+    const tR2 = R2.x * ux + R2.y * uy;
+    const tRMin = Math.min(tR1, tR2);
+    const tRMax = Math.max(tR1, tR2);
+
+    const tP1 = P1.x * ux + P1.y * uy;
+    const tP2 = P2.x * ux + P2.y * uy;
+    const tPMin = Math.min(tP1, tP2);
+    const tPMax = Math.max(tP1, tP2);
+
+    const gapTol = 0.0005;
+    if (tPMin > tRMax + gapTol || tRMin > tPMax + gapTol) {
+        return null;
+    }
+
+    const tMergedMin = Math.min(tRMin, tPMin);
+    const tMergedMax = Math.max(tRMax, tPMax);
+    const cDist = R1.x * nx + R1.y * ny;
+
+    const start = {
+        x: nx * cDist + ux * tMergedMin,
+        y: ny * cDist + uy * tMergedMin
+    };
+    const end = {
+        x: nx * cDist + ux * tMergedMax,
+        y: ny * cDist + uy * tMergedMax
+    };
+
+    return { start, end };
+}
+
+function mergeAndApplyHatchLines(finalItems) {
+    const newObjects = [];
+    const deletedObjects = [];
+
+    const inputLines = [];
+    const inputQuads = [];
+
+    for (const item of finalItems) {
+        if (item.type === 'quad') {
+            inputQuads.push(item);
+        } else {
+            inputLines.push({
+                start: { x: item.start.x, y: item.start.y },
+                end: { x: item.end.x, y: item.end.y }
+            });
+        }
+    }
+
+    if (inputLines.length > 0) {
+        const existingLineEntries = [];
+        for (const [id, obj] of objects) {
+            if (obj && obj.type === 'line') {
+                existingLineEntries.push({
+                    id: id,
+                    start: { x: obj.start.x, y: obj.start.y },
+                    end: { x: obj.end.x, y: obj.end.y },
+                    object: obj
+                });
+            }
+        }
+
+        const mergedLinesToAdd = [];
+
+        for (const seg of inputLines) {
+            let curSeg = { start: { ...seg.start }, end: { ...seg.end }, mergedIds: [] };
+            let mergedWithExisting = true;
+
+            while (mergedWithExisting) {
+                mergedWithExisting = false;
+                for (let i = 0; i < existingLineEntries.length; i++) {
+                    const existing = existingLineEntries[i];
+                    const merged = tryMergeTwoSegments(curSeg.start, curSeg.end, existing.start, existing.end);
+                    if (merged) {
+                        curSeg.start = merged.start;
+                        curSeg.end = merged.end;
+                        curSeg.mergedIds.push(existing.id);
+                        deletedObjects.push({ id: existing.id, object: existing.object });
+                        objects.delete(existing.id);
+                        existingLineEntries.splice(i, 1);
+                        mergedWithExisting = true;
+                        break;
+                    }
+                }
+            }
+
+            let mergedWithPrev = true;
+            while (mergedWithPrev) {
+                mergedWithPrev = false;
+                for (let j = 0; j < mergedLinesToAdd.length; j++) {
+                    const prev = mergedLinesToAdd[j];
+                    const merged = tryMergeTwoSegments(curSeg.start, curSeg.end, prev.start, prev.end);
+                    if (merged) {
+                        curSeg.start = merged.start;
+                        curSeg.end = merged.end;
+                        if (prev.mergedIds && prev.mergedIds.length > 0) {
+                            curSeg.mergedIds.push(...prev.mergedIds);
+                        }
+                        mergedLinesToAdd.splice(j, 1);
+                        mergedWithPrev = true;
+                        break;
+                    }
+                }
+            }
+
+            mergedLinesToAdd.push(curSeg);
+        }
+
+        for (const line of mergedLinesToAdd) {
+            const len = Math.hypot(line.end.x - line.start.x, line.end.y - line.start.y);
+            if (len < 1e-6) continue;
+
+            const objIdStr = nextId().toString();
+            const mergedIds = line.mergedIds || [];
+
+            let retainedName = null;
+
+            if (typeof selectedId !== 'undefined' && selectedId !== null && mergedIds.includes(selectedId)) {
+                const selObj = deletedObjects.find(d => d.id === selectedId);
+                if (selObj && selObj.object && selObj.object.name) {
+                    retainedName = selObj.object.name;
+                }
+            }
+
+            const object = {
+                name: retainedName || ((typeof lang !== 'undefined' && lang.line ? lang.line : "Line") + " " + objIdStr),
+                type: "line",
+                start: {
+                    x: rnd(line.start.x),
+                    y: rnd(line.start.y)
+                },
+                end: {
+                    x: rnd(line.end.x),
+                    y: rnd(line.end.y)
+                },
+                selected: false
+            };
+            objects.set(objIdStr, object);
+            newObjects.push({ id: objIdStr, object: object });
+        }
+    }
+
+    if (inputQuads.length > 0) {
+        for (const item of inputQuads) {
+            const objIdStr = nextId().toString();
+            const object = {
+                name: (typeof lang !== 'undefined' && lang.quad ? lang.quad : "Quad") + " " + objIdStr,
+                type: "quad",
+                pos1: { x: rnd(item.pos1.x), y: rnd(item.pos1.y) },
+                pos2: { x: rnd(item.pos2.x), y: rnd(item.pos2.y) },
+                pos3: { x: rnd(item.pos3.x), y: rnd(item.pos3.y) },
+                pos4: { x: rnd(item.pos4.x), y: rnd(item.pos4.y) },
+                selected: false
+            };
+            objects.set(objIdStr, object);
+            newObjects.push({ id: objIdStr, object: object });
+        }
+    }
+
+    if (deletedObjects.length > 0 && newObjects.length > 0 && typeof isGeometryIdentical === 'function' && isGeometryIdentical(newObjects, deletedObjects)) {
+        for (const item of newObjects) {
+            objects.delete(item.id);
+        }
+        for (const item of deletedObjects) {
+            objects.set(item.id, item.object);
+        }
+        refreshObjectsList(true);
+        return;
+    }
+
+    const deletedIds = new Set(deletedObjects.map(d => d.id));
+    const wasSelectedDeleted = (typeof selectedId !== 'undefined' && selectedId !== null && deletedIds.has(selectedId)) ||
+                               (typeof selectedObjectsSet !== 'undefined' && [...selectedObjectsSet].some(id => deletedIds.has(id)));
+    if (wasSelectedDeleted) {
+        if (typeof unselectAnyObjects === 'function') unselectAnyObjects();
+        if (typeof showInfo === 'function') showInfo(null);
+    }
+
+    if (deletedObjects.length > 0 && newObjects.length > 0) {
+        pushEvent("replace_multiple", { added: newObjects, deleted: deletedObjects });
+    } else if (newObjects.length > 0) {
+        pushEvent("add_multiple", newObjects);
+    } else if (deletedObjects.length > 0) {
+        pushEvent("delete_multiple", deletedObjects);
+    }
+
+    refreshObjectsList(true);
+}
+
+function finishHatchBrush() {
+    if (!hatchBrushPoints || hatchBrushPoints.length === 0) {
+        isDrawingHatchBrush = false;
+        previewHatchBrushLines = [];
+        return;
+    }
+
+    const radius = getHatchBrushThickness() / 2;
+    const strokeRegions = getHatchBrushStrokeRegions(hatchBrushPoints, radius);
+    isDrawingHatchBrush = false;
+    hatchBrushPoints = [];
+
+    if (!strokeRegions || strokeRegions.length === 0) {
+        updateHatchBrushPreview();
+        return;
+    }
+
+    let finalItems = generateHatchData(strokeRegions, hatchAngle, hatchDensity, hatchPhase, hatchMode, hatchThickness);
+    if (hatchGridEnabled) {
+        const gridItems = generateHatchData(strokeRegions, hatchAngle + hatchGridAngle, hatchDensity, hatchPhase, hatchMode, hatchThickness);
+        finalItems = finalItems.concat(gridItems);
+    }
+
+    if (finalItems.length === 0) {
+        updateHatchBrushPreview();
+        return;
+    }
+
+    mergeAndApplyHatchLines(finalItems);
+    updateHatchBrushPreview();
+}
+
 function finalizeHatch() {
     const regionsToRender = isMultiRegionMode ? hatchRegions : [hatchPoints];
     const validRegions = regionsToRender.filter(r => r.length >= 3);
@@ -515,119 +922,8 @@ function finalizeHatch() {
 
     lastHatchPoints = regionsToRender.map(r => [...r]);
 
-    let newObjects = [];
-    let processedLines = [];
+    mergeAndApplyHatchLines(finalItems);
 
-    function clipLine(start, end) {
-        let segments = [{ start: start, end: end }];
-
-        function processAgainstLine(A, B) {
-            const vObj = { x: B.x - A.x, y: B.y - A.y };
-            const lenObj = Math.sqrt(vObj.x ** 2 + vObj.y ** 2);
-            if (lenObj < 1e-6) return;
-            const dObj = { x: vObj.x / lenObj, y: vObj.y / lenObj };
-
-            for (let i = segments.length - 1; i >= 0; i--) {
-                const seg = segments[i];
-                const C = seg.start;
-                const D = seg.end;
-
-                const vSeg = { x: D.x - C.x, y: D.y - C.y };
-                const lenSeg = Math.sqrt(vSeg.x ** 2 + vSeg.y ** 2);
-                if (lenSeg < 1e-6) continue;
-                const dSeg = { x: vSeg.x / lenSeg, y: vSeg.y / lenSeg };
-
-                const cross1 = dObj.x * dSeg.y - dObj.y * dSeg.x;
-                if (Math.abs(cross1) > 1e-4) continue;
-
-                const vAC = { x: C.x - A.x, y: C.y - A.y };
-                const cross2 = dObj.x * vAC.y - dObj.y * vAC.x;
-                if (Math.abs(cross2) > 1e-4) continue;
-
-                const pA = (A.x - C.x) * dSeg.x + (A.y - C.y) * dSeg.y;
-                const pB = (B.x - C.x) * dSeg.x + (B.y - C.y) * dSeg.y;
-
-                const pObjMin = Math.min(pA, pB);
-                const pObjMax = Math.max(pA, pB);
-
-                const pSegMin = 0;
-                const pSegMax = lenSeg;
-
-                if (pObjMax <= pSegMin + 1e-5 || pObjMin >= pSegMax - 1e-5) continue;
-
-                segments.splice(i, 1);
-
-                if (pObjMin > pSegMin + 1e-5) {
-                    const t = pObjMin / lenSeg;
-                    segments.push({
-                        start: { x: C.x, y: C.y },
-                        end: { x: C.x + vSeg.x * t, y: C.y + vSeg.y * t }
-                    });
-                }
-                if (pObjMax < pSegMax - 1e-5) {
-                    const t = pObjMax / lenSeg;
-                    segments.push({
-                        start: { x: C.x + vSeg.x * t, y: C.y + vSeg.y * t },
-                        end: { x: D.x, y: D.y }
-                    });
-                }
-            }
-        }
-
-        for (const [id, obj] of objects) {
-            if (obj.type === "line") processAgainstLine(obj.start, obj.end);
-        }
-        for (const obj of processedLines) {
-            if (obj.type === "line") processAgainstLine(obj.start, obj.end);
-        }
-
-        return segments;
-    }
-
-    for (const item of finalItems) {
-        if (item.type === 'line') {
-            const clippedSegments = clipLine(item.start, item.end);
-
-            for (const seg of clippedSegments) {
-                const objIdStr = nextId().toString();
-                const object = {
-                    name: lang.line + " " + objIdStr,
-                    type: "line",
-                    start: {
-                        x: Math.round(seg.start.x * 1000000) / 1000000,
-                        y: Math.round(seg.start.y * 1000000) / 1000000
-                    },
-                    end: {
-                        x: Math.round(seg.end.x * 1000000) / 1000000,
-                        y: Math.round(seg.end.y * 1000000) / 1000000
-                    },
-                    selected: false
-                };
-                objects.set(objIdStr, object);
-                newObjects.push({ id: objIdStr, object: object });
-                processedLines.push(object);
-            }
-        } else if (item.type === 'quad') {
-            const objIdStr = nextId().toString();
-            const object = {
-                name: lang.quad + " " + objIdStr,
-                type: "quad",
-                pos1: { x: Math.round(item.pos1.x * 1000000) / 1000000, y: Math.round(item.pos1.y * 1000000) / 1000000 },
-                pos2: { x: Math.round(item.pos2.x * 1000000) / 1000000, y: Math.round(item.pos2.y * 1000000) / 1000000 },
-                pos3: { x: Math.round(item.pos3.x * 1000000) / 1000000, y: Math.round(item.pos3.y * 1000000) / 1000000 },
-                pos4: { x: Math.round(item.pos4.x * 1000000) / 1000000, y: Math.round(item.pos4.y * 1000000) / 1000000 },
-                selected: false
-            };
-            objects.set(objIdStr, object);
-            newObjects.push({ id: objIdStr, object: object });
-        }
-    }
-
-    if (newObjects.length > 0) {
-        pushEvent("add_multiple", newObjects);
-    }
-
-    refreshObjectsList(true);
     cancelHatch();
     markAllTools();
 }
@@ -641,6 +937,11 @@ function cancelHatch() {
     previewHatchLines = [];
     hatchPhase = 0;
     updateHatchRegionUI();
+    isDrawingHatchBrush = false;
+    hatchBrushPoints = [];
+    if (hatchBrushEnabled && typeof updateHatchBrushPreview === 'function') {
+        updateHatchBrushPreview();
+    }
 }
 
 function restoreLastHatch() {
@@ -978,4 +1279,30 @@ document.addEventListener('DOMContentLoaded', () => {
     if (createBtn) createBtn.onclick = () => finalizeHatch();
     if (cancelBtn) cancelBtn.onclick = () => cancelHatch();
     if (restoreBtn) restoreBtn.onclick = () => restoreLastHatch();
+
+    const brushCheckbox = document.getElementById('hatchBrushCheckbox');
+    const brushThickInput = document.getElementById('hatchBrushThicknessInput');
+    const brushThickNumber = document.getElementById('hatchBrushThicknessNumber');
+
+    if (brushCheckbox) {
+        brushCheckbox.onchange = (e) => {
+            setHatchBrushMode(e.target.checked);
+        };
+    }
+    if (brushThickInput) {
+        brushThickInput.oninput = (e) => {
+            if (brushThickNumber) brushThickNumber.value = e.target.value;
+            if (hatchBrushEnabled && typeof updateHatchBrushPreview === 'function') {
+                updateHatchBrushPreview();
+            }
+        };
+    }
+    if (brushThickNumber) {
+        brushThickNumber.oninput = (e) => {
+            if (brushThickInput) brushThickInput.value = e.target.value;
+            if (hatchBrushEnabled && typeof updateHatchBrushPreview === 'function') {
+                updateHatchBrushPreview();
+            }
+        };
+    }
 });

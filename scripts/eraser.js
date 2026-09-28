@@ -244,6 +244,8 @@ function optimizeQuadsList(quadsList, SCALE, cleanDist) {
             for (let j = i + 1; j < list.length; j++) {
                 const mq = tryMergeQuads(list[i], list[j], SCALE, cleanDist);
                 if (mq) {
+                    mq.wasSelected = !!(list[i].wasSelected || list[j].wasSelected);
+                    mq.origId = list[i].origId || list[j].origId;
                     list[i] = mq;
                     list.splice(j, 1);
                     merged = true;
@@ -462,6 +464,10 @@ function finishEraser() {
                 }
             }
 
+            const isObjSelected = (typeof selectedId !== 'undefined' && selectedId === id) ||
+                                  (typeof selectedObjectsSet !== 'undefined' && selectedObjectsSet.has(id)) ||
+                                  !!obj.selected;
+
             deletedObjects.push({ id: id, object: obj });
             objects.delete(id);
 
@@ -474,11 +480,12 @@ function finishEraser() {
 
                 const newId = nextId().toString();
                 const newObj = {
-                    name: (typeof lang !== 'undefined' && lang.line ? lang.line : "Line") + " " + newId,
+                    name: (obj.name && openPaths.length === 1) ? obj.name : ((typeof lang !== 'undefined' && lang.line ? lang.line : "Line") + " " + newId),
                     type: "line",
                     start: { x: rnd(pStart.X / SCALE), y: rnd(pStart.Y / SCALE) },
                     end: { x: rnd(pEnd.X / SCALE), y: rnd(pEnd.Y / SCALE) },
-                    selected: false
+                    selected: false,
+                    origId: id
                 };
                 objects.set(newId, newObj);
                 addedObjects.push({ id: newId, object: newObj });
@@ -529,10 +536,18 @@ function finishEraser() {
                 }
             }
 
+            const isObjSelected = (typeof selectedId !== 'undefined' && selectedId === id) ||
+                                  (typeof selectedObjectsSet !== 'undefined' && selectedObjectsSet.has(id)) ||
+                                  !!obj.selected;
+
             deletedObjects.push({ id: id, object: obj });
             objects.delete(id);
 
             const newQuads = decomposePolyTreeToQuads(polyTree, SCALE, cleanDist);
+            for (const q of newQuads) {
+                q.wasSelected = isObjSelected;
+                q.origId = id;
+            }
             allNewQuads.push(...newQuads);
         }
     }
@@ -541,14 +556,22 @@ function finishEraser() {
         const finalQuads = optimizeQuadsList(allNewQuads, SCALE, cleanDist);
         for (const q of finalQuads) {
             const newId = nextId().toString();
+            let retainedName = null;
+            if (q.origId) {
+                const origDel = deletedObjects.find(d => d.id === q.origId);
+                if (origDel && origDel.object && origDel.object.name && finalQuads.filter(fq => fq.origId === q.origId).length === 1) {
+                    retainedName = origDel.object.name;
+                }
+            }
             const newObj = {
-                name: (typeof lang !== 'undefined' && lang.quad ? lang.quad : "Quad") + " " + newId,
+                name: retainedName || ((typeof lang !== 'undefined' && lang.quad ? lang.quad : "Quad") + " " + newId),
                 type: "quad",
                 pos1: { x: rnd(q[0].x), y: rnd(q[0].y) },
                 pos2: { x: rnd(q[1].x), y: rnd(q[1].y) },
                 pos3: { x: rnd(q[2].x), y: rnd(q[2].y) },
                 pos4: { x: rnd(q[3].x), y: rnd(q[3].y) },
-                selected: false
+                selected: false,
+                origId: q.origId
             };
             objects.set(newId, newObj);
             addedObjects.push({ id: newId, object: newObj });
@@ -556,6 +579,26 @@ function finishEraser() {
     }
 
     if (deletedObjects.length > 0 || addedObjects.length > 0) {
+        if (deletedObjects.length > 0 && addedObjects.length > 0 && typeof isGeometryIdentical === 'function' && isGeometryIdentical(addedObjects, deletedObjects)) {
+            for (const item of addedObjects) {
+                objects.delete(item.id);
+            }
+            for (const item of deletedObjects) {
+                objects.set(item.id, item.object);
+            }
+            refreshObjectsList(true);
+            cancelEraser();
+            return;
+        }
+
+        const deletedIds = new Set(deletedObjects.map(d => d.id));
+        const wasSelectedDeleted = (typeof selectedId !== 'undefined' && selectedId !== null && deletedIds.has(selectedId)) ||
+                                   (typeof selectedObjectsSet !== 'undefined' && [...selectedObjectsSet].some(id => deletedIds.has(id)));
+        if (wasSelectedDeleted) {
+            if (typeof unselectAnyObjects === 'function') unselectAnyObjects();
+            if (typeof showInfo === 'function') showInfo(null);
+        }
+
         pushEvent("replace_multiple", { added: addedObjects, deleted: deletedObjects });
         refreshObjectsList(true);
     }
