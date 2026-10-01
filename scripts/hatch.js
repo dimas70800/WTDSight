@@ -708,6 +708,10 @@ function tryMergeTwoSegments(A, B, C, D) {
 }
 
 function mergeAndApplyHatchLines(finalItems) {
+    if (typeof isLayerLocked === 'function' && isLayerLocked(getActiveLayerId())) {
+        if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+        return;
+    }
     const newObjects = [];
     const deletedObjects = [];
 
@@ -800,6 +804,7 @@ function mergeAndApplyHatchLines(finalItems) {
                 }
             }
 
+            const curLayer = (typeof getActiveLayerId === 'function') ? getActiveLayerId() : 1;
             const object = {
                 name: retainedName || ((typeof lang !== 'undefined' && lang.line ? lang.line : "Line") + " " + objIdStr),
                 type: "line",
@@ -811,7 +816,8 @@ function mergeAndApplyHatchLines(finalItems) {
                     x: rnd(line.end.x),
                     y: rnd(line.end.y)
                 },
-                selected: false
+                selected: false,
+                layer: curLayer
             };
             objects.set(objIdStr, object);
             newObjects.push({ id: objIdStr, object: object });
@@ -819,6 +825,7 @@ function mergeAndApplyHatchLines(finalItems) {
     }
 
     if (inputQuads.length > 0) {
+        const curLayer = (typeof getActiveLayerId === 'function') ? getActiveLayerId() : 1;
         for (const item of inputQuads) {
             const objIdStr = nextId().toString();
             const object = {
@@ -828,7 +835,8 @@ function mergeAndApplyHatchLines(finalItems) {
                 pos2: { x: rnd(item.pos2.x), y: rnd(item.pos2.y) },
                 pos3: { x: rnd(item.pos3.x), y: rnd(item.pos3.y) },
                 pos4: { x: rnd(item.pos4.x), y: rnd(item.pos4.y) },
-                selected: false
+                selected: false,
+                layer: curLayer
             };
             objects.set(objIdStr, object);
             newObjects.push({ id: objIdStr, object: object });

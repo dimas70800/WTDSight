@@ -739,6 +739,10 @@
         }
 
         function applyVectorizeLinesToCanvas() {
+            if (typeof isLayerLocked === 'function' && isLayerLocked(getActiveLayerId())) {
+                if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+                return;
+            }
             if (!vectorizeLines.length) {
                 alert("Нет линий для применения! Сначала обработайте изображение.");
                 return;
@@ -746,6 +750,7 @@
 
             const worldLines = convertLinesToWorldCoordinates(vectorizeLines, currentProcessedWidth, currentProcessedHeight);
             const addedItems = [];
+            const curLayer = (typeof getActiveLayerId === 'function') ? getActiveLayerId() : 1;
 
             for (const line of worldLines) {
                 const objIdStr = nextId().toString();
@@ -754,7 +759,8 @@
                     type: "line",
                     start: { x: rnd(line.start.x), y: rnd(line.start.y) },
                     end: { x: rnd(line.end.x), y: rnd(line.end.y) },
-                    selected: false
+                    selected: false,
+                    layer: curLayer
                 };
                 objects.set(objIdStr, object);
                 addedItems.push({ id: objIdStr, object: object });
@@ -767,6 +773,10 @@
         }
 
         function applyVectorizeQuadsToCanvas() {
+            if (typeof isLayerLocked === 'function' && isLayerLocked(getActiveLayerId())) {
+                if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+                return;
+            }
             if (!vectorizeQuads.length) {
                 alert("Нет квадов для применения! Сначала обработайте изображение.");
                 return;
@@ -774,6 +784,7 @@
 
             const worldQuads = convertQuadsToWorldCoordinates(vectorizeQuads, currentQuadsOutWidth, currentQuadsOutHeight);
             const addedItems = [];
+            const curLayer = (typeof getActiveLayerId === 'function') ? getActiveLayerId() : 1;
 
             for (const q of worldQuads) {
                 const objIdStr = nextId().toString();
@@ -784,7 +795,8 @@
                     pos2: { x: rnd(q.pos2.x), y: rnd(q.pos2.y) },
                     pos3: { x: rnd(q.pos3.x), y: rnd(q.pos3.y) },
                     pos4: { x: rnd(q.pos4.x), y: rnd(q.pos4.y) },
-                    selected: false
+                    selected: false,
+                    layer: curLayer
                 };
                 objects.set(objIdStr, object);
                 addedItems.push({ id: objIdStr, object: object });

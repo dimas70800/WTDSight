@@ -204,6 +204,8 @@ function addDrawingObjectsToBlk(blk) {
 
     objects.forEach((obj) => {
         if (!obj) return;
+        const layerId = obj.layer || 1;
+        if (typeof isLayerVisible === 'function' && !isLayerVisible(layerId)) return;
         if (obj.type === "line") {
             linesStr += `  line {line:p4=${obj.start.x},${obj.start.y},${obj.end.x},${obj.end.y}; move:b=false;}\n`;
         } else if (obj.type === "quad") {

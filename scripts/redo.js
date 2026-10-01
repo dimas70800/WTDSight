@@ -101,6 +101,32 @@ function popRedo() {
             undoEvent = { type: 'move_multiple', data: { objectsData: objectsData } };
             break;
         }
+        case 'delete_layer': {
+            const { layer, deletedObjects } = data;
+            if (deletedObjects && deletedObjects.length > 0) {
+                for (const item of deletedObjects) {
+                    if (objects.has(item.id)) {
+                        objects.delete(item.id);
+                    }
+                }
+            }
+            if (typeof getLayers === 'function') {
+                const curLayers = getLayers();
+                const idx = curLayers.findIndex(l => l.id === layer.id);
+                if (idx !== -1) curLayers.splice(idx, 1);
+                if (typeof getActiveLayerId === 'function' && getActiveLayerId() === layer.id && curLayers.length > 0) {
+                    if (typeof setActiveLayerId === 'function') setActiveLayerId(curLayers[0].id);
+                }
+            }
+
+            if (typeof unselectAnyObjects === 'function') unselectAnyObjects();
+            if (typeof showInfo === 'function') showInfo(null);
+            if (typeof renderLayersUI === 'function') renderLayersUI();
+            if (typeof saveLayersToStorage === 'function') saveLayersToStorage();
+
+            undoEvent = { type: 'delete_layer', data: data };
+            break;
+        }
         default:
             break;
     }

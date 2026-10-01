@@ -419,11 +419,32 @@ function finishEraser() {
     const deletedObjects = [];
     const addedObjects = [];
     const allNewQuads = [];
+    let hadLockedIntersect = false;
 
     const objectsList = Array.from(objects.entries());
 
     for (const [id, obj] of objectsList) {
         if (!obj || !obj.type) continue;
+        const layerId = obj.layer || 1;
+        if (typeof isLayerVisible === 'function' && !isLayerVisible(layerId)) continue;
+        if (typeof isLayerLocked === 'function' && isLayerLocked(layerId)) {
+            let oMinX = Infinity, oMaxX = -Infinity, oMinY = Infinity, oMaxY = -Infinity;
+            if (obj.type === 'line') {
+                oMinX = Math.min(obj.start.x, obj.end.x);
+                oMaxX = Math.max(obj.start.x, obj.end.x);
+                oMinY = Math.min(obj.start.y, obj.end.y);
+                oMaxY = Math.max(obj.start.y, obj.end.y);
+            } else if (obj.type === 'quad') {
+                oMinX = Math.min(obj.pos1.x, obj.pos2.x, obj.pos3.x, obj.pos4.x);
+                oMaxX = Math.max(obj.pos1.x, obj.pos2.x, obj.pos3.x, obj.pos4.x);
+                oMinY = Math.min(obj.pos1.y, obj.pos2.y, obj.pos3.y, obj.pos4.y);
+                oMaxY = Math.max(obj.pos1.y, obj.pos2.y, obj.pos3.y, obj.pos4.y);
+            }
+            if (!(oMaxX < minX || oMinX > maxX || oMaxY < minY || oMinY > maxY)) {
+                hadLockedIntersect = true;
+            }
+            continue;
+        }
 
         if (obj.type === 'line' && (eraserFilterMode === 'all' || eraserFilterMode === 'lines')) {
             const lMinX = Math.min(obj.start.x, obj.end.x);
@@ -485,7 +506,8 @@ function finishEraser() {
                     start: { x: rnd(pStart.X / SCALE), y: rnd(pStart.Y / SCALE) },
                     end: { x: rnd(pEnd.X / SCALE), y: rnd(pEnd.Y / SCALE) },
                     selected: false,
-                    origId: id
+                    origId: id,
+                    layer: obj.layer || 1
                 };
                 objects.set(newId, newObj);
                 addedObjects.push({ id: newId, object: newObj });
@@ -557,10 +579,14 @@ function finishEraser() {
         for (const q of finalQuads) {
             const newId = nextId().toString();
             let retainedName = null;
+            let origLayer = 1;
             if (q.origId) {
                 const origDel = deletedObjects.find(d => d.id === q.origId);
-                if (origDel && origDel.object && origDel.object.name && finalQuads.filter(fq => fq.origId === q.origId).length === 1) {
-                    retainedName = origDel.object.name;
+                if (origDel && origDel.object) {
+                    origLayer = origDel.object.layer || 1;
+                    if (origDel.object.name && finalQuads.filter(fq => fq.origId === q.origId).length === 1) {
+                        retainedName = origDel.object.name;
+                    }
                 }
             }
             const newObj = {
@@ -571,7 +597,8 @@ function finishEraser() {
                 pos3: { x: rnd(q[2].x), y: rnd(q[2].y) },
                 pos4: { x: rnd(q[3].x), y: rnd(q[3].y) },
                 selected: false,
-                origId: q.origId
+                origId: q.origId,
+                layer: origLayer
             };
             objects.set(newId, newObj);
             addedObjects.push({ id: newId, object: newObj });
@@ -601,6 +628,9 @@ function finishEraser() {
 
         pushEvent("replace_multiple", { added: addedObjects, deleted: deletedObjects });
         refreshObjectsList(true);
+    }
+    if (hadLockedIntersect) {
+        if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
     }
 
     cancelEraser();

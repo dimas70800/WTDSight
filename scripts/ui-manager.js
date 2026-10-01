@@ -577,6 +577,8 @@ function drawPreview() {
     pCtx.lineJoin = "round";
 
     for (const [id, object] of objects) {
+        const layerId = object.layer || 1;
+        if (typeof isLayerVisible === 'function' && !isLayerVisible(layerId)) continue;
         if (object.type === "line") {
             const from = sightToPreview(object.start);
             const to = sightToPreview(object.end);

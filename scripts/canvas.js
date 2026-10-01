@@ -333,16 +333,13 @@ function drawStuff() {
         el("massB").disabled = true;
     }
 
-    const opacityInputEl = el("opacityInput");
-    const opacity = opacityInputEl ? opacityInputEl.value : "1";
     const outlineCheckBoxEl = el("outlineCheckBox");
     const outlineCheckBoxVal = outlineCheckBoxEl ? outlineCheckBoxEl.checked : false;
-    const outlineColor = `rgba(255, 255, 255, ${opacity})`;
-    const defaultColor = "rgba(0, 0, 0, " + opacity + ")";
     const selectedColor = "rgba(0, 0, 255, " + timeSin.toString() + ")";
     const noTransform = (point) => point;
 
-    function drawStuffObject(object, c, w, transformationFunc) {
+    function drawStuffObject(object, c, w, transformationFunc, layerOpacity = 1) {
+        const objOutlineColor = `rgba(255, 255, 255, ${layerOpacity})`;
         switch (object.type) {
             case "line":
                 const from = v2disposSight2v2canvas(transformationFunc(object.start, mass.x, mass.y, mass.r, mass.sx, mass.sy));
@@ -352,7 +349,7 @@ function drawStuff() {
                     ctx.beginPath();
                     ctx.moveTo(from.x, from.y);
                     ctx.lineTo(to.x, to.y);
-                    ctx.strokeStyle = outlineColor;
+                    ctx.strokeStyle = objOutlineColor;
                     ctx.lineWidth = getLineWidth(w + 1);
                     ctx.stroke();
                 }
@@ -378,7 +375,7 @@ function drawStuff() {
                     ctx.lineTo(pos3.x, pos3.y);
                     ctx.lineTo(pos4.x, pos4.y);
                     ctx.closePath();
-                    ctx.strokeStyle = outlineColor;
+                    ctx.strokeStyle = objOutlineColor;
                     ctx.lineWidth = getLineWidth(w + 1);
                     ctx.stroke();
                 }
@@ -400,7 +397,16 @@ function drawStuff() {
         for (const object of animatedObjectsList) {
             if (count > animationProgress) break;
 
-            drawStuffObject(object, defaultColor, 1, noTransform);
+            const layerId = object.layer || 1;
+            if (typeof isLayerVisible === 'function' && !isLayerVisible(layerId)) {
+                count++;
+                continue;
+            }
+
+            const layerOpacity = (typeof getLayerOpacity === 'function') ? getLayerOpacity(layerId) : 1;
+            const objDefaultColor = "rgba(0, 0, 0, " + layerOpacity + ")";
+
+            drawStuffObject(object, objDefaultColor, 1, noTransform, layerOpacity);
             count++;
         }
 
@@ -409,11 +415,52 @@ function drawStuff() {
             stopDrawingAnimation();
         }
     } else {
-        for (const [id, object] of objects) {
-            const color = !object.selected ? defaultColor : selectedColor;
-            const width = !object.selected ? 1 : 3;
+        const curLayers = (typeof getLayers === 'function') ? getLayers() : null;
+        if (curLayers && curLayers.length > 1) {
+            const layerMap = new Map();
+            for (const l of curLayers) {
+                if (l.visible) layerMap.set(l.id, []);
+            }
+            const fallbackObjs = [];
+            for (const [id, object] of objects) {
+                const lId = object.layer || 1;
+                const bucket = layerMap.get(lId);
+                if (bucket) {
+                    bucket.push([id, object]);
+                } else if (typeof isLayerVisible !== 'function' || isLayerVisible(lId)) {
+                    fallbackObjs.push([id, object]);
+                }
+            }
+            const layerOpacity = (typeof getLayerOpacity === 'function') ? getLayerOpacity() : 1;
+            const objDefaultColor = "rgba(0, 0, 0, " + layerOpacity + ")";
 
-            drawStuffObject(object, color, width, noTransform);
+            for (const [id, object] of fallbackObjs) {
+                const color = !object.selected ? objDefaultColor : selectedColor;
+                const width = !object.selected ? 1 : 3;
+                drawStuffObject(object, color, width, noTransform, layerOpacity);
+            }
+            for (let i = curLayers.length - 1; i >= 0; i--) {
+                const l = curLayers[i];
+                const bucket = layerMap.get(l.id);
+                if (!bucket) continue;
+                for (const [id, object] of bucket) {
+                    const color = !object.selected ? objDefaultColor : selectedColor;
+                    const width = !object.selected ? 1 : 3;
+                    drawStuffObject(object, color, width, noTransform, layerOpacity);
+                }
+            }
+        } else {
+            for (const [id, object] of objects) {
+                const layerId = object.layer || 1;
+                if (typeof isLayerVisible === 'function' && !isLayerVisible(layerId)) continue;
+
+                const layerOpacity = (typeof getLayerOpacity === 'function') ? getLayerOpacity(layerId) : 1;
+                const objDefaultColor = "rgba(0, 0, 0, " + layerOpacity + ")";
+                const color = !object.selected ? objDefaultColor : selectedColor;
+                const width = !object.selected ? 1 : 3;
+
+                drawStuffObject(object, color, width, noTransform, layerOpacity);
+            }
         }
     }
 
@@ -821,38 +868,102 @@ function drawGhost() {
             }
             break;
         case "brush":
-            let brushThicknessInput = el("brushThicknessInput");
-            let brushThicknessVal = brushThicknessInput ? parseFloat(brushThicknessInput.value) : 10;
+            let brushThicknessVal = typeof getBrushThickness === 'function' ? getBrushThickness() : 10;
             let brushRadiusSight = (brushThicknessVal * 0.001) / 2;
             let brushRadiusPixel = sight2pixel(brushRadiusSight);
 
             if (isDrawingBrush && brushPoints.length > 0) {
-                ctx.beginPath();
-                const startCanvas = v2disposSight2v2canvas(brushPoints[0]);
-                ctx.moveTo(startCanvas.x, startCanvas.y);
+                if (typeof isBrushStraightLinesEnabled === 'function' && isBrushStraightLinesEnabled()) {
+                    let p1 = brushPoints[0];
+                    let targetPos = mousePos;
+                    if (snapping || mobileSnappingActive) {
+                        let snapRad = (mobileSnappingActive && !snapping) ? 40 : Infinity;
+                        let snapP = snappingPos(mousePos, snapRad);
+                        if (snapP != null) targetPos = snapP;
+                    }
+                    let dx = targetPos.x - p1.x;
+                    let dy = targetPos.y - p1.y;
+                    let len = Math.hypot(dx, dy);
+                    if (len > 0.000001) {
+                        const isRoundCap = (typeof brushMode !== 'undefined' ? brushMode : 'flat') === 'round';
+                        const outlineCheckBoxVal = el("outlineCheckBox").checked;
 
-                let limit = snapping ? brushPoints.length - 1 : brushPoints.length;
+                        if (isRoundCap) {
+                            const startCanvas = v2disposSight2v2canvas(p1);
+                            const targetCanvas = v2disposSight2v2canvas(targetPos);
+                            ctx.beginPath();
+                            ctx.moveTo(startCanvas.x, startCanvas.y);
+                            ctx.lineTo(targetCanvas.x, targetCanvas.y);
+                            ctx.strokeStyle = outlineCheckBoxVal ? "rgba(255, 255, 255, 0.8)" : "rgba(0, 0, 0, 0.5)";
+                            ctx.lineWidth = brushRadiusPixel * 2;
+                            ctx.lineCap = "round";
+                            ctx.stroke();
+                            ctx.lineCap = "butt";
+                        } else {
+                            let nx = -dy / len;
+                            let ny = dx / len;
+                            let halfThick = brushRadiusSight;
+                            let q1 = v2disposSight2v2canvas({ x: p1.x + nx * halfThick, y: p1.y + ny * halfThick });
+                            let q2 = v2disposSight2v2canvas({ x: targetPos.x + nx * halfThick, y: targetPos.y + ny * halfThick });
+                            let q3 = v2disposSight2v2canvas({ x: targetPos.x - nx * halfThick, y: targetPos.y - ny * halfThick });
+                            let q4 = v2disposSight2v2canvas({ x: p1.x - nx * halfThick, y: p1.y - ny * halfThick });
 
-                for (let i = 1; i < limit; i++) {
-                    const ptCanvas = v2disposSight2v2canvas(brushPoints[i]);
-                    ctx.lineTo(ptCanvas.x, ptCanvas.y);
+                            if (outlineCheckBoxVal) {
+                                ctx.beginPath();
+                                ctx.moveTo(q1.x, q1.y);
+                                ctx.lineTo(q2.x, q2.y);
+                                ctx.lineTo(q3.x, q3.y);
+                                ctx.lineTo(q4.x, q4.y);
+                                ctx.closePath();
+                                ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+                                ctx.lineWidth = getLineWidth(1);
+                                ctx.stroke();
+                            }
+
+                            ctx.beginPath();
+                            ctx.moveTo(q1.x, q1.y);
+                            ctx.lineTo(q2.x, q2.y);
+                            ctx.lineTo(q3.x, q3.y);
+                            ctx.lineTo(q4.x, q4.y);
+                            ctx.closePath();
+                            ctx.fillStyle = outlineCheckBoxVal ? "rgba(255, 255, 255, 0.8)" : "rgba(0, 0, 0, 0.5)";
+                            ctx.fill();
+                        }
+                    } else {
+                        const startCanvas = v2disposSight2v2canvas(p1);
+                        ctx.beginPath();
+                        ctx.arc(startCanvas.x, startCanvas.y, brushRadiusPixel, 0, 2 * Math.PI, false);
+                        ctx.fillStyle = el("outlineCheckBox").checked ? "rgba(255, 255, 255, 0.8)" : "rgba(0, 0, 0, 0.5)";
+                        ctx.fill();
+                    }
+                } else {
+                    ctx.beginPath();
+                    const startCanvas = v2disposSight2v2canvas(brushPoints[0]);
+                    ctx.moveTo(startCanvas.x, startCanvas.y);
+
+                    let limit = snapping ? brushPoints.length - 1 : brushPoints.length;
+
+                    for (let i = 1; i < limit; i++) {
+                        const ptCanvas = v2disposSight2v2canvas(brushPoints[i]);
+                        ctx.lineTo(ptCanvas.x, ptCanvas.y);
+                    }
+                    if (snapping) {
+                        let snapP = snappingPos(mousePos);
+                        let targetPos = snapP != null ? snapP : mousePos;
+                        const targetCanvas = v2disposSight2v2canvas(targetPos);
+                        ctx.lineTo(targetCanvas.x, targetCanvas.y);
+                    }
+
+                    ctx.strokeStyle = el("outlineCheckBox").checked ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.5)";
+                    ctx.lineWidth = brushRadiusPixel * 2;
+                    ctx.lineCap = "round";
+                    ctx.lineJoin = "round";
+                    ctx.stroke();
+
+                    ctx.lineCap = "butt";
+                    ctx.lineJoin = "miter";
+                    ctx.lineWidth = getLineWidth(1);
                 }
-                if (snapping) {
-                    let snapP = snappingPos(mousePos);
-                    let targetPos = snapP != null ? snapP : mousePos;
-                    const targetCanvas = v2disposSight2v2canvas(targetPos);
-                    ctx.lineTo(targetCanvas.x, targetCanvas.y);
-                }
-
-                ctx.strokeStyle = el("outlineCheckBox").checked ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.5)";
-                ctx.lineWidth = brushRadiusPixel * 2;
-                ctx.lineCap = "round";
-                ctx.lineJoin = "round";
-                ctx.stroke();
-
-                ctx.lineCap = "butt";
-                ctx.lineJoin = "miter";
-                ctx.lineWidth = getLineWidth(1);
             }
 
             if (!isDrawingBrush) {
@@ -1478,6 +1589,16 @@ function updateSelectionFromLasso() {
     selectedObjectsSet.clear();
 
     for (const [id, obj] of objects) {
+        const layerId = obj.layer || 1;
+        if (typeof isLayerVisible === 'function' && !isLayerVisible(layerId)) {
+            obj.selected = false;
+            continue;
+        }
+        if (typeof isLayerLocked === 'function' && isLayerLocked(layerId)) {
+            obj.selected = false;
+            continue;
+        }
+
         let intersects = false;
 
         if (obj.type === "line" && (selectionFilterMode === 'all' || selectionFilterMode === 'lines')) {
@@ -1508,6 +1629,16 @@ function updateSelectionFromRect() {
     selectedObjectsSet.clear();
 
     for (const [id, obj] of objects) {
+        const layerId = obj.layer || 1;
+        if (typeof isLayerVisible === 'function' && !isLayerVisible(layerId)) {
+            obj.selected = false;
+            continue;
+        }
+        if (typeof isLayerLocked === 'function' && isLayerLocked(layerId)) {
+            obj.selected = false;
+            continue;
+        }
+
         let intersects = false;
 
         if (obj.type === "line" && (selectionFilterMode === 'all' || selectionFilterMode === 'lines')) {
@@ -1634,7 +1765,14 @@ function selectObjectsByIds(ids) {
     lassoPoints = [];
     isSelecting = false;
 
-    const uniqueIds = Array.from(new Set(ids)).filter(id => objects.has(id));
+    const uniqueIds = Array.from(new Set(ids)).filter(id => {
+        if (!objects.has(id)) return false;
+        const obj = objects.get(id);
+        const layerId = obj.layer || 1;
+        if (typeof isLayerVisible === 'function' && !isLayerVisible(layerId)) return false;
+        if (typeof isLayerLocked === 'function' && isLayerLocked(layerId)) return false;
+        return true;
+    });
 
     if (uniqueIds.length === 1) {
         refreshObjectsList();
@@ -1703,10 +1841,16 @@ function deleteSelectedObjects() {
     if (idsToDelete.length === 0) return;
 
     let deletedObjects = [];
+    let hadLocked = false;
 
     for (const id of idsToDelete) {
         const obj = objects.get(id);
         if (obj) {
+            const layerId = obj.layer || 1;
+            if (typeof isLayerLocked === 'function' && isLayerLocked(layerId)) {
+                hadLocked = true;
+                continue;
+            }
             deletedObjects.push({ id: id, object: obj });
             objects.delete(id);
         }
@@ -1714,6 +1858,9 @@ function deleteSelectedObjects() {
 
     if (deletedObjects.length > 0) {
         pushEvent("delete_multiple", deletedObjects);
+    }
+    if (hadLocked && typeof notifyLayerLocked === 'function') {
+        notifyLayerLocked();
     }
 
     selectedObjectsSet.clear();
@@ -1734,6 +1881,11 @@ function deleteCurrentSelection() {
     if (selectedId !== null) {
         const obj = objects.get(selectedId);
         if (obj) {
+            const layerId = obj.layer || 1;
+            if (typeof isLayerLocked === 'function' && isLayerLocked(layerId)) {
+                if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+                return;
+            }
             pushEvent("delete", { id: selectedId, object: obj });
             deleteObject(selectedId);
             refreshObjectsList();
@@ -2287,6 +2439,12 @@ canvas.onpointerdown = (e) => {
             updateSelectionInfo();
         }
         else {
+            if (tool !== "view") {
+                if (typeof isLayerLocked === 'function' && isLayerLocked(getActiveLayerId())) {
+                    if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+                    return;
+                }
+            }
             let snapRad = (mobileSnappingActive && !snapping) ? 40 : Infinity;
 
             if (tool === "hatch") {
@@ -2376,17 +2534,29 @@ canvas.onpointerdown = (e) => {
                 isDrawingBrush = true;
                 brushPoints = [];
 
-                if (snapping || mobileSnappingActive) {
-                    const snapPos = snappingPos(clickPos, snapRad);
-                    if (snapPos) {
-                        brushPoints.push({ x: snapPos.x, y: snapPos.y });
-                        brushStartSnapInfo = snapPos.snapInfo || null;
+                if (typeof isBrushStraightLinesEnabled === 'function' && isBrushStraightLinesEnabled()) {
+                    let startPoint = clickPos;
+                    if (snapping || mobileSnappingActive) {
+                        const snapPos = snappingPos(clickPos, snapRad);
+                        if (snapPos != null) {
+                            startPoint = snapPos;
+                            brushStartSnapInfo = snapPos.snapInfo || null;
+                        }
                     }
-                    if (snapPos != null) {
-                        brushPoints.push(snapPos);
+                    brushPoints.push(startPoint);
+                } else {
+                    if (snapping || mobileSnappingActive) {
+                        const snapPos = snappingPos(clickPos, snapRad);
+                        if (snapPos) {
+                            brushPoints.push({ x: snapPos.x, y: snapPos.y });
+                            brushStartSnapInfo = snapPos.snapInfo || null;
+                        }
+                        if (snapPos != null) {
+                            brushPoints.push(snapPos);
+                        }
                     }
+                    brushPoints.push(clickPos);
                 }
-                brushPoints.push(clickPos);
             } else if (tool === "eraser") {
                 const clickCanvas = getMousePos(e.offsetX, e.offsetY);
                 let clickPos = v2canvas2v2disposSight(clickCanvas);
@@ -2936,9 +3106,13 @@ canvas.onpointermove = (e) => {
         }
     } if (tool === "brush" && isDrawingBrush) {
         let mousePos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
-        let lastPoint = brushPoints[brushPoints.length - 1];
-        if (v2sqrmag(mousePos, lastPoint) > 0.0000001) {
-            brushPoints.push(mousePos);
+        if (typeof isBrushStraightLinesEnabled === 'function' && isBrushStraightLinesEnabled()) {
+            brushPoints[1] = mousePos;
+        } else {
+            let lastPoint = brushPoints[brushPoints.length - 1];
+            if (v2sqrmag(mousePos, lastPoint) > 0.0000001) {
+                brushPoints.push(mousePos);
+            }
         }
     } if (tool === "eraser" && isDrawingEraser) {
         let mousePos = v2canvas2v2disposSight(getMousePos(e.offsetX, e.offsetY));
@@ -3049,13 +3223,23 @@ canvas.onpointerup = (e) => {
         } else if (tool === "brush" && isDrawingBrush) {
             isDrawingBrush = false;
 
-            if (snapping || mobileSnappingActive) {
-                let snapRad = (mobileSnappingActive && !snapping) ? 40 : Infinity;
-                const snapP = snappingPos(mousePos, snapRad);
-                if (snapP != null) {
-                    brushPoints[brushPoints.length - 1] = snapP;
-                    if (snapP.snapInfo) {
-                        brushEndSnapInfo = snapP.snapInfo;
+            if (typeof isBrushStraightLinesEnabled === 'function' && isBrushStraightLinesEnabled()) {
+                let endP = mousePos;
+                if (snapping || mobileSnappingActive) {
+                    let snapRad = (mobileSnappingActive && !snapping) ? 40 : Infinity;
+                    const snapP = snappingPos(mousePos, snapRad);
+                    if (snapP != null) endP = snapP;
+                }
+                brushPoints[1] = endP;
+            } else {
+                if (snapping || mobileSnappingActive) {
+                    let snapRad = (mobileSnappingActive && !snapping) ? 40 : Infinity;
+                    const snapP = snappingPos(mousePos, snapRad);
+                    if (snapP != null) {
+                        brushPoints[brushPoints.length - 1] = snapP;
+                        if (snapP.snapInfo) {
+                            brushEndSnapInfo = snapP.snapInfo;
+                        }
                     }
                 }
             }
@@ -3250,6 +3434,10 @@ function copySelectedObjects() {
 
 
 function pasteObjectsAtCenter(targetWorldPos) {
+    if (typeof isLayerLocked === 'function' && isLayerLocked(getActiveLayerId())) {
+        if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+        return;
+    }
     if (!clipboardObjects || clipboardObjects.length === 0) return;
 
     const validObjects = clipboardObjects.filter(obj => isValidCanvasObject(obj));
@@ -3263,11 +3451,13 @@ function pasteObjectsAtCenter(targetWorldPos) {
 
     const newObjectsForEvent = [];
     const newIds = [];
+    const currentLayerId = (typeof getActiveLayerId === 'function') ? getActiveLayerId() : 1;
 
     for (const srcObj of validObjects) {
         const objIdStr = nextId().toString();
         const obj = JSON.parse(JSON.stringify(srcObj));
         obj.selected = false;
+        obj.layer = currentLayerId;
 
         if (obj.type === "line") {
             obj.name = lang.line + " " + objIdStr;

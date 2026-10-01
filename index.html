@@ -708,7 +708,8 @@
                                         <input type="range" id="brushThicknessInput" min="1" max="100" value="10" step="0.1"
                                             oninput="document.getElementById('brushThicknessNumber').value = this.value">
                                         <input type="number" id="brushThicknessNumber" min="1" max="100" value="10" step="0.1" style="width: 60px;"
-                                            oninput="document.getElementById('brushThicknessInput').value = this.value">
+                                            oninput="document.getElementById('brushThicknessInput').value = this.value"
+                                            onchange="if (parseFloat(this.value) < 0.5) this.value = 0.5;">
                                     </div>
                                 </div>
                                 <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
@@ -718,6 +719,12 @@
                                 <div style="display: flex; flex-direction: column; gap: 5px;">
                                     <span id="brushSmoothingLabel">Сглаживание</span>
                                     <input type="range" id="brushSmoothInput" min="1" max="15" value="5">
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin: 5px 0;">
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="checkbox" id="brushStraightLinesCheckbox" style="transform: scale(1.2);">
+                                        <span id="brushStraightLinesLabel">Создание прямых линий</span>
+                                    </label>
                                 </div>
                             </div>
                             <div class="block-with-elem">
@@ -902,9 +909,24 @@
                                     <button onclick="changeVisualRotation(15)" style="flex: 1;">E</button>
                                 </div>
                             </div>
+                            <div class="panel-with-elem collapsed" id="layersPanel">
+                                <div class="layers-header" onclick="toggleLayersCollapse(event)">
+                                    <span id="layersTitle" style="font-weight: bold; text-align: left;">Слои</span>
+                                    <div style="display: flex; gap: 6px; align-items: center;">
+                                        <button id="addLayerBtn" type="button" class="layer-square-btn" onclick="addNewLayer(event)">+</button>
+                                        <button id="layersCollapseBtn" type="button" class="layer-square-btn" onclick="toggleLayersCollapse(event)">
+                                            <img src="images/chevronDown.svg" class="layers-collapse-icon" style="width: 14px; height: 14px; pointer-events: none;">
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="layersBody" class="layers-body">
+                                    <div id="layersList" class="layers-list-container"></div>
+                                </div>
+                            </div>
                             <div class="panel-with-elem">
                                 <span id="opacityTitle">Непрозрачность</span>
                                 <input id="opacityInput" type="range" value="1" min="0" max="1" step="0.05"
+                                    oninput="if (typeof onGlobalOpacityInput === 'function') onGlobalOpacityInput(this.value);"
                                     style="margin-top: 5px;">
                             </div>
 
@@ -1347,12 +1369,40 @@
         </button>
     </div>
 
+    <div id="toolGuideTooltip" class="tool-guide-tooltip">
+        <div class="tool-guide-header">
+            <span class="tool-guide-title" id="toolGuideTitle">Инструмент</span>
+            <span class="tool-guide-hotkey" id="toolGuideHotkey">B</span>
+        </div>
+        <div class="tool-guide-desc" id="toolGuideDesc">Описание инструмента</div>
+        <div class="tool-guide-preview-box" id="toolGuidePreviewBox">
+            <div class="tool-guide-grid">
+                <div class="tg-vline tg-vline-1"></div>
+                <div class="tg-vline tg-vline-2"></div>
+                <div class="tg-vline tg-vline-3"></div>
+                <div class="tg-vline tg-vline-4"></div>
+                <div class="tg-vline tg-vline-5"></div>
+                <div class="tg-hline tg-hline-1"></div>
+                <div class="tg-hline tg-hline-2"></div>
+                <div class="tg-hline tg-hline-3"></div>
+            </div>
+            <canvas id="toolGuideCanvas" class="tool-guide-canvas"></canvas>
+            <button id="toolGuideCreateBtn" class="tool-guide-create-btn">Создать</button>
+            <div id="toolGuideCursor" class="tool-guide-cursor">
+                <div id="toolGuideBrushCircle" class="tool-guide-brush-circle"></div>
+                <div id="toolGuideRipple" class="tool-guide-ripple"></div>
+                <img src="images/cursor.svg" class="tool-guide-cursor-svg" alt="cursor">
+            </div>
+        </div>
+    </div>
+
     <script src="scripts/clipper.js"></script>
     <script src="scripts/earcut.min.js"></script>
     <script src="scripts/ui-manager.js"></script>
     <script src="scripts/util.js"></script>
     <script src="scripts/drawing.js"></script>
     <script src="scripts/lang.js"></script>
+    <script src="scripts/layers.js"></script>
     <script src="scripts/v2.js"></script>
     <script src="scripts/jszip.min.js"></script>
     <script src="scripts/saveload.js"></script>
@@ -1373,6 +1423,7 @@
     <script src="scripts/fill.js"></script>
     <script src="scripts/shapes.js"></script>
     <script src="scripts/eraser.js"></script>
+    <script src="scripts/tool-guides.js"></script>
 </body>
 
 </html>

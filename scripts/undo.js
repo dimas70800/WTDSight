@@ -207,6 +207,37 @@ function popEvent() {
             };
             break;
         }
+        case 'delete_layer': {
+            const { layer, index, deletedObjects } = data;
+            if (typeof getLayers === 'function') {
+                const curLayers = getLayers();
+                if (!curLayers.some(l => l.id === layer.id)) {
+                    if (index !== undefined && index >= 0 && index <= curLayers.length) {
+                        curLayers.splice(index, 0, { ...layer });
+                    } else {
+                        curLayers.push({ ...layer });
+                    }
+                }
+            }
+            if (typeof setActiveLayerId === 'function') {
+                setActiveLayerId(layer.id);
+            }
+
+            if (deletedObjects && deletedObjects.length > 0) {
+                for (const item of deletedObjects) {
+                    if (!objects.has(item.id)) {
+                        item.object.selected = false;
+                        objects.set(item.id, item.object);
+                    }
+                }
+            }
+
+            if (typeof renderLayersUI === 'function') renderLayersUI();
+            if (typeof saveLayersToStorage === 'function') saveLayersToStorage();
+
+            redoEvent = { type: 'delete_layer', data: data };
+            break;
+        }
         default:
             break;
     }
@@ -214,6 +245,10 @@ function popEvent() {
     if (redoEvent) {
         redoEvents.push(redoEvent);
         if (redoEvents.length > capacity) redoEvents.shift();
+    }
+
+    if (typeof syncLayersFromObjects === 'function') {
+        syncLayersFromObjects(false);
     }
 
     refreshObjectsList();

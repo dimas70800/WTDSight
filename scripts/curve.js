@@ -61,6 +61,11 @@ function finishCurve() {
         curvePoints = [];
         return;
     }
+    if (typeof isLayerLocked === 'function' && isLayerLocked(getActiveLayerId())) {
+        if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+        curvePoints = [];
+        return;
+    }
     
     let simplifyVal = parseFloat(document.getElementById('curveSimplifyInput').value);
     let smoothVal = parseInt(document.getElementById('curveSmoothInput').value);
@@ -71,6 +76,7 @@ function finishCurve() {
     let simplified = simplifyRDP(smoothed, epsilon);
 
     let newObjects = []; 
+    const curLayer = (typeof getActiveLayerId === 'function') ? getActiveLayerId() : 1;
 
     for (let i = 0; i < simplified.length - 1; i++) {
         const objIdStr = nextId().toString();
@@ -79,7 +85,8 @@ function finishCurve() {
             type: "line",
             start: { x: Math.round(simplified[i].x * 1000000) / 1000000, y: Math.round(simplified[i].y * 1000000) / 1000000 },
             end: { x: Math.round(simplified[i+1].x * 1000000) / 1000000, y: Math.round(simplified[i+1].y * 1000000) / 1000000 },
-            selected: false
+            selected: false,
+            layer: curLayer
         };
         objects.set(objIdStr, object);
         newObjects.push({ id: objIdStr, object: object }); 

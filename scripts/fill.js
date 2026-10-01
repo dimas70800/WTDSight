@@ -629,6 +629,12 @@ function generateFillQuads(points) {
 }
 
 function finalizeFill() {
+    if (typeof isLayerLocked === 'function' && isLayerLocked(getActiveLayerId())) {
+        if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+        cancelFill();
+        return;
+    }
+
     const regionsToRender = isFillMultiRegionMode ? fillRegions : [fillPoints];
     const pathsToRender = getEvenOddPaths(regionsToRender);
 
@@ -652,6 +658,7 @@ function finalizeFill() {
     lastFillPoints = regionsToRender.map(r => [...r]);
 
     let newObjects = [];
+    const curLayer = (typeof getActiveLayerId === 'function') ? getActiveLayerId() : 1;
     for (const q of finalQuads) {
         const objIdStr = nextId().toString();
         const object = {
@@ -661,7 +668,8 @@ function finalizeFill() {
             pos2: { x: q[1].x, y: q[1].y },
             pos3: { x: q[2].x, y: q[2].y },
             pos4: { x: q[3].x, y: q[3].y },
-            selected: false
+            selected: false,
+            layer: curLayer
         };
         objects.set(objIdStr, object);
         newObjects.push({ id: objIdStr, object: object });

@@ -472,11 +472,16 @@ function mergeTrianglesToQuads(triangles) {
 }
 
 function convertTextToLines() {
+    if (typeof isLayerLocked === 'function' && isLayerLocked(getActiveLayerId())) {
+        if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+        return;
+    }
     const isFilled = document.getElementById('textFillCheckbox') && document.getElementById('textFillCheckbox').checked;
     if (!isFilled && previewTextLines.length === 0) return;
     if (isFilled && previewTextQuads.length === 0) return;
 
     let newObjects = [];
+    const curLayer = (typeof getActiveLayerId === 'function') ? getActiveLayerId() : 1;
     
     if (isFilled) {
         previewTextQuads.forEach(q => {
@@ -488,7 +493,8 @@ function convertTextToLines() {
                 pos2: { x: Math.round(q[1].x * 1000000) / 1000000, y: Math.round(q[1].y * 1000000) / 1000000 },
                 pos3: { x: Math.round(q[2].x * 1000000) / 1000000, y: Math.round(q[2].y * 1000000) / 1000000 },
                 pos4: { x: Math.round(q[3].x * 1000000) / 1000000, y: Math.round(q[3].y * 1000000) / 1000000 },
-                selected: false
+                selected: false,
+                layer: curLayer
             };
             objects.set(objIdStr, object);
             newObjects.push({ id: objIdStr, object: object });
@@ -501,7 +507,8 @@ function convertTextToLines() {
                 type: "line",
                 start: { x: Math.round(line.start.x * 1000000) / 1000000, y: Math.round(line.start.y * 1000000) / 1000000 },
                 end:   { x: Math.round(line.end.x * 1000000) / 1000000,   y: Math.round(line.end.y * 1000000) / 1000000 },
-                selected: false
+                selected: false,
+                layer: curLayer
             };
             objects.set(objIdStr, object);
             newObjects.push({ id: objIdStr, object: object });

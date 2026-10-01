@@ -1,4 +1,5 @@
 let objects = new Map; // All drawn stuff
+window.objects = objects;
 
 // Lines drawing mode
 let startPos = null;
@@ -16,6 +17,9 @@ function clearIntermediateDrawing() {
     if (typeof cancelEraser === 'function') {
         cancelEraser();
     }
+    if (typeof cancelBrush === 'function') {
+        cancelBrush();
+    }
 }
 
 function nextId() {
@@ -28,11 +32,42 @@ function nextId() {
 
 function clearEverything() {
     if (confirm(lang === ru ? "Рисунок будет полностью стёрт, продолжить?" : "The drawing will be entirely cleared, continue?")) {
-        load("{}", true);
+        const curLayers = (typeof getLayers === 'function') ? getLayers() : [];
+        const hasLockedLayers = curLayers.some(l => l.locked);
+        const hasUnlockedLayers = curLayers.some(l => !l.locked);
+
+        if (hasLockedLayers && !hasUnlockedLayers) {
+            if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+            return;
+        }
+
+        for (const [id, obj] of objects) {
+            const layerId = obj.layer || 1;
+            if (typeof isLayerLocked !== 'function' || !isLayerLocked(layerId)) {
+                objects.delete(id);
+            }
+        }
+
+        if (typeof clearUnlockedLayers === 'function') {
+            clearUnlockedLayers();
+        }
+
+        clearEvents();
+        refreshObjectsList();
+        if (typeof unselectAnyObjects === 'function') unselectAnyObjects();
+
+        if (hasLockedLayers && typeof notifyLayerLocked === 'function') {
+            notifyLayerLocked();
+        }
     }
 }
 
 function startDrawing(pos) {
+    if (typeof isLayerLocked === 'function' && isLayerLocked(getActiveLayerId())) {
+        if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+        return;
+    }
+
     switch (tool) {
         case "lines":
             startPos = startPos = {
@@ -54,6 +89,7 @@ function endDrawing(pos) {
     };
 
     const objIdStr = nextId().toString();
+    const currentLayerId = (typeof getActiveLayerId === 'function') ? getActiveLayerId() : 1;
 
     switch (tool) {
         case "lines":
@@ -63,7 +99,8 @@ function endDrawing(pos) {
                 type: "line",
                 start: startPos,
                 end: roundedPos,
-                selected: false
+                selected: false,
+                layer: currentLayerId
             };
 
             objects.set(objIdStr, object);
@@ -118,7 +155,8 @@ function endDrawing(pos) {
                         pos2: quadPos[1],
                         pos3: quadPos[2],
                         pos4: roundedPos,
-                        selected: false
+                        selected: false,
+                        layer: currentLayerId
                     };
 
                     objects.set(objIdStr, object);
@@ -220,6 +258,15 @@ function refreshObjectsList(scrollDown) {
 }
 
 function handleObjectRowClick(id, e) {
+    const targetObj = objects.get(id);
+    if (targetObj) {
+        const layerId = targetObj.layer || 1;
+        if (typeof isLayerLocked === 'function' && isLayerLocked(layerId)) {
+            if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+            return;
+        }
+    }
+
     const isShift = e && e.shiftKey;
     const isCtrl = e && (e.ctrlKey || e.metaKey);
 
@@ -406,8 +453,16 @@ function showInfo(id) {
     }
 
     el("infoDeleteButton").onclick = () => {
-        pushEvent("delete", { id: selectedId, object: objects.get(selectedId) });
-        deleteObject(selectedId);
+        const obj = objects.get(selectedId);
+        if (obj) {
+            const layerId = obj.layer || 1;
+            if (typeof isLayerLocked === 'function' && isLayerLocked(layerId)) {
+                if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+                return;
+            }
+            pushEvent("delete", { id: selectedId, object: obj });
+            deleteObject(selectedId);
+        }
     }
 }
 
@@ -707,10 +762,10 @@ function snappingPos(mouse, maxPixelRadius = Infinity, ignoreId = null) {
                 comp(obj.pos4);
 
                 if (tool !== "hatch" && tool !== "fill") {
-                    comp({ x: (obj.pos1.x + obj.pos2.x) * 0.5, y: (obj.pos1.y + obj.pos2.y) * 0.5 }, { isEdge: true, p1: obj.pos1, p2: obj.pos2 });
-                    comp({ x: (obj.pos2.x + obj.pos3.x) * 0.5, y: (obj.pos2.y + obj.pos3.y) * 0.5 }, { isEdge: true, p1: obj.pos2, p2: obj.pos3 });
-                    comp({ x: (obj.pos3.x + obj.pos4.x) * 0.5, y: (obj.pos3.y + obj.pos4.y) * 0.5 }, { isEdge: true, p1: obj.pos3, p2: obj.pos4 });
-                    comp({ x: (obj.pos4.x + obj.pos1.x) * 0.5, y: (obj.pos4.y + obj.pos1.y) * 0.5 }, { isEdge: true, p1: obj.pos4, p2: obj.pos1 });
+                    comp({ x: (obj.pos1.x + obj.pos2.x) * 0.5, y: (obj.pos1.y + obj.pos2.y) * 0.5 }, { isEdge: true, p1: obj.pos1, p2: obj.pos2, quad: obj });
+                    comp({ x: (obj.pos2.x + obj.pos3.x) * 0.5, y: (obj.pos2.y + obj.pos3.y) * 0.5 }, { isEdge: true, p1: obj.pos2, p2: obj.pos3, quad: obj });
+                    comp({ x: (obj.pos3.x + obj.pos4.x) * 0.5, y: (obj.pos3.y + obj.pos4.y) * 0.5 }, { isEdge: true, p1: obj.pos3, p2: obj.pos4, quad: obj });
+                    comp({ x: (obj.pos4.x + obj.pos1.x) * 0.5, y: (obj.pos4.y + obj.pos1.y) * 0.5 }, { isEdge: true, p1: obj.pos4, p2: obj.pos1, quad: obj });
                     break;
                 }
         }
@@ -771,6 +826,8 @@ function selectNearest(mouse) {
         }
 
         for (const [id, obj] of objects) {
+            const layerId = obj.layer || 1;
+            if (typeof isLayerVisible === 'function' && !isLayerVisible(layerId)) continue;
             switch (obj.type) {
                 case "line":
                     compOld(v2avg([obj.start, obj.end]), id);
@@ -783,15 +840,25 @@ function selectNearest(mouse) {
 
         if (closestId == null) return;
 
+        const targetObj = objects.get(closestId);
+        if (targetObj && typeof isLayerLocked === 'function' && isLayerLocked(targetObj.layer || 1)) {
+            if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+            return;
+        }
+
         clearSelection();
         showInfo(closestId);
 
     } else {
         let list = [];
         for (const [id, obj] of objects) {
+            const layerId = obj.layer || 1;
+            if (typeof isLayerVisible === 'function' && !isLayerVisible(layerId)) continue;
             const distSqr = getObjectDistanceSqr(mouse, obj);
             list.push({ id: id, distSqr: distSqr });
         }
+
+        if (list.length === 0) return;
 
         list.sort((a, b) => a.distSqr - b.distSqr);
 
@@ -815,12 +882,23 @@ function selectNearest(mouse) {
             }
         }
 
+        const targetObj = objects.get(targetId);
+        if (targetObj && typeof isLayerLocked === 'function' && isLayerLocked(targetObj.layer || 1)) {
+            if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+            return;
+        }
+
         clearSelection();
         showInfo(targetId);
     }
 }
 
 function generateHorizontalAxis() {
+    if (typeof isLayerLocked === 'function' && isLayerLocked(getActiveLayerId())) {
+        if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+        return;
+    }
+
     let minX = Infinity, maxX = -Infinity;
 
     function checkIntersection(p1, p2) {
@@ -848,6 +926,7 @@ function generateHorizontalAxis() {
     }
 
     let newObjects = [];
+    const curLayer = (typeof getActiveLayerId === 'function') ? getActiveLayerId() : 1;
 
     function addAxisLine(p1, p2) {
         if (Math.abs(p1.x - p2.x) < 1e-5 && Math.abs(p1.y - p2.y) < 1e-5) return;
@@ -858,7 +937,8 @@ function generateHorizontalAxis() {
             type: "line",
             start: { x: Math.round(p1.x * 1000000) / 1000000, y: Math.round(p1.y * 1000000) / 1000000 },
             end: { x: Math.round(p2.x * 1000000) / 1000000, y: Math.round(p2.y * 1000000) / 1000000 },
-            selected: false
+            selected: false,
+            layer: curLayer
         };
         objects.set(objIdStr, object);
         newObjects.push({ id: objIdStr, object: object });
@@ -878,6 +958,11 @@ function generateHorizontalAxis() {
 }
 
 function generateVerticalAxis() {
+    if (typeof isLayerLocked === 'function' && isLayerLocked(getActiveLayerId())) {
+        if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+        return;
+    }
+
     let minY = Infinity, maxY = -Infinity;
 
     function checkIntersection(p1, p2) {
@@ -905,6 +990,7 @@ function generateVerticalAxis() {
     }
 
     let newObjects = [];
+    const curLayer = (typeof getActiveLayerId === 'function') ? getActiveLayerId() : 1;
 
     function addAxisLine(p1, p2) {
         if (Math.abs(p1.x - p2.x) < 1e-5 && Math.abs(p1.y - p2.y) < 1e-5) return;
@@ -915,7 +1001,8 @@ function generateVerticalAxis() {
             type: "line",
             start: { x: Math.round(p1.x * 1000000) / 1000000, y: Math.round(p1.y * 1000000) / 1000000 },
             end: { x: Math.round(p2.x * 1000000) / 1000000, y: Math.round(p2.y * 1000000) / 1000000 },
-            selected: false
+            selected: false,
+            layer: curLayer
         };
         objects.set(objIdStr, object);
         newObjects.push({ id: objIdStr, object: object });

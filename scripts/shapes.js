@@ -494,7 +494,12 @@ function setFreeShapeDrawingDescription() {
 
 function convertShapeToLines() {
     if (previewShapeLines.length === 0) return;
+    if (typeof isLayerLocked === 'function' && isLayerLocked(getActiveLayerId())) {
+        if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+        return;
+    }
 
+    const curLayer = (typeof getActiveLayerId === 'function') ? getActiveLayerId() : 1;
     let newObjects = [];
     previewShapeLines.forEach(line => {
         const objIdStr = nextId().toString();
@@ -503,7 +508,8 @@ function convertShapeToLines() {
             type: "line",
             start: { x: Math.round(line.start.x * 1000000) / 1000000, y: Math.round(line.start.y * 1000000) / 1000000 },
             end: { x: Math.round(line.end.x * 1000000) / 1000000, y: Math.round(line.end.y * 1000000) / 1000000 },
-            selected: false
+            selected: false,
+            layer: curLayer
         };
         objects.set(objIdStr, object);
         newObjects.push({ id: objIdStr, object: object });

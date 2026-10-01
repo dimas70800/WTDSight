@@ -1,7 +1,15 @@
 const saver = el("saver");
 
 function formSaveData() {
-    const data = Object.fromEntries(objects);
+    const data = {};
+    for (const [id, obj] of objects) {
+        if (!obj) continue;
+        const layerId = obj.layer || 1;
+        data[id] = {
+            ...obj,
+            layer: layerId
+        };
+    }
 
     return JSON.stringify(data);
 }
@@ -64,11 +72,12 @@ function loadFromFile(e) {
 }
 
 function load(rawData, forceReplace = false) {
-    const replace = forceReplace || (document.getElementById("replaceObjectsOnLoad")?.checked !== false);
+    const replace = forceReplace || document.getElementById("replaceObjectsOnLoad")?.checked !== false;
     const loadedMap = new Map(Object.entries(JSON.parse(rawData)));
 
     if (replace) {
         objects = loadedMap;
+        window.objects = objects;
         clearEvents();
     } else {
         for (const [_, obj] of loadedMap) {
@@ -77,6 +86,13 @@ function load(rawData, forceReplace = false) {
         }
     }
     
+    if (typeof hookObjectsSet === 'function') {
+        hookObjectsSet();
+    }
+    if (typeof syncLayersFromObjects === 'function') {
+        syncLayersFromObjects(replace);
+    }
+
     refreshObjectsList();
     unselectAnyObjects();
 }
@@ -172,6 +188,7 @@ function loadFromBlk(text) {
  
     if (replace) {
         objects = newObjects;
+        window.objects = objects;
         clearEvents();
     } else {
         for (const [_, obj] of newObjects) {
@@ -180,6 +197,13 @@ function loadFromBlk(text) {
         }
     }
  
+    if (typeof hookObjectsSet === 'function') {
+        hookObjectsSet();
+    }
+    if (typeof syncLayersFromObjects === 'function') {
+        syncLayersFromObjects(replace);
+    }
+
     refreshObjectsList();
     unselectAnyObjects();
     
