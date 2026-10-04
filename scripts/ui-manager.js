@@ -126,6 +126,7 @@ const defaultHotkeys = {
     actionClearSel:{ code: 'KeyA',   ctrl: true,  alt: false, shift: false, descId: 'hotkeyClearSel' },
     actionRotLeft: { code: 'KeyQ',   ctrl: false, alt: false, shift: false, descId: 'hotkeyRotLeft' },
     actionRotRight:{ code: 'KeyE',   ctrl: false, alt: false, shift: false, descId: 'hotkeyRotRight' },
+    actionPreview: { code: 'KeyP',   ctrl: false, alt: false, shift: false, descId: 'hotkeyPreview' },
     actionLinesTool:{ code: 'KeyL',   ctrl: false, alt: false, shift: false, descId: 'hotkeyLinesTool' },
     actionCurveTool:{ code: 'KeyC',   ctrl: false, alt: false, shift: false, descId: 'hotkeyCurveTool' },
     actionBrushTool:{ code: 'KeyB',   ctrl: false, alt: false, shift: false, descId: 'hotkeyBrushTool' },
@@ -171,12 +172,15 @@ function loadHotkeysFromStorage() {
         const saved = localStorage.getItem('wtdsight-custom-hotkeys');
         if (saved) {
             const parsed = JSON.parse(saved);
-            currentHotkeys = Object.assign({}, defaultHotkeys, parsed);
-            for (let key in parsed) {
-                if (defaultHotkeys[key]) {
-                    currentHotkeys[key].descId = defaultHotkeys[key].descId;
+            const merged = {};
+            for (let key in defaultHotkeys) {
+                if (parsed[key]) {
+                    merged[key] = Object.assign({}, defaultHotkeys[key], parsed[key], { descId: defaultHotkeys[key].descId });
+                } else {
+                    merged[key] = JSON.parse(JSON.stringify(defaultHotkeys[key]));
                 }
             }
+            currentHotkeys = merged;
         }
     } catch(e) { }
 }
@@ -409,11 +413,37 @@ function toggleObjectsMenu() {
     btn.innerHTML = menu.classList.contains('collapsed') ? '◀' : '▶';
 }
 
+let notificationHideTimeout = null;
+
 function showNotification(msg, isError = false) {
     const toast = document.getElementById(isError ? 'errorNotification' : 'toastNotification');
+    const otherToast = document.getElementById(isError ? 'toastNotification' : 'errorNotification');
+    if (!toast) return;
+
+    if (otherToast) {
+        otherToast.style.top = '-100px';
+    }
+
+    if (notificationHideTimeout) {
+        clearTimeout(notificationHideTimeout);
+        notificationHideTimeout = null;
+    }
+
     toast.innerHTML = msg;
     toast.style.top = '20px';
-    setTimeout(() => { toast.style.top = '-100px'; }, 4000);
+
+    if (typeof toast.animate === 'function') {
+        toast.animate([
+            { transform: 'translateX(-50%) scale(1)' },
+            { transform: 'translateX(-50%) scale(1.05)' },
+            { transform: 'translateX(-50%) scale(1)' }
+        ], { duration: 180, easing: 'ease-out' });
+    }
+
+    notificationHideTimeout = setTimeout(() => {
+        toast.style.top = '-100px';
+        notificationHideTimeout = null;
+    }, 4000);
 }
 
 window.addEventListener('error', function (e) { showNotification(`Ошибка: ${e.message}`, true); });
@@ -739,6 +769,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (expMaxDist && prevMaxDist) {
         expMaxDist.addEventListener('input', (e) => {
             prevMaxDist.value = e.target.value;
+            drawPreview();
+            if (typeof saveExportSettings === 'function') saveExportSettings();
         });
 
         prevMaxDist.addEventListener('input', (e) => {
@@ -755,8 +787,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         prevTextPos.addEventListener('input', (e) => {
             expTextPos.value = e.target.value;
-            drawPreview();
-            saveExportSettings();
         });
     }
 });

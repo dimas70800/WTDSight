@@ -507,8 +507,52 @@ function generateFillQuads(points) {
         return pos === 4 || neg === 4;
     }
 
+    function isPolygonConvex(p) {
+        if (p.length < 3) return false;
+        let sign = 0;
+        const n = p.length;
+        for (let i = 0; i < n; i++) {
+            const cr = cross(p[i], p[(i + 1) % n], p[(i + 2) % n]);
+            if (Math.abs(cr) < 1e-9) continue;
+            if (sign === 0) sign = cr > 0 ? 1 : -1;
+            else if ((cr > 0 ? 1 : -1) !== sign) return false;
+        }
+        return true;
+    }
+
+    function quadrangulateConvex(p) {
+        const n = p.length;
+        if (n < 3) return [];
+        if (n === 3) return [[p[0], p[1], p[2], p[2]]];
+        if (n === 4 && isConvex4(p)) return [p];
+
+        let workPts = [...p];
+        let area = 0;
+        for (let i = 0; i < n; i++) {
+            const j = (i + 1) % n;
+            area += workPts[i].x * workPts[j].y - workPts[j].x * workPts[i].y;
+        }
+        if (area < 0) workPts.reverse();
+
+        const quads = [];
+        let i = 0, last = n - 1;
+        while (last - i >= 3) {
+            if (last - i === 3) {
+                quads.push([workPts[i], workPts[i + 1], workPts[i + 2], workPts[last]]);
+                break;
+            }
+            quads.push([workPts[i], workPts[i + 1], workPts[i + 2], workPts[last]]);
+            i += 2;
+        }
+        if (last - i === 2) {
+            quads.push([workPts[i], workPts[i + 1], workPts[last], workPts[last]]);
+        }
+        return quads;
+    }
+
     if (pts.length === 3) return [[pts[0], pts[1], pts[2], pts[2]]];
     if (pts.length === 4 && isConvex4(pts)) return [pts];
+    if (isPolygonConvex(pts)) return quadrangulateConvex(pts);
 
     let triangles = [];
     const earcutFn = (typeof earcut !== 'undefined' ? (earcut.default || earcut) : null);
@@ -517,6 +561,10 @@ function generateFillQuads(points) {
             const flat = [];
             for (let p of pts) flat.push(p.x, p.y);
             const indices = earcutFn(flat, null, 2);
+            const refineFn = (typeof earcut !== 'undefined' && earcut.refine) ? earcut.refine : (earcutFn && earcutFn.refine);
+            if (refineFn && indices && indices.length) {
+                refineFn(indices, flat, 2);
+            }
             for (let i = 0; i < indices.length; i += 3) {
                 triangles.push([pts[indices[i]], pts[indices[i + 1]], pts[indices[i + 2]]]);
             }
@@ -548,32 +596,35 @@ function generateFillQuads(points) {
         }
     }
 
-    function tryMerge(t1, t2) {
-        let shared = 0;
-        for (let p of t1) if (t2.some(q => samePt(p, q))) shared++;
-        if (shared !== 2) return null;
-
-        let qPts = [...t1];
-        for (let p of t2) if (!qPts.some(q => samePt(p, q))) qPts.push(p);
-        if (qPts.length !== 4) return null;
-
-        let cx = (qPts[0].x + qPts[1].x + qPts[2].x + qPts[3].x) / 4;
-        let cy = (qPts[0].y + qPts[1].y + qPts[2].y + qPts[3].y) / 4;
-        qPts.sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
-        return isConvex4(qPts) ? qPts : null;
-    }
+    if (triangles.length === 0) return [];
 
     const m = triangles.length;
-    const quadPairs = new Map();
+    const edgeMap = new Map();
     const adj = Array.from({ length: m }, () => []);
+    const quadPairs = new Map();
 
     for (let i = 0; i < m; i++) {
-        for (let j = i + 1; j < m; j++) {
-            const q = tryMerge(triangles[i], triangles[j]);
-            if (q) {
-                adj[i].push(j);
-                adj[j].push(i);
-                quadPairs.set(i + ':' + j, q);
+        const t = triangles[i];
+        for (let e = 0; e < 3; e++) {
+            const p1 = t[e], p2 = t[(e + 1) % 3], pO = t[(e + 2) % 3];
+            const k1 = Math.round(p1.x * 1e6) + ',' + Math.round(p1.y * 1e6);
+            const k2 = Math.round(p2.x * 1e6) + ',' + Math.round(p2.y * 1e6);
+            const key = k1 < k2 ? (k1 + ':' + k2) : (k2 + ':' + k1);
+
+            if (edgeMap.has(key)) {
+                const j = edgeMap.get(key);
+                const ot = triangles[j];
+                const pOther = ot.find(p => !samePt(p, p1) && !samePt(p, p2));
+                if (pOther) {
+                    const q = [pO, p2, pOther, p1];
+                    if (isConvex4(q)) {
+                        adj[i].push(j);
+                        adj[j].push(i);
+                        quadPairs.set(Math.min(i, j) + ':' + Math.max(i, j), q);
+                    }
+                }
+            } else {
+                edgeMap.set(key, i);
             }
         }
     }
@@ -613,10 +664,10 @@ function generateFillQuads(points) {
     for (let i = 0; i < m; i++) {
         if (used[i]) continue;
         const j = match[i];
-        if (j > i) {
-            quads.push(quadPairs.get(i + ':' + j));
+        if (j >= 0) {
+            quads.push(quadPairs.get(Math.min(i, j) + ':' + Math.max(i, j)));
             used[i] = used[j] = 1;
-        } else if (j < 0) {
+        } else {
             const t = triangles[i];
             if (Math.abs(cross(t[0], t[1], t[2])) > 1e-10) {
                 quads.push([t[0], t[1], t[2], t[2]]);

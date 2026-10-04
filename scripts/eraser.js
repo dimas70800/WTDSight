@@ -319,6 +319,10 @@ function decomposePolyTreeToQuads(polyTree, SCALE, cleanDist) {
 
                 try {
                     const indices = earcutFn(vertices, holeIndices.length > 0 ? holeIndices : null, 2);
+                    const refineFn = (typeof earcut !== 'undefined' && earcut.refine) ? earcut.refine : (earcutFn && earcutFn.refine);
+                    if (refineFn && indices && indices.length) {
+                        refineFn(indices, vertices, 2);
+                    }
                     const triangles = [];
                     for (let i = 0; i < indices.length; i += 3) {
                         triangles.push([points[indices[i]], points[indices[i + 1]], points[indices[i + 2]]]);

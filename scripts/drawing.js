@@ -588,6 +588,11 @@ document.onkeydown = (e) => {
 
     if (typeof isRebinding !== 'undefined' && isRebinding !== null) return;
 
+    if (checkHotkey('actionPreview', e)) {
+        e.preventDefault();
+        toggleSightPreview();
+    }
+
     if (checkHotkey('actionLinesTool', e)) {
         e.preventDefault();
         switchTool('lines');

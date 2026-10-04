@@ -306,6 +306,7 @@ const ru =
     hotkeyClearSel: "Сбросить выделение",
     hotkeyRotLeft: "Повернуть холст влево",
     hotkeyRotRight: "Повернуть холст вправо",
+    hotkeyPreview: "Предпросмотр прицела",
 
     hotkeyLinesTool: "Инструмент Линии",
     hotkeyCurveTool: "Инструмент Кривая",
@@ -650,6 +651,7 @@ const en =
     hotkeyClearSel: "Clear selection",
     hotkeyRotLeft: "Rotate canvas left",
     hotkeyRotRight: "Rotate canvas right",
+    hotkeyPreview: "Sight Preview",
 
     hotkeyLinesTool: "Lines Tool",
     hotkeyCurveTool: "Curve Tool",

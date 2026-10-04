@@ -44,30 +44,34 @@ function loadExportSettings() {
         }
 
         // Числовые параметры
-        if (s.rangefinderTextScale) document.getElementById('exp_rangefinderTextScale').value = s.rangefinderTextScale;
-        if (s.rangefinderVerticalOffset) document.getElementById('exp_rangefinderVerticalOffset').value = s.rangefinderVerticalOffset;
-        if (s.rangefinderHorizontalOffset) document.getElementById('exp_rangefinderHorizontalOffset').value = s.rangefinderHorizontalOffset;
-        if (s.fontSizeMult) document.getElementById('exp_fontSizeMult').value = s.fontSizeMult;
-        if (s.lineSizeMult) document.getElementById('exp_lineSizeMult').value = s.lineSizeMult;
-        if (s.textPosX) {
+        if (s.rangefinderTextScale !== undefined) document.getElementById('exp_rangefinderTextScale').value = s.rangefinderTextScale;
+        if (s.rangefinderVerticalOffset !== undefined) document.getElementById('exp_rangefinderVerticalOffset').value = s.rangefinderVerticalOffset;
+        if (s.rangefinderHorizontalOffset !== undefined) document.getElementById('exp_rangefinderHorizontalOffset').value = s.rangefinderHorizontalOffset;
+        if (s.fontSizeMult !== undefined) document.getElementById('exp_fontSizeMult').value = s.fontSizeMult;
+        if (s.lineSizeMult !== undefined) document.getElementById('exp_lineSizeMult').value = s.lineSizeMult;
+        if (s.maxDist !== undefined) {
+            document.getElementById('exp_maxDist').value = s.maxDist;
+            const prevMax = document.getElementById('previewMaxDist');
+            if (prevMax) prevMax.value = s.maxDist;
+        }
+        if (s.textPosX !== undefined) {
             document.getElementById('exp_textPosX').value = s.textPosX;
-            if (document.getElementById('prev_textPosX')) {
-                document.getElementById('prev_textPosX').value = s.textPosX;
-            }
+            const prevText = document.getElementById('previewTextPosX');
+            if (prevText) prevText.value = s.textPosX;
         }
         // Чекбоксы
         if (s.drawCentralLineVert !== undefined) document.getElementById('exp_drawCentralLineVert').checked = s.drawCentralLineVert;
         if (s.drawCentralLineHorz !== undefined) document.getElementById('exp_drawCentralLineHorz').checked = s.drawCentralLineHorz;
 
         // Множители рисок
-        if (s.cdhsa1) document.getElementById('exp_cdhsa1').value = s.cdhsa1;
-        if (s.cdhsa2) document.getElementById('exp_cdhsa2').value = s.cdhsa2;
-        if (s.cdhsm1) document.getElementById('exp_cdhsm1').value = s.cdhsm1;
-        if (s.cdhsm2) document.getElementById('exp_cdhsm2').value = s.cdhsm2;
+        if (s.cdhsa1 !== undefined) document.getElementById('exp_cdhsa1').value = s.cdhsa1;
+        if (s.cdhsa2 !== undefined) document.getElementById('exp_cdhsa2').value = s.cdhsa2;
+        if (s.cdhsm1 !== undefined) document.getElementById('exp_cdhsm1').value = s.cdhsm1;
+        if (s.cdhsm2 !== undefined) document.getElementById('exp_cdhsm2').value = s.cdhsm2;
 
         // Смещение поправки
-        if (s.dcp1) document.getElementById('exp_dcp1').value = s.dcp1;
-        if (s.dcp2) document.getElementById('exp_dcp2').value = s.dcp2;
+        if (s.dcp1 !== undefined) document.getElementById('exp_dcp1').value = s.dcp1;
+        if (s.dcp2 !== undefined) document.getElementById('exp_dcp2').value = s.dcp2;
 
         // Дополнительные параметры
         if (s.drawDistanceCorrection !== undefined) document.getElementById('exp_drawDistanceCorrection').checked = s.drawDistanceCorrection;
@@ -75,9 +79,9 @@ function loadExportSettings() {
         if (s.rangefinderUseThousandth !== undefined) document.getElementById('exp_rangefinderUseThousandth').checked = s.rangefinderUseThousandth;
 
         // Обнаружение союзника
-        if (s.detectAllyTextScale) document.getElementById('exp_detectAllyTextScale').value = s.detectAllyTextScale;
-        if (s.detectAllyOffset_1) document.getElementById('exp_detectAllyOffset_1').value = s.detectAllyOffset_1;
-        if (s.detectAllyOffset_2) document.getElementById('exp_detectAllyOffset_2').value = s.detectAllyOffset_2;
+        if (s.detectAllyTextScale !== undefined) document.getElementById('exp_detectAllyTextScale').value = s.detectAllyTextScale;
+        if (s.detectAllyOffset_1 !== undefined) document.getElementById('exp_detectAllyOffset_1').value = s.detectAllyOffset_1;
+        if (s.detectAllyOffset_2 !== undefined) document.getElementById('exp_detectAllyOffset_2').value = s.detectAllyOffset_2;
 
     } catch (e) {
         console.log('Ошибка загрузки настроек', e);

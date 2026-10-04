@@ -234,7 +234,6 @@ function generateTextFillQuads(contours) {
     const earcutFn = getEarcut();
     const hasClipper = typeof ClipperLib !== 'undefined' && ClipperLib.Clipper;
 
-    // Очистка контуров от дублирующихся точек и замыкающих повторов
     const cleanedContours = [];
     for (const poly of contours) {
         if (!poly || poly.length < 3) continue;
@@ -341,6 +340,10 @@ function triangulatePolygonWithEarcut(outer, holes, earcutFn) {
     let indices;
     try {
         indices = earcutFn(vertices, holeIndices, 2);
+        const refineFn = (typeof earcut !== 'undefined' && earcut.refine) ? earcut.refine : (earcutFn && earcutFn.refine);
+        if (refineFn && indices && indices.length) {
+            refineFn(indices, vertices, 2);
+        }
     } catch (e) {
         console.error('Earcut triangulation error:', e);
         return [];

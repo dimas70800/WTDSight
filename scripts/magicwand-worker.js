@@ -125,6 +125,10 @@ function computeMagicWandRegions(lines, quads, clickPos) {
 
     let finalNode = expandedChilds[0];
     let finalContour = getContour(finalNode);
+    if (finalContour && finalContour.length > 2) {
+        let cleaned = ClipperLib.Clipper.CleanPolygon(finalContour, 1.415);
+        if (cleaned && cleaned.length >= 3) finalContour = cleaned;
+    }
 
     function toSightPoints(clipperPath) {
         let pts = [];
@@ -152,7 +156,9 @@ function computeMagicWandRegions(lines, quads, clickPos) {
     let finalNodeChilds = getChilds(finalNode);
     for (let i = 0; i < finalNodeChilds.length; i++) {
         let holeContour = getContour(finalNodeChilds[i]);
-        if (holeContour && holeContour.length > 0) {
+        if (holeContour && holeContour.length >= 3) {
+            let cleanedHole = ClipperLib.Clipper.CleanPolygon(holeContour, 1.415);
+            if (cleanedHole && cleanedHole.length >= 3) holeContour = cleanedHole;
             newRegions.push(toSightPoints(holeContour));
         }
     }

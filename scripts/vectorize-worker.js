@@ -930,6 +930,10 @@ function triangulateSmoothPolygon(outer, holes) {
             holeIndices,
             2
         );
+        const refineFn = self.earcut?.refine;
+        if (refineFn && triangleIndices && triangleIndices.length) {
+            refineFn(triangleIndices, vertices, 2);
+        }
     } catch (error) {
         console.error('Earcut triangulation failed:', error);
         return [];
