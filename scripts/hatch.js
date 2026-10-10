@@ -977,6 +977,470 @@ function restoreLastHatch() {
     updateHatchPreview();
 }
 
+function autoHatchFromReference() {
+    if (typeof isLayerLocked === 'function' && isLayerLocked(getActiveLayerId())) {
+        if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
+        return;
+    }
+
+    const ref = (typeof referenceArray !== 'undefined' && typeof currentReference !== 'undefined') ? referenceArray[currentReference] : null;
+    if (!ref || !ref.obj) {
+        const msg = (typeof lang !== 'undefined' && lang === ru) ? "Сначала загрузите изображение в референс!" : "Please load a reference image first!";
+        if (typeof showNotification === 'function') showNotification(msg, true);
+        else alert(msg);
+        return;
+    }
+
+    const img = ref.obj;
+    if (!img.width || !img.height) {
+        const msg = (typeof lang !== 'undefined' && lang === ru) ? "Изображение референса еще не загружено!" : "Reference image is not loaded yet!";
+        if (typeof showNotification === 'function') showNotification(msg, true);
+        return;
+    }
+
+    const maxDim = 500;
+    let drawW = img.width;
+    let drawH = img.height;
+    if (drawW > maxDim || drawH > maxDim) {
+        if (drawW > drawH) {
+            drawH = Math.max(1, Math.round((drawH * maxDim) / drawW));
+            drawW = maxDim;
+        } else {
+            drawW = Math.max(1, Math.round((drawW * maxDim) / drawH));
+            drawH = maxDim;
+        }
+    }
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = drawW;
+    tempCanvas.height = drawH;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(img, 0, 0, drawW, drawH);
+
+    let imgData;
+    try {
+        imgData = tempCtx.getImageData(0, 0, drawW, drawH);
+    } catch (err) {
+        const errMsg = (typeof lang !== 'undefined' && lang === ru)
+            ? "Не удалось получить пиксели изображения из-за защиты браузера (CORS). Загрузите картинку локальным файлом!"
+            : "Cannot access image pixels due to CORS. Please load image as a local file!";
+        if (typeof showNotification === 'function') showNotification(errMsg, true);
+        else alert(errMsg);
+        return;
+    }
+
+    const refAspectRatio = img.width / img.height;
+    const refHeight = (typeof ref.size === 'number' && ref.size > 0) ? ref.size : 1.0;
+    const refWidth = refHeight * refAspectRatio;
+    const cx = ref.x || 0;
+    const cy = ref.y || 0;
+    const rotRad = (ref.rotation || 0) * Math.PI / 180;
+    const cosRot = Math.cos(rotRad);
+    const sinRot = Math.sin(rotRad);
+
+    const imgW = imgData.width;
+    const imgH = imgData.height;
+    const data = imgData.data;
+
+    const halfW = refWidth / 2;
+    const halfH = refHeight / 2;
+    const corners = [
+        { u: -halfW, v: -halfH },
+        { u:  halfW, v: -halfH },
+        { u:  halfW, v:  halfH },
+        { u: -halfW, v:  halfH }
+    ];
+
+    const scale = Math.max(0.001, refHeight);
+
+    function rgbToHsl(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        let h = 0, s = 0, l = (max + min) / 2;
+        if (max !== min) {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h *= 60;
+        }
+        return { h, s, l };
+    }
+
+    function extractDominantClusters(data, w, h, k = 8) {
+        const step = Math.max(1, Math.floor(Math.sqrt((w * h) / 4000)));
+        const sampleR = [], sampleG = [], sampleB = [];
+        for (let y = 0; y < h; y += step) {
+            for (let x = 0; x < w; x += step) {
+                const idx = (y * w + x) * 4;
+                if (data[idx + 3] < 50) continue;
+                sampleR.push(data[idx]);
+                sampleG.push(data[idx + 1]);
+                sampleB.push(data[idx + 2]);
+            }
+        }
+        const n = sampleR.length;
+        if (n < k) return null;
+
+        let seed = 42;
+        const detRandom = () => {
+            seed = (seed * 1664525 + 1013904223) >>> 0;
+            return seed / 4294967296;
+        };
+
+        const centers = [{ r: sampleR[0], g: sampleG[0], b: sampleB[0] }];
+        const dists = new Float32Array(n);
+        for (let c = 1; c < k; c++) {
+            let sumDist = 0;
+            for (let i = 0; i < n; i++) {
+                let minDist = Infinity;
+                for (let j = 0; j < c; j++) {
+                    const dr = sampleR[i] - centers[j].r;
+                    const dg = sampleG[i] - centers[j].g;
+                    const db = sampleB[i] - centers[j].b;
+                    const d = dr * dr + dg * dg + db * db;
+                    if (d < minDist) minDist = d;
+                }
+                dists[i] = minDist;
+                sumDist += minDist;
+            }
+            let randVal = detRandom() * sumDist;
+            let chosenIdx = n - 1;
+            for (let i = 0; i < n; i++) {
+                randVal -= dists[i];
+                if (randVal <= 0) { chosenIdx = i; break; }
+            }
+            centers.push({ r: sampleR[chosenIdx], g: sampleG[chosenIdx], b: sampleB[chosenIdx] });
+        }
+
+        const clusterSumR = new Float64Array(k);
+        const clusterSumG = new Float64Array(k);
+        const clusterSumB = new Float64Array(k);
+        const clusterCount = new Int32Array(k);
+
+        for (let iter = 0; iter < 8; iter++) {
+            clusterSumR.fill(0); clusterSumG.fill(0); clusterSumB.fill(0); clusterCount.fill(0);
+            for (let i = 0; i < n; i++) {
+                const sr = sampleR[i], sg = sampleG[i], sb = sampleB[i];
+                let bestC = 0, bestDist = Infinity;
+                for (let c = 0; c < k; c++) {
+                    const dr = sr - centers[c].r, dg = sg - centers[c].g, db = sb - centers[c].b;
+                    const d = dr * dr + dg * dg + db * db;
+                    if (d < bestDist) { bestDist = d; bestC = c; }
+                }
+                clusterSumR[bestC] += sr; clusterSumG[bestC] += sg; clusterSumB[bestC] += sb;
+                clusterCount[bestC]++;
+            }
+            for (let c = 0; c < k; c++) {
+                if (clusterCount[c] > 0) {
+                    centers[c].r = clusterSumR[c] / clusterCount[c];
+                    centers[c].g = clusterSumG[c] / clusterCount[c];
+                    centers[c].b = clusterSumB[c] / clusterCount[c];
+                }
+            }
+        }
+
+        return centers.map(c => {
+            const r = Math.round(c.r), g = Math.round(c.g), b = Math.round(c.b);
+            const { h, s, l } = rgbToHsl(r, g, b);
+            const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+            let act = 1;
+            if (lum < 0.07 || (r < 22 && g < 22 && b < 22) || (r <= 30 && g <= 18 && b <= 18 && lum < 0.088)) act = 0;
+            else if (lum > 0.95 || (l >= 0.84 && s < 0.10) || (l >= 0.88 && (s < 0.20 || (r - g < 35 && r - b < 35)))) act = 0;
+            else if ((h >= 8 && h <= 38 && l >= 0.74 && s >= 0.24 && (g - b >= 5) && (h >= 13 || r - g < 40)) ||
+                     (h >= 5 && h <= 40 && l >= 0.85 && s >= 0.24 && (s <= 0.55 || r - g <= 45))) act = 0;
+            else if (l <= 0.145 || lum <= 0.14 || ((l <= 0.215 || lum <= 0.205) && (b >= r - 3 || (s <= 0.15 && r - b <= 5))) ||
+                     ((h >= 345 || h <= 25) && s >= 0.20 && l <= 0.29 && lum <= 0.28 && (r - g >= 27 || (lum >= 0.22 && r - g >= 18 && r - b >= 25))) ||
+                     ((lum <= 0.27 || l <= 0.28) && b >= r + 7 && b >= g + 4 && g > r)) act = 5;
+            else if ((h >= 345 || h <= 25) && s >= 0.35 && (r > g * 1.3 && r > b * 1.3) && l <= 0.72) act = 4;
+            else if (lum <= 0.40 || l <= 0.42) act = 6;
+            else if (h >= 10 && h <= 45 && s >= 0.15 && s <= 0.70 && l >= 0.20 && l <= 0.65) act = 2;
+            else if (((h >= 0 && h <= 40) || h >= 350) && l >= 0.40 && l < 0.74) act = 1;
+            else act = 1;
+
+            return { r, g, b, act };
+        });
+    }
+
+    const clusters = extractDominantClusters(data, imgW, imgH, 8);
+
+    function classifyPixel(r, g, b, a) {
+        if (a < 40) return 0;
+        const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        if (lum < 0.06 || (r <= 25 && g <= 25 && b <= 25) || (lum < 0.088 && Math.abs(r - g) <= 5 && Math.abs(r - b) <= 5) || (lum < 0.088 && (b <= 15 || (g <= 15 && b <= 17)))) return 0;
+        const { h, s, l } = rgbToHsl(r, g, b);
+        if (lum > 0.95 || (l >= 0.84 && s < 0.10) || (l >= 0.88 && (s < 0.20 || (r - g < 35 && r - b < 35)))) return 0;
+        if (l <= 0.145 || lum <= 0.14 || ((l <= 0.215 || lum <= 0.205) && (b >= r - 3 || (s <= 0.15 && r - b <= 5))) ||
+            ((h >= 345 || h <= 25) && s >= 0.20 && l <= 0.29 && lum <= 0.28 && (r - g >= 27 || (lum >= 0.22 && r - g >= 18 && r - b >= 25))) ||
+            ((lum <= 0.27 || l <= 0.28) && b >= r + 7 && b >= g + 4 && g > r)) return 5;
+        if ((h >= 8 && h <= 38 && l >= 0.74 && s >= 0.24 && (g - b >= 5) && (h >= 13 || r - g < 40)) ||
+            (h >= 5 && h <= 40 && l >= 0.85 && s >= 0.24 && (s <= 0.55 || r - g <= 45))) return 0;
+        if (s <= 0.22 && l >= 0.70 && l <= 0.83 && lum <= 0.83) return 1;
+        if ((h >= 330 || h <= 12) && s >= 0.60 && l >= 0.70 && l <= 0.90 && (r - g >= 52 || r - b >= 55)) return 1;
+
+        if (clusters && clusters.length > 0) {
+            let bestDist = Infinity, bestAct = 0;
+            for (let c = 0; c < clusters.length; c++) {
+                const dr = r - clusters[c].r;
+                const dg = g - clusters[c].g;
+                const db = b - clusters[c].b;
+                const d = dr * dr + dg * dg + db * db;
+                if (d < bestDist) {
+                    bestDist = d;
+                    bestAct = clusters[c].act;
+                }
+            }
+            return bestAct;
+        }
+
+        return 0;
+    }
+
+    const classGrid = new Uint8Array(imgW * imgH);
+    for (let i = 0; i < imgW * imgH; i++) {
+        const idx = i * 4;
+        classGrid[i] = classifyPixel(data[idx], data[idx + 1], data[idx + 2], data[idx + 3]);
+    }
+
+    function smoothGrid(src, w, h) {
+        const dst = new Uint8Array(w * h);
+        const counts = new Uint16Array(8);
+        for (let y = 0; y < h; y++) {
+            const rowOffset = y * w;
+            for (let x = 0; x < w; x++) {
+                counts.fill(0);
+                for (let dy = -1; dy <= 1; dy++) {
+                    const ny = y + dy;
+                    if (ny < 0 || ny >= h) continue;
+                    const nRow = ny * w;
+                    for (let dx = -1; dx <= 1; dx++) {
+                        const nx = x + dx;
+                        if (nx < 0 || nx >= w) continue;
+                        counts[src[nRow + nx]]++;
+                    }
+                }
+                const current = src[rowOffset + x];
+                let best = current;
+                let max = counts[current];
+                for (let c = 0; c < 8; c++) {
+                    if (counts[c] > max) {
+                        max = counts[c];
+                        best = c;
+                    }
+                }
+                dst[rowOffset + x] = best;
+            }
+        }
+        return dst;
+    }
+
+    const cleanGrid = smoothGrid(smoothGrid(classGrid, imgW, imgH), imgW, imgH);
+
+    const layers = [
+        {
+            name: 'light_60deg',
+            angleDeg: 60,
+            spacing: 0.006 * scale,
+            test: (cls) => cls === 1
+        },
+        {
+            name: 'dark_and_brown_45deg',
+            angleDeg: 45,
+            spacing: 0.0042 * scale,
+            test: (cls) => cls === 2 || cls === 3 || cls === 5 || cls === 6
+        },
+        {
+            name: 'red_135deg',
+            angleDeg: 135,
+            spacing: 0.0058 * scale,
+            test: (cls) => cls === 4
+        },
+        {
+            name: 'grid_135deg',
+            angleDeg: 135,
+            spacing: 0.0042 * scale,
+            test: (cls) => cls === 5
+        }
+    ];
+
+    let allLines = [];
+
+    for (const layer of layers) {
+        const angleRad = (layer.angleDeg - 90) * Math.PI / 180;
+        const lineDirX = Math.cos(angleRad);
+        const lineDirY = Math.sin(angleRad);
+        const perpX = -Math.sin(angleRad);
+        const perpY = Math.cos(angleRad);
+
+        let minProj = Infinity, maxProj = -Infinity;
+        let minAlong = Infinity, maxAlong = -Infinity;
+
+        for (const c of corners) {
+            const x = cx + c.u * cosRot - c.v * sinRot;
+            const y = cy + c.u * sinRot + c.v * cosRot;
+            const p = x * perpX + y * perpY;
+            const a = x * lineDirX + y * lineDirY;
+            if (p < minProj) minProj = p;
+            if (p > maxProj) maxProj = p;
+            if (a < minAlong) minAlong = a;
+            if (a > maxAlong) maxAlong = a;
+        }
+
+        const spacing = layer.spacing;
+        const stepT = Math.min(refHeight / imgH * 0.7, spacing * 0.35);
+        const minSegLen = spacing * 0.65;
+
+        const du_dt = (lineDirX * cosRot + lineDirY * sinRot) * stepT;
+        const dv_dt = (-lineDirX * sinRot + lineDirY * cosRot) * stepT;
+
+        for (let P = minProj + spacing * 0.5; P <= maxProj; P += spacing) {
+            const startX = P * perpX + minAlong * lineDirX;
+            const startY = P * perpY + minAlong * lineDirY;
+
+            let curU = (startX - cx) * cosRot + (startY - cy) * sinRot;
+            let curV = -(startX - cx) * sinRot + (startY - cy) * cosRot;
+
+            let inSeg = false;
+            let segStartT = minAlong;
+            let gapSteps = 0;
+
+            const steps = Math.ceil((maxAlong - minAlong) / stepT);
+            let t = minAlong;
+
+            for (let s = 0; s <= steps; s++) {
+                let insideQualifying = false;
+
+                if (curU >= -halfW && curU <= halfW && curV >= -halfH && curV <= halfH) {
+                    const px = Math.floor((curU / refWidth + 0.5) * imgW);
+                    const py = Math.floor((curV / refHeight + 0.5) * imgH);
+
+                    if (px >= 0 && px < imgW && py >= 0 && py < imgH) {
+                        const cls = cleanGrid[py * imgW + px];
+                        if (cls && layer.test(cls)) {
+                            insideQualifying = true;
+                        }
+                    }
+                }
+
+                if (insideQualifying) {
+                    if (!inSeg) {
+                        inSeg = true;
+                        segStartT = t;
+                    }
+                    gapSteps = 0;
+                } else {
+                    if (inSeg) {
+                        gapSteps++;
+                        if (gapSteps > 2) {
+                            const endT = t - gapSteps * stepT;
+                            if (endT - segStartT >= minSegLen) {
+                                allLines.push({
+                                    start: {
+                                        x: P * perpX + segStartT * lineDirX,
+                                        y: P * perpY + segStartT * lineDirY
+                                    },
+                                    end: {
+                                        x: P * perpX + endT * lineDirX,
+                                        y: P * perpY + endT * lineDirY
+                                    }
+                                });
+                            }
+                            inSeg = false;
+                            gapSteps = 0;
+                        }
+                    }
+                }
+
+                curU += du_dt;
+                curV += dv_dt;
+                t += stepT;
+            }
+
+            if (inSeg) {
+                const endT = maxAlong - gapSteps * stepT;
+                if (endT - segStartT >= minSegLen) {
+                    allLines.push({
+                        start: {
+                            x: P * perpX + segStartT * lineDirX,
+                            y: P * perpY + segStartT * lineDirY
+                        },
+                        end: {
+                            x: P * perpX + endT * lineDirX,
+                            y: P * perpY + endT * lineDirY
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    const MAX_LINES = 3500;
+    if (allLines.length > MAX_LINES) {
+        allLines = allLines.slice(0, MAX_LINES);
+    }
+
+    if (allLines.length === 0) {
+        const msg = (typeof lang !== 'undefined' && lang === ru)
+            ? "Не найдено подходящих областей для штриховки на референсе"
+            : "No suitable areas found for hatching on the reference";
+        if (typeof showNotification === 'function') showNotification(msg, true);
+        else alert(msg);
+        return;
+    }
+
+    const addedItems = [];
+    const curLayer = (typeof getActiveLayerId === 'function') ? getActiveLayerId() : 1;
+    let currentId = (typeof nextId === 'function') ? nextId() : 0;
+
+    for (const line of allLines) {
+        while (objects.has(currentId.toString())) {
+            currentId++;
+        }
+        const objIdStr = (currentId++).toString();
+        const object = {
+            name: (typeof lang !== 'undefined' && lang.line ? lang.line : "Line") + " " + objIdStr,
+            type: "line",
+            start: {
+                x: rnd(line.start.x),
+                y: rnd(line.start.y)
+            },
+            end: {
+                x: rnd(line.end.x),
+                y: rnd(line.end.y)
+            },
+            selected: false,
+            layer: curLayer
+        };
+        objects.set(objIdStr, object);
+        addedItems.push({ id: objIdStr, object: object });
+    }
+
+    if (typeof pushEvent === 'function') {
+        pushEvent("add_multiple", addedItems);
+    }
+    if (typeof refreshObjectsList === 'function') {
+        refreshObjectsList(true);
+    }
+    cancelHatch();
+    if (typeof markAllTools === 'function') {
+        markAllTools();
+    }
+
+    const successMsg = (typeof lang !== 'undefined' && lang === ru)
+        ? `Автоштриховка выполнена: создано ${addedItems.length} линий`
+        : `Auto-hatching complete: ${addedItems.length} lines created`;
+    if (typeof showNotification === 'function') {
+        showNotification(successMsg);
+    } else {
+        alert(successMsg);
+    }
+}
+
 let hatchInputMode = 'manual';
 
 function setHatchInputMode(mode) {
@@ -1287,6 +1751,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (createBtn) createBtn.onclick = () => finalizeHatch();
     if (cancelBtn) cancelBtn.onclick = () => cancelHatch();
     if (restoreBtn) restoreBtn.onclick = () => restoreLastHatch();
+    const autoBtn = document.getElementById('hatchAutoBtn');
+    if (autoBtn) autoBtn.onclick = () => autoHatchFromReference();
 
     const brushCheckbox = document.getElementById('hatchBrushCheckbox');
     const brushThickInput = document.getElementById('hatchBrushThicknessInput');
