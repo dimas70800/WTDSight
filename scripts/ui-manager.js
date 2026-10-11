@@ -787,6 +787,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         prevTextPos.addEventListener('input', (e) => {
             expTextPos.value = e.target.value;
+            drawPreview();
+            saveExportSettings();
         });
     }
 });
