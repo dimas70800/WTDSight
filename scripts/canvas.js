@@ -2014,7 +2014,7 @@ canvas.onpointerleave = (e) => {
     if (typeof isDrawingHatchBrush !== 'undefined') isDrawingHatchBrush = false;
     if (typeof hatchBrushPoints !== 'undefined') hatchBrushPoints = [];
     if (typeof previewHatchBrushLines !== 'undefined') previewHatchBrushLines = [];
-    if (tool !== "hatch" || !isDrawingHatch) {
+    if (tool !== "hatch" && tool !== "fill") {
         clearDrawing();
     }
 };

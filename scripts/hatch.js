@@ -376,7 +376,12 @@ function updateHatchPreview() {
     }
 
     if (!isDrawingHatch) {
-        previewHatchLines = [];
+        const autoPreviewCb = document.getElementById('hatchAutoPreviewCheckbox');
+        const autoDefaultCb = document.getElementById('hatchAutoDefaultCheckbox');
+        const isAutoPreviewActive = autoPreviewCb && autoPreviewCb.checked && (!autoDefaultCb || !autoDefaultCb.checked);
+        if (!isAutoPreviewActive) {
+            previewHatchLines = [];
+        }
         return;
     }
 
@@ -942,7 +947,12 @@ function cancelHatch() {
     hatchPoints = hatchRegions[0];
     isDrawingHatch = false;
     isHatchDragging = false;
-    previewHatchLines = [];
+    const autoPreviewCb = document.getElementById('hatchAutoPreviewCheckbox');
+    const autoDefaultCb = document.getElementById('hatchAutoDefaultCheckbox');
+    const isAutoPreviewActive = autoPreviewCb && autoPreviewCb.checked && (!autoDefaultCb || !autoDefaultCb.checked);
+    if (!isAutoPreviewActive) {
+        previewHatchLines = [];
+    }
     hatchPhase = 0;
     updateHatchRegionUI();
     isDrawingHatchBrush = false;
@@ -977,24 +987,30 @@ function restoreLastHatch() {
     updateHatchPreview();
 }
 
-function autoHatchFromReference() {
-    if (typeof isLayerLocked === 'function' && isLayerLocked(getActiveLayerId())) {
+function autoHatchFromReference(isPreview = false) {
+    if (!isPreview && typeof isLayerLocked === 'function' && isLayerLocked(getActiveLayerId())) {
         if (typeof notifyLayerLocked === 'function') notifyLayerLocked();
         return;
     }
 
     const ref = (typeof referenceArray !== 'undefined' && typeof currentReference !== 'undefined') ? referenceArray[currentReference] : null;
     if (!ref || !ref.obj) {
-        const msg = (typeof lang !== 'undefined' && lang === ru) ? "Сначала загрузите изображение в референс!" : "Please load a reference image first!";
-        if (typeof showNotification === 'function') showNotification(msg, true);
-        else alert(msg);
+        if (!isPreview) {
+            const msg = (typeof lang !== 'undefined' && lang === ru) ? "Сначала загрузите изображение в референс!" : "Please load a reference image first!";
+            if (typeof showNotification === 'function') showNotification(msg, true);
+            else alert(msg);
+        }
+        previewHatchLines = [];
         return;
     }
 
     const img = ref.obj;
     if (!img.width || !img.height) {
-        const msg = (typeof lang !== 'undefined' && lang === ru) ? "Изображение референса еще не загружено!" : "Reference image is not loaded yet!";
-        if (typeof showNotification === 'function') showNotification(msg, true);
+        if (!isPreview) {
+            const msg = (typeof lang !== 'undefined' && lang === ru) ? "Изображение референса еще не загружено!" : "Reference image is not loaded yet!";
+            if (typeof showNotification === 'function') showNotification(msg, true);
+        }
+        previewHatchLines = [];
         return;
     }
 
@@ -1040,7 +1056,40 @@ function autoHatchFromReference() {
 
     const imgW = imgData.width;
     const imgH = imgData.height;
-    const data = imgData.data;
+    const data = new Uint8ClampedArray(imgData.data);
+
+    const autoDefaultCb = document.getElementById('hatchAutoDefaultCheckbox');
+    const isDefault = autoDefaultCb ? autoDefaultCb.checked : true;
+
+    if (!isDefault) {
+        const autoBrightnessSlider = document.getElementById('hatchAutoBrightnessSlider');
+        const autoContrastSlider = document.getElementById('hatchAutoContrastSlider');
+
+        const brightness = autoBrightnessSlider ? parseFloat(autoBrightnessSlider.value || 0) : 0;
+        const contrast = autoContrastSlider ? parseFloat(autoContrastSlider.value || 0) : 0;
+
+        if (brightness !== 0 || contrast !== 0) {
+            const lut = new Uint8ClampedArray(256);
+            const factor = contrast >= 0 ? (1 + contrast / 50) : (1 + contrast / 100);
+
+            for (let i = 0; i < 256; i++) {
+                let val = i;
+                if (brightness !== 0) {
+                    val += brightness * 2.55;
+                }
+                if (contrast !== 0) {
+                    val = 128 + factor * (val - 128);
+                }
+                lut[i] = Math.max(0, Math.min(255, Math.round(val)));
+            }
+
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = lut[data[i]];
+                data[i + 1] = lut[data[i + 1]];
+                data[i + 2] = lut[data[i + 2]];
+            }
+        }
+    }
 
     const halfW = refWidth / 2;
     const halfH = refHeight / 2;
@@ -1383,6 +1432,13 @@ function autoHatchFromReference() {
     if (allLines.length > MAX_LINES) {
         allLines = allLines.slice(0, MAX_LINES);
     }
+
+    if (isPreview) {
+        previewHatchLines = allLines;
+        return;
+    }
+
+    previewHatchLines = [];
 
     if (allLines.length === 0) {
         const msg = (typeof lang !== 'undefined' && lang === ru)
@@ -1752,7 +1808,91 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cancelBtn) cancelBtn.onclick = () => cancelHatch();
     if (restoreBtn) restoreBtn.onclick = () => restoreLastHatch();
     const autoBtn = document.getElementById('hatchAutoBtn');
-    if (autoBtn) autoBtn.onclick = () => autoHatchFromReference();
+    if (autoBtn) autoBtn.onclick = () => autoHatchFromReference(false);
+
+    const autoSettingsBtn = document.getElementById('hatchAutoSettingsBtn');
+    const autoSettingsPanel = document.getElementById('hatchAutoSettingsPanel');
+    const autoDefaultCb = document.getElementById('hatchAutoDefaultCheckbox');
+    const autoCustomControls = document.getElementById('hatchAutoCustomControls');
+    const autoPreviewCb = document.getElementById('hatchAutoPreviewCheckbox');
+    const autoBrightnessSlider = document.getElementById('hatchAutoBrightnessSlider');
+    const autoContrastSlider = document.getElementById('hatchAutoContrastSlider');
+    const autoBrightnessVal = document.getElementById('hatchAutoBrightnessVal');
+    const autoContrastVal = document.getElementById('hatchAutoContrastVal');
+
+    if (autoSettingsBtn && autoSettingsPanel) {
+        autoSettingsBtn.onclick = () => {
+            const isHidden = autoSettingsPanel.style.display === 'none' || !autoSettingsPanel.style.display;
+            autoSettingsPanel.style.display = isHidden ? 'flex' : 'none';
+        };
+    }
+
+    let autoPreviewDebounceTimer = null;
+    function triggerAutoHatchPreview() {
+        if (!autoPreviewCb || !autoPreviewCb.checked || (autoDefaultCb && autoDefaultCb.checked)) {
+            previewHatchLines = [];
+            return;
+        }
+        if (autoPreviewDebounceTimer) clearTimeout(autoPreviewDebounceTimer);
+        autoPreviewDebounceTimer = setTimeout(() => {
+            autoHatchFromReference(true);
+        }, 75);
+    }
+
+    if (autoDefaultCb) {
+        autoDefaultCb.onchange = () => {
+            const isDef = autoDefaultCb.checked;
+            if (autoCustomControls) {
+                autoCustomControls.style.opacity = isDef ? '0.5' : '1';
+                autoCustomControls.style.pointerEvents = isDef ? 'none' : 'auto';
+            }
+            if (autoPreviewCb) autoPreviewCb.disabled = isDef;
+            if (autoBrightnessSlider) autoBrightnessSlider.disabled = isDef;
+            if (autoContrastSlider) autoContrastSlider.disabled = isDef;
+
+            if (isDef) {
+                previewHatchLines = [];
+            } else if (autoPreviewCb && autoPreviewCb.checked) {
+                triggerAutoHatchPreview();
+            }
+        };
+    }
+
+    if (autoPreviewCb) {
+        autoPreviewCb.onchange = () => {
+            if (autoPreviewCb.checked) {
+                autoHatchFromReference(true);
+            } else {
+                previewHatchLines = [];
+            }
+        };
+    }
+
+    if (autoBrightnessSlider) {
+        autoBrightnessSlider.oninput = () => {
+            const val = parseInt(autoBrightnessSlider.value, 10) || 0;
+            if (autoBrightnessVal) autoBrightnessVal.textContent = (val > 0 ? '+' : '') + val + '%';
+            triggerAutoHatchPreview();
+        };
+        autoBrightnessSlider.ondblclick = () => {
+            autoBrightnessSlider.value = 0;
+            if (autoBrightnessVal) autoBrightnessVal.textContent = '0%';
+            triggerAutoHatchPreview();
+        };
+    }
+
+    if (autoContrastSlider) {
+        autoContrastSlider.oninput = () => {
+            const val = parseInt(autoContrastSlider.value, 10) || 0;
+            if (autoContrastVal) autoContrastVal.textContent = (val > 0 ? '+' : '') + val + '%';
+            triggerAutoHatchPreview();
+        };
+        autoContrastSlider.ondblclick = () => {
+            autoContrastSlider.value = 0;
+            if (autoContrastVal) autoContrastVal.textContent = '0%';
+            triggerAutoHatchPreview();
+        };
+    }
 
     const brushCheckbox = document.getElementById('hatchBrushCheckbox');
     const brushThickInput = document.getElementById('hatchBrushThicknessInput');

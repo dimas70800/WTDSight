@@ -377,8 +377,41 @@
                                         style="font-size: 12px; color: #888; text-align: center; margin-top: 10px; border-top: 1px solid var(--border-col); padding-top: 8px;">
                                         <span id="hatchPointsCount">Точек</span>: <span id="hatchPointsNum">0</span>
                                     </div>
-                                    <button id="hatchAutoBtn"
-                                        style="width: 100%; margin-top: 6px;">Авто</button>
+                                    <div style="display: flex; gap: 6px; margin-top: 6px;">
+                                        <button id="hatchAutoBtn"
+                                            style="flex-grow: 1;">Авто</button>
+                                        <button id="hatchAutoSettingsBtn"
+                                            style="width: 36px; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                            <img src="images/settings.svg" alt="Settings" style="width: 20px; height: 20px; pointer-events: none;">
+                                        </button>
+                                    </div>
+                                    <div id="hatchAutoSettingsPanel"
+                                        style="display: none; flex-direction: column; gap: 8px; margin-top: 8px; padding: 10px; background: var(--input-bg); border: 1px solid var(--border-col); border-radius: 6px;">
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                                            <input type="checkbox" id="hatchAutoDefaultCheckbox" checked style="transform: scale(1.15);">
+                                            <span id="hatchAutoDefaultLabel">По умолчанию</span>
+                                        </label>
+                                        <div id="hatchAutoCustomControls" style="display: flex; flex-direction: column; gap: 8px; opacity: 0.5; pointer-events: none; transition: opacity 0.2s;">
+                                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                                                <input type="checkbox" id="hatchAutoPreviewCheckbox" disabled style="transform: scale(1.15);">
+                                                <span id="hatchAutoPreviewLabel">Предпросмотр</span>
+                                            </label>
+                                            <div style="display: flex; flex-direction: column; gap: 3px;">
+                                                <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                                                    <span id="hatchAutoBrightnessLabel">Яркость</span>
+                                                    <span id="hatchAutoBrightnessVal">0%</span>
+                                                </div>
+                                                <input type="range" id="hatchAutoBrightnessSlider" min="-100" max="100" value="0" step="1" disabled>
+                                            </div>
+                                            <div style="display: flex; flex-direction: column; gap: 3px;">
+                                                <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                                                    <span id="hatchAutoContrastLabel">Контраст</span>
+                                                    <span id="hatchAutoContrastVal">0%</span>
+                                                </div>
+                                                <input type="range" id="hatchAutoContrastSlider" min="-100" max="100" value="0" step="1" disabled>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div style="display: flex; gap: 8px; margin-top: 5px;">
                                         <button id="hatchCreateBtn"
                                             style="background: #228025; color: white; flex-grow: 1;">Создать</button>
