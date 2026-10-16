@@ -372,7 +372,12 @@ function showInfo(id) {
     const obj = objects.get(id);
     obj.selected = true;
 
-    for (const property in obj) {
+    const propOrder = obj.type === 'line'
+        ? ["name", "start", "end"]
+        : (obj.type === 'quad' ? ["name", "pos1", "pos2", "pos3", "pos4"] : Object.keys(obj));
+
+    for (const property of propOrder) {
+        if (!(property in obj)) continue;
         switch (property) {
             case "name":
                 addInput(lang.nameInfo, obj.name, false, (v) => {
@@ -1085,4 +1090,328 @@ function transformAllObjects(type, axis, useCenter = false) {
         updateTransformBoxFromSelection();
     }
 }
+
+let isOptimizingSight = false;
+
+function applyOptimizationResults(results) {
+    if (!results || results.length === 0) return;
+
+    const deletedObjects = [];
+    const newObjectsToAdd = [];
+    const rndCoord = (v) => Math.round(v * 1000000) / 1000000;
+
+    for (const res of results) {
+        for (const id of res.originalIds) {
+            const oldObj = objects.get(id);
+            if (oldObj) {
+                deletedObjects.push({ id, object: oldObj });
+            }
+        }
+
+        const layerNewObjects = [];
+        for (const q of res.optimizedQuads) {
+            layerNewObjects.push({
+                type: 'quad',
+                pos1: { x: rndCoord(q.pos1.x), y: rndCoord(q.pos1.y) },
+                pos2: { x: rndCoord(q.pos2.x), y: rndCoord(q.pos2.y) },
+                pos3: { x: rndCoord(q.pos3.x), y: rndCoord(q.pos3.y) },
+                pos4: { x: rndCoord(q.pos4.x), y: rndCoord(q.pos4.y) },
+                layer: res.layerId,
+                selected: false,
+                origOrder: q.origOrder !== undefined ? q.origOrder : 0
+            });
+        }
+
+        for (const l of res.optimizedLines) {
+            layerNewObjects.push({
+                type: 'line',
+                start: { x: rndCoord(l.p1.x), y: rndCoord(l.p1.y) },
+                end: { x: rndCoord(l.p2.x), y: rndCoord(l.p2.y) },
+                layer: res.layerId,
+                selected: false,
+                origOrder: l.origOrder !== undefined ? l.origOrder : 0
+            });
+        }
+
+        layerNewObjects.sort((a, b) => a.origOrder - b.origOrder);
+        for (const item of layerNewObjects) {
+            delete item.origOrder;
+            newObjectsToAdd.push(item);
+        }
+    }
+
+    let hasChanges = deletedObjects.length !== newObjectsToAdd.length;
+    if (!hasChanges) {
+        for (let i = 0; i < deletedObjects.length; i++) {
+            const oldObj = deletedObjects[i].object;
+            const newObj = newObjectsToAdd[i];
+            if (!newObj || oldObj.type !== newObj.type) {
+                hasChanges = true;
+                break;
+            }
+            if (oldObj.type === 'line') {
+                const sameDir = Math.abs(oldObj.start.x - newObj.start.x) <= 1e-5 &&
+                                Math.abs(oldObj.start.y - newObj.start.y) <= 1e-5 &&
+                                Math.abs(oldObj.end.x - newObj.end.x) <= 1e-5 &&
+                                Math.abs(oldObj.end.y - newObj.end.y) <= 1e-5;
+                const oppDir = Math.abs(oldObj.start.x - newObj.end.x) <= 1e-5 &&
+                               Math.abs(oldObj.start.y - newObj.end.y) <= 1e-5 &&
+                               Math.abs(oldObj.end.x - newObj.start.x) <= 1e-5 &&
+                               Math.abs(oldObj.end.y - newObj.start.y) <= 1e-5;
+                if (!sameDir && !oppDir) {
+                    hasChanges = true;
+                    break;
+                }
+            } else if (oldObj.type === 'quad') {
+                let matched = false;
+                const oldPts = [oldObj.pos1, oldObj.pos2, oldObj.pos3, oldObj.pos4];
+                const newPts = [newObj.pos1, newObj.pos2, newObj.pos3, newObj.pos4];
+                for (let shift = 0; shift < 4; shift++) {
+                    let allMatch = true;
+                    for (let v = 0; v < 4; v++) {
+                        const oP = oldPts[(v + shift) % 4];
+                        const nP = newPts[v];
+                        if (Math.abs(oP.x - nP.x) > 1e-5 || Math.abs(oP.y - nP.y) > 1e-5) {
+                            allMatch = false;
+                            break;
+                        }
+                    }
+                    if (allMatch) { matched = true; break; }
+                }
+                if (!matched) {
+                    hasChanges = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (!hasChanges) {
+        if (typeof showNotification === 'function') {
+            showNotification(typeof lang !== 'undefined' && lang === ru
+                ? "Оптимизация не требуется: все объекты уже оптимизированы"
+                : "Optimization not needed: all objects are already optimal");
+        }
+        return;
+    }
+
+    const originalKeys = Array.from(objects.keys());
+    const deletedIdsSet = new Set(deletedObjects.map(item => item.id));
+
+    for (const item of deletedObjects) {
+        objects.delete(item.id);
+    }
+
+    const addedObjects = [];
+    for (const item of newObjectsToAdd) {
+        const newId = nextId().toString();
+        const namePrefix = item.type === 'line'
+            ? ((typeof lang !== 'undefined' && lang.line) ? lang.line : "Линия")
+            : ((typeof lang !== 'undefined' && lang.quad) ? lang.quad : "Четырёхугольник");
+        const objName = namePrefix + " " + newId;
+        const fullObject = item.type === 'line' ? {
+            name: objName,
+            type: 'line',
+            start: item.start,
+            end: item.end,
+            selected: false,
+            layer: item.layer
+        } : {
+            name: objName,
+            type: 'quad',
+            pos1: item.pos1,
+            pos2: item.pos2,
+            pos3: item.pos3,
+            pos4: item.pos4,
+            selected: false,
+            layer: item.layer
+        };
+        objects.set(newId, fullObject);
+        addedObjects.push({ id: newId, object: fullObject });
+    }
+
+    const reorderedMap = new Map();
+    let addIndex = 0;
+    for (const oldId of originalKeys) {
+        if (deletedIdsSet.has(oldId)) {
+            if (addIndex < addedObjects.length) {
+                const added = addedObjects[addIndex++];
+                reorderedMap.set(added.id, added.object);
+            }
+        } else if (objects.has(oldId)) {
+            reorderedMap.set(oldId, objects.get(oldId));
+        }
+    }
+    while (addIndex < addedObjects.length) {
+        const added = addedObjects[addIndex++];
+        reorderedMap.set(added.id, added.object);
+    }
+
+    objects.clear();
+    for (const [id, obj] of reorderedMap) {
+        objects.set(id, obj);
+    }
+
+    if (typeof unselectAnyObjects === 'function') unselectAnyObjects();
+    if (typeof showInfo === 'function') showInfo(null);
+
+    pushEvent("replace_multiple", { added: addedObjects, deleted: deletedObjects });
+    refreshObjectsList(true);
+
+    const savedCount = deletedObjects.length - addedObjects.length;
+    const msg = (typeof lang !== 'undefined' && lang === ru)
+        ? (savedCount > 0
+            ? `Оптимизировано: ${deletedObjects.length} → ${addedObjects.length} объектов (сокращено на ${savedCount})`
+            : `Оптимизировано: ${deletedObjects.length} объектов`)
+        : (savedCount > 0
+            ? `Optimized: ${deletedObjects.length} → ${addedObjects.length} objects (-${savedCount})`
+            : `Optimized: ${deletedObjects.length} objects`);
+
+    if (typeof showNotification === 'function') {
+        showNotification(msg);
+    }
+}
+
+function optimizeSight() {
+    if (isOptimizingSight) return;
+
+    if (typeof objects === 'undefined' || objects.size === 0) {
+        if (typeof showNotification === 'function') {
+            showNotification(typeof lang !== 'undefined' && lang === ru ? "Нет объектов для оптимизации" : "No objects to optimize");
+        }
+        return;
+    }
+
+    const isLockedFn = typeof isLayerLocked === 'function' ? isLayerLocked : (() => false);
+
+    const layerGroups = new Map();
+    let totalUnlocked = 0;
+
+    for (const [id, obj] of objects) {
+        if (!obj) continue;
+        const layerId = obj.layer || 1;
+        if (isLockedFn(layerId)) continue;
+
+        totalUnlocked++;
+        if (!layerGroups.has(layerId)) {
+            layerGroups.set(layerId, { lines: [], quads: [], originalIds: [] });
+        }
+        const grp = layerGroups.get(layerId);
+        const order = grp.originalIds.length;
+        grp.originalIds.push(id);
+        if (obj.type === 'line') {
+            grp.lines.push({
+                start: { x: obj.start.x, y: obj.start.y },
+                end: { x: obj.end.x, y: obj.end.y },
+                origOrder: order
+            });
+        } else if (obj.type === 'quad') {
+            grp.quads.push({
+                pos1: { x: obj.pos1.x, y: obj.pos1.y },
+                pos2: { x: obj.pos2.x, y: obj.pos2.y },
+                pos3: { x: obj.pos3.x, y: obj.pos3.y },
+                pos4: { x: obj.pos4.x, y: obj.pos4.y },
+                origOrder: order
+            });
+        }
+    }
+
+    if (totalUnlocked === 0) {
+        if (typeof notifyLayerLocked === 'function') {
+            notifyLayerLocked();
+        } else if (typeof showNotification === 'function') {
+            showNotification(typeof lang !== 'undefined' && lang === ru ? "Все слои заблокированы" : "All layers are locked");
+        }
+        return;
+    }
+
+    const optBtn = document.getElementById("optimizeSightButton");
+    function resetOptimizerUI() {
+        isOptimizingSight = false;
+        if (optBtn) {
+            optBtn.disabled = false;
+            optBtn.style.opacity = "";
+            optBtn.style.cursor = "";
+            optBtn.innerText = (typeof lang !== 'undefined' && lang.optimizeSightButton) 
+                ? lang.optimizeSightButton 
+                : (typeof lang !== 'undefined' && lang === ru ? "Оптимизировать" : "Optimize");
+        }
+    }
+
+    if (optBtn) {
+        optBtn.disabled = true;
+        optBtn.style.opacity = "0.6";
+        optBtn.style.cursor = "wait";
+        optBtn.innerText = (typeof lang !== 'undefined' && lang.optimizeSightButtonLoading) 
+            ? lang.optimizeSightButtonLoading 
+            : (typeof lang !== 'undefined' && lang === ru ? "Оптимизация..." : "Optimizing...");
+    }
+    isOptimizingSight = true;
+
+    const layersPayload = [];
+    for (const [layerId, grp] of layerGroups) {
+        layersPayload.push({
+            layerId: layerId,
+            lines: grp.lines,
+            quads: grp.quads,
+            originalIds: grp.originalIds
+        });
+    }
+
+    let worker = null;
+    try {
+        worker = new Worker('scripts/magicwand-worker.js');
+    } catch (e) {
+        console.error("Could not instantiate optimizer worker:", e);
+        resetOptimizerUI();
+        if (typeof showNotification === 'function') {
+            showNotification(typeof lang !== 'undefined' && lang === ru ? "Не удалось запустить оптимизацию" : "Failed to start optimization");
+        }
+        return;
+    }
+
+    worker.onmessage = function (e) {
+        const msg = e.data;
+        if (!msg) return;
+
+        if (msg.type === 'progress') {
+            if (optBtn && msg.total > 1) {
+                const label = (typeof lang !== 'undefined' && lang === ru ? "Оптимизация" : "Optimizing");
+                optBtn.innerText = `${label} (${msg.current}/${msg.total})...`;
+            }
+            return;
+        }
+
+        if (msg.type === 'done') {
+            worker.terminate();
+            resetOptimizerUI();
+            applyOptimizationResults(msg.results);
+        } else if (msg.type === 'error') {
+            worker.terminate();
+            resetOptimizerUI();
+            console.error("Optimizer worker reported error:", msg.message);
+            if (typeof showNotification === 'function') {
+                showNotification(typeof lang !== 'undefined' && lang === ru ? "Ошибка при оптимизации" : "Optimization error");
+            }
+        }
+    };
+
+    worker.onerror = function (err) {
+        worker.terminate();
+        resetOptimizerUI();
+        console.error("Optimizer worker error:", err);
+        if (typeof showNotification === 'function') {
+            showNotification(typeof lang !== 'undefined' && lang === ru ? "Ошибка в потоке оптимизации" : "Error in optimizer worker");
+        }
+    };
+
+    worker.postMessage({
+        type: 'optimize',
+        layers: layersPayload
+    });
+}
+
+window.optimizeSight = optimizeSight;
+
+
 
