@@ -104,6 +104,8 @@ async function saveExport(data) {
     const name = el("saveFileName").value;
     saver.download = name.length !== 0 ? name.trim() : "sight";
     saver.click();
+
+    setTimeout(() => URL.revokeObjectURL(saver.href), 100);
 }
 
 function extractBlock(text, blockName) {
@@ -578,12 +580,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 reader.readAsText(file);
             }
             else if (file.type.startsWith('image/')) {
+                if (typeof abortCurrentEnhancement === 'function') abortCurrentEnhancement();
                 if (typeof referenceArray !== 'undefined' && typeof currentReference !== 'undefined') {
+                    if (typeof revokeReferenceBlobs === 'function') {
+                        revokeReferenceBlobs(referenceArray[currentReference]);
+                    }
                     referenceArray[currentReference].fileName = file.name;
                     const url = URL.createObjectURL(file);
                     const img = new Image();
                     img.onload = () => {
                         referenceArray[currentReference].obj = img;
+                        referenceArray[currentReference].originalObj = img;
+                        referenceArray[currentReference].isEnhanced = false;
                         referenceArray[currentReference].url = null;
                         
                         if (typeof setReferenceMenu === 'function') setReferenceMenu();

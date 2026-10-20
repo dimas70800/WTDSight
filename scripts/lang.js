@@ -7,6 +7,11 @@ const ru =
     shiftRefTitle: "Смещение картинки",
     refOpacityTitle: "Непрозрачность картинки",
     refOpacityTitleShared: "Непрозрачность картинки",
+    refEnhanceBtn: "Улучшить фото",
+    refEnhanceBtnWithSize: "Улучшить фото",
+    refEnhanceLoading: "Загрузка...",
+    refEnhanceProcessing: "Улучшение...",
+    refEnhanceDone: "Уже улучшено",
     exportButton: "Экспортировать прицел как .txt",
     exportButtonBlk: "Экспортировать прицел как .blk",
 
@@ -358,6 +363,11 @@ const en =
     shiftRefTitle: "Image shift",
     refOpacityTitle: "Image opacity",
     refOpacityTitleShared: "Image opacity",
+    refEnhanceBtn: "Enhance photo",
+    refEnhanceBtnWithSize: "Enhance photo",
+    refEnhanceLoading: "Loading...",
+    refEnhanceProcessing: "Enhancing...",
+    refEnhanceDone: "Already enhanced",
     exportButton: "Export sight as .txt",
     exportButtonBlk: "Export sight as .blk",
 
@@ -1026,6 +1036,9 @@ function changeLang(to) {
     }
     if (typeof renderHotkeysUI === 'function') {
         renderHotkeysUI();
+    }
+    if (typeof updateRefEnhanceButtonState === 'function') {
+        updateRefEnhanceButtonState();
     }
 }
 
