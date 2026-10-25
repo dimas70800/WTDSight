@@ -179,11 +179,25 @@
                                     <span id="refEnhanceBtnText">Улучшить фото</span>
                                 </button>
                             </div>
-                            <div class="block-with-elem" style="align-items: center;">
+                            <div class="block-with-elem">
                                 <span id="selectImageTitle">Выбор изображения:</span>
-                                <button id="nextRefButton"
-                                    onclick="if (typeof abortCurrentEnhancement === 'function') abortCurrentEnhancement(); currentReference = (currentReference + 1) % 3 ; setReferenceMenu();"
-                                    style="width: 100%;">1/3 ></button>
+                                <div id="referenceNavControls"
+                                    style="display: flex; align-items: center; gap: 5px; margin-top: 5px; width: 100%; box-sizing: border-box;">
+                                    <button type="button" id="prevRefBtn" onclick="changeReference(-1)"
+                                        style="width: 35px; height: 35px; flex-shrink: 0; padding: 0; display: flex; align-items: center; justify-content: center;">&lt;</button>
+                                    <input type="text" id="refIndexInput" value="1/1"
+                                        style="flex: 1; min-width: 50px; height: 35px; text-align: center; padding: 0 4px; font-size: 13px; box-sizing: border-box;"
+                                        onfocus="onRefIndexFocus(this)" onblur="onRefIndexBlur(this)" onkeydown="if(event.key==='Enter')this.blur()">
+                                    <button type="button" id="nextRefBtn" onclick="changeReference(1)"
+                                        style="width: 35px; height: 35px; flex-shrink: 0; padding: 0; display: flex; align-items: center; justify-content: center;">&gt;</button>
+                                    <button type="button" id="addRefBtn" onclick="addReferenceSlot()"
+                                        style="width: 35px; height: 35px; flex-shrink: 0; padding: 0; display: flex; align-items: center; justify-content: center;"
+                                        title="Добавить">+</button>
+                                    <button type="button" id="deleteRefBtn" onclick="deleteReferenceSlot()"
+                                        style="width: 35px; height: 35px; flex-shrink: 0; padding: 0; display: flex; align-items: center; justify-content: center;"
+                                        title="Удалить"><img src="images/trashIcon.svg" alt="Удалить"
+                                            style="width: 16px; height: 16px; pointer-events: none;"></button>
+                                </div>
                             </div>
                         </div>
 
@@ -1154,10 +1168,15 @@
                         <input type="checkbox" id="drawCrosshairCheckBox" onchange="toggleDrawCrosshair(this.checked)"
                             checked style="transform: scale(1.5);">
                     </div>
-                    <label class="settings-row">
+                    <div class="settings-row">
+                        <span id="saveRefOnReloadLabel">Сохранять референс при перезагрузке</span>
+                        <input type="checkbox" id="saveRefOnReloadCheckBox" onchange="toggleSaveRefOnReload(this.checked)"
+                            style="transform: scale(1.5);">
+                    </div>
+                    <div class="settings-row">
                         <span id="oldSelectionLabel">Старый режим выделения</span>
                         <input type="checkbox" id="oldSelectionCheckBox" style="transform: scale(1.5);">
-                    </label>
+                    </div>
                 </div>
 
                 <div id="settings-tab-controls" class="settings-tab-content">

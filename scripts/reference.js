@@ -1,6 +1,5 @@
-const referenceArray = [];
-for (let i = 0; i < 3; i++) {
-    referenceArray.push({
+function createEmptyReference() {
+    return {
         obj: null,
         originalObj: null,
         isEnhanced: false,
@@ -10,11 +9,248 @@ for (let i = 0; i < 3; i++) {
         rotation: 0,
         opacity: 0.5,
         url: null,
-        fileName: ""
+        fileName: "",
+        originalBlob: null
+    };
+}
+
+const referenceArray = [createEmptyReference()];
+let currentReference = 0;
+if (typeof window !== 'undefined') {
+    window.referenceArray = referenceArray;
+}
+
+const REF_DB_NAME = "wtdsight_references";
+const REF_STORE_NAME = "references_store";
+let isSaveRefOnReload = false;
+let isRefStorageLoaded = false;
+let saveRefTimeout = null;
+let cachedRefDB = null;
+
+function openRefDB() {
+    if (cachedRefDB) return Promise.resolve(cachedRefDB);
+    return new Promise((resolve) => {
+        if (typeof window === 'undefined' || !window.indexedDB) return resolve(null);
+        try {
+            const req = indexedDB.open(REF_DB_NAME, 1);
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(REF_STORE_NAME)) {
+                    db.createObjectStore(REF_STORE_NAME);
+                }
+            };
+            req.onsuccess = () => {
+                cachedRefDB = req.result;
+                cachedRefDB.onclose = () => { cachedRefDB = null; };
+                cachedRefDB.onversionchange = () => { cachedRefDB.close(); cachedRefDB = null; };
+                resolve(cachedRefDB);
+            };
+            req.onerror = () => resolve(null);
+        } catch (e) {
+            resolve(null);
+        }
     });
 }
 
-let currentReference = 0;
+async function saveReferencesToStorage() {
+    if (!isSaveRefOnReload) return;
+    try {
+        const db = await openRefDB();
+        if (!db) return;
+        const validRefs = referenceArray.filter(ref => ref && (ref.originalBlob != null || (typeof ref.url === 'string' && ref.url.trim() !== "")));
+
+        let savedCurrentIdx = 0;
+        let validCount = 0;
+        for (let i = 0; i < referenceArray.length; i++) {
+            const r = referenceArray[i];
+            const isValid = r && (r.originalBlob != null || (typeof r.url === 'string' && r.url.trim() !== ""));
+            if (i === currentReference) {
+                savedCurrentIdx = validCount;
+            }
+            if (isValid) {
+                validCount++;
+            }
+        }
+
+        const dataToSave = {
+            currentIndex: savedCurrentIdx,
+            items: validRefs.map(ref => ({
+                size: ref.size,
+                x: ref.x,
+                y: ref.y,
+                rotation: ref.rotation,
+                opacity: ref.opacity,
+                fileName: ref.fileName || "",
+                url: ref.url || null,
+                blob: ref.originalBlob || null
+            }))
+        };
+        const tx = db.transaction(REF_STORE_NAME, "readwrite");
+        const store = tx.objectStore(REF_STORE_NAME);
+        store.put(dataToSave, "all_references");
+        await new Promise((resolve, reject) => {
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+            tx.onabort = () => reject(tx.error);
+        });
+    } catch (e) {
+        console.warn("Failed to save references to storage:", e);
+    }
+}
+
+function scheduleSaveReferences() {
+    if (!isSaveRefOnReload) return;
+    if (saveRefTimeout) clearTimeout(saveRefTimeout);
+    saveRefTimeout = setTimeout(() => {
+        saveRefTimeout = null;
+        saveReferencesToStorage();
+    }, 250);
+}
+
+async function clearSavedReferences() {
+    try {
+        const db = await openRefDB();
+        if (!db) return;
+        const tx = db.transaction(REF_STORE_NAME, "readwrite");
+        const store = tx.objectStore(REF_STORE_NAME);
+        store.delete("all_references");
+        await new Promise((resolve, reject) => {
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+            tx.onabort = () => reject(tx.error);
+        });
+    } catch (e) {
+        console.warn("Failed to clear references in storage:", e);
+    }
+}
+
+async function loadReferencesFromStorage() {
+    if (!isSaveRefOnReload) return false;
+    try {
+        const db = await openRefDB();
+        if (!db) return false;
+        const savedData = await new Promise((resolve) => {
+            const tx = db.transaction(REF_STORE_NAME, "readonly");
+            const store = tx.objectStore(REF_STORE_NAME);
+            const req = store.get("all_references");
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => resolve(null);
+        });
+
+        const rawItems = (savedData && Array.isArray(savedData.items)) ? savedData.items : [];
+        const validItems = rawItems.filter(item => {
+            return item && (item.blob != null || (typeof item.url === 'string' && item.url.trim() !== ""));
+        });
+
+        if (validItems.length === 0) {
+            referenceArray.forEach(revokeReferenceBlobs);
+            referenceArray.length = 0;
+            referenceArray.push(createEmptyReference());
+            currentReference = 0;
+            setReferenceMenu();
+            return false;
+        }
+
+        referenceArray.forEach(revokeReferenceBlobs);
+        referenceArray.length = 0;
+
+        for (const item of validItems) {
+            const ref = createEmptyReference();
+            ref.size = typeof item.size === 'number' ? item.size : 1;
+            ref.x = typeof item.x === 'number' ? item.x : 0;
+            ref.y = typeof item.y === 'number' ? item.y : 0;
+            ref.rotation = typeof item.rotation === 'number' ? item.rotation : 0;
+            ref.opacity = 0.5;
+            ref.fileName = item.fileName || "";
+            ref.url = item.url || null;
+            ref.originalBlob = item.blob || null;
+
+            if (item.blob) {
+                const blobUrl = URL.createObjectURL(item.blob);
+                const img = new Image();
+                img.onload = () => {
+                    ref.obj = img;
+                    ref.originalObj = img;
+                    if (typeof setReferenceMenu === 'function') setReferenceMenu();
+                };
+                img.src = blobUrl;
+            } else if (item.url) {
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.onload = () => {
+                    ref.obj = img;
+                    ref.originalObj = img;
+                    if (typeof setReferenceMenu === 'function') setReferenceMenu();
+                };
+                img.src = item.url;
+            }
+            referenceArray.push(ref);
+        }
+
+        if (referenceArray.length === 0) {
+            referenceArray.push(createEmptyReference());
+        }
+
+        const targetIdx = (typeof savedData.currentIndex === 'number') ? savedData.currentIndex : 0;
+        currentReference = Math.max(0, Math.min(targetIdx, referenceArray.length - 1));
+        setReferenceMenu();
+        return true;
+    } catch (e) {
+        console.warn("Failed to load references from storage:", e);
+        return false;
+    }
+}
+
+function toggleSaveRefOnReload(checked) {
+    isSaveRefOnReload = !!checked;
+    if (isSaveRefOnReload) {
+        saveReferencesToStorage();
+    } else {
+        clearSavedReferences();
+    }
+    if (typeof saveAllSettings === 'function') {
+        saveAllSettings();
+    }
+}
+
+async function applySaveRefOnReloadSetting(enabled) {
+    isSaveRefOnReload = !!enabled;
+    const chk = el('saveRefOnReloadCheckBox');
+    if (chk) chk.checked = isSaveRefOnReload;
+
+    if (isSaveRefOnReload && !isRefStorageLoaded) {
+        isRefStorageLoaded = true;
+        await loadReferencesFromStorage();
+    }
+}
+
+async function initRefStorage() {
+    if (isRefStorageLoaded) return;
+    if (typeof loadSettings === 'function') {
+        const s = loadSettings();
+        if (s && s.saveRefOnReload) {
+            await applySaveRefOnReloadSetting(true);
+        }
+    }
+}
+
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initRefStorage);
+    } else {
+        initRefStorage();
+    }
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', () => {
+        if (isSaveRefOnReload && saveRefTimeout) {
+            clearTimeout(saveRefTimeout);
+            saveRefTimeout = null;
+            saveReferencesToStorage();
+        }
+    });
+}
 
 function setReference() {
     const url = el("refUrl").value;
@@ -25,18 +261,22 @@ function setReference() {
 
 function setReferenceSize() {
     referenceArray[currentReference].size = parseFloat(el("refSize").value);
+    scheduleSaveReferences();
 }
 
 function setReferenceX() {
     referenceArray[currentReference].x = parseFloat(el("refShiftX").value);
+    scheduleSaveReferences();
 }
 
 function setReferenceY() {
     referenceArray[currentReference].y = -parseFloat(el("refShiftY").value);
+    scheduleSaveReferences();
 }
 
 function setReferenceRotation() {
     referenceArray[currentReference].rotation = parseFloat(el("refRotation").value);
+    scheduleSaveReferences();
 }
 
 function setReferenceOpacity() {
@@ -47,6 +287,7 @@ function setReferenceOpacity() {
     if (sharedSlider) {
         sharedSlider.value = val;
     }
+    scheduleSaveReferences();
 }
 
 function setReferenceOpacityShared(value) {
@@ -55,6 +296,7 @@ function setReferenceOpacityShared(value) {
         mainSlider.value = value;
     }
     referenceArray[currentReference].opacity = parseFloat(value);
+    scheduleSaveReferences();
 }
 
 function revokeReferenceBlobs(ref) {
@@ -74,17 +316,21 @@ if (refFileInputElem) {
         const file = refFileInputElem.files[0];
         if (!file) return;
 
-        revokeReferenceBlobs(referenceArray[currentReference]);
-        referenceArray[currentReference].fileName = file.name;
+        const ref = referenceArray[currentReference];
+        revokeReferenceBlobs(ref);
+        ref.fileName = file.name;
+        ref.originalBlob = file;
+        ref.url = null;
+        ref.isEnhanced = false;
 
         const url = URL.createObjectURL(file);
         const img = new Image();
         img.onload = () => {
-            referenceArray[currentReference].obj = img;
-            referenceArray[currentReference].originalObj = img;
-            referenceArray[currentReference].isEnhanced = false;
-            referenceArray[currentReference].url = null;
+            ref.obj = img;
+            ref.originalObj = img;
             setReferenceMenu();
+            saveReferencesToStorage();
+            refFileInputElem.value = "";
         };
         img.src = url;
     };
@@ -92,33 +338,147 @@ if (refFileInputElem) {
 
 function setReferenceSrc(url) {
     if (typeof abortCurrentEnhancement === 'function') abortCurrentEnhancement();
-    revokeReferenceBlobs(referenceArray[currentReference]);
-    referenceArray[currentReference].fileName = "";
+    const ref = referenceArray[currentReference];
+    revokeReferenceBlobs(ref);
+    ref.fileName = "";
+    ref.originalBlob = null;
+    ref.url = url;
+    ref.isEnhanced = false;
     const img = new Image();
     img.crossOrigin = "Anonymous";
     img.onload = () => {
-        referenceArray[currentReference].obj = img;
-        referenceArray[currentReference].originalObj = img;
-        referenceArray[currentReference].isEnhanced = false;
-        referenceArray[currentReference].url = url;
+        ref.obj = img;
+        ref.originalObj = img;
         setReferenceMenu();
+        saveReferencesToStorage();
     };
     img.onerror = () => {
         console.error("Failed to load image:", url);
-        referenceArray[currentReference].obj = null;
-        referenceArray[currentReference].originalObj = null;
-        referenceArray[currentReference].isEnhanced = false;
-        referenceArray[currentReference].url = null;
+        ref.obj = null;
+        ref.originalObj = null;
+        ref.url = null;
         setReferenceMenu();
+        saveReferencesToStorage();
     };
     img.src = url;
 }
 
+function updateReferenceNavUI() {
+    const input = el("refIndexInput");
+    if (input) {
+        if (document.activeElement === input) {
+            input.value = currentReference + 1;
+        } else {
+            input.value = (currentReference + 1) + "/" + referenceArray.length;
+        }
+    }
+    const addBtn = el("addRefBtn");
+    if (addBtn) {
+        if (referenceArray.length >= 20) {
+            addBtn.disabled = true;
+            addBtn.style.opacity = "0.5";
+            addBtn.style.cursor = "not-allowed";
+        } else {
+            addBtn.disabled = false;
+            addBtn.style.opacity = "1";
+            addBtn.style.cursor = "pointer";
+        }
+    }
+}
+
+function onRefIndexFocus(input) {
+    if (!input) input = el("refIndexInput");
+    if (input) {
+        input.value = currentReference + 1;
+        input.select();
+    }
+}
+
+function onRefIndexBlur(input) {
+    if (!input) input = el("refIndexInput");
+    if (!input) return;
+    let val = parseInt(input.value, 10);
+    if (!isNaN(val)) {
+        val = Math.max(1, Math.min(val, referenceArray.length));
+        const newIdx = val - 1;
+        if (newIdx !== currentReference) {
+            if (typeof abortCurrentEnhancement === 'function') abortCurrentEnhancement();
+            currentReference = newIdx;
+            setReferenceMenu();
+            scheduleSaveReferences();
+            return;
+        }
+    }
+    updateReferenceNavUI();
+}
+
+function changeReference(dir) {
+    if (referenceArray.length <= 1) return;
+    if (typeof abortCurrentEnhancement === 'function') abortCurrentEnhancement();
+    currentReference = (currentReference + dir + referenceArray.length) % referenceArray.length;
+    setReferenceMenu();
+    scheduleSaveReferences();
+}
+
+function setReferenceFromInput() {
+    onRefIndexBlur(el("refIndexInput"));
+}
+
+function addReferenceSlot() {
+    if (referenceArray.length >= 20) {
+        if (typeof showNotification === 'function') {
+            const isEn = (typeof lang !== 'undefined' && typeof en !== 'undefined' && lang === en);
+            showNotification(isEn ? "Maximum 20 reference slots!" : "Максимум 20 слотов для референсов!", true);
+        }
+        return;
+    }
+    if (typeof abortCurrentEnhancement === 'function') abortCurrentEnhancement();
+    referenceArray.push(createEmptyReference());
+    currentReference = referenceArray.length - 1;
+    setReferenceMenu();
+    scheduleSaveReferences();
+}
+
+function deleteReferenceSlot() {
+    if (typeof abortCurrentEnhancement === 'function') abortCurrentEnhancement();
+    if (referenceArray.length > 1) {
+        revokeReferenceBlobs(referenceArray[currentReference]);
+        referenceArray.splice(currentReference, 1);
+        if (currentReference >= referenceArray.length) {
+            currentReference = referenceArray.length - 1;
+        }
+    } else {
+        revokeReferenceBlobs(referenceArray[0]);
+        referenceArray[0] = createEmptyReference();
+        currentReference = 0;
+    }
+    setReferenceMenu();
+    saveReferencesToStorage();
+}
+
+if (typeof window !== 'undefined') {
+    window.changeReference = changeReference;
+    window.setReferenceFromInput = setReferenceFromInput;
+    window.onRefIndexFocus = onRefIndexFocus;
+    window.onRefIndexBlur = onRefIndexBlur;
+    window.addReferenceSlot = addReferenceSlot;
+    window.deleteReferenceSlot = deleteReferenceSlot;
+    window.toggleSaveRefOnReload = toggleSaveRefOnReload;
+    window.saveReferencesToStorage = saveReferencesToStorage;
+    window.scheduleSaveReferences = scheduleSaveReferences;
+    window.applySaveRefOnReloadSetting = applySaveRefOnReloadSetting;
+    window.loadReferencesFromStorage = loadReferencesFromStorage;
+    window.clearSavedReferences = clearSavedReferences;
+}
+
 function setReferenceMenu() {
+    updateReferenceNavUI();
+
     const nextBtn = el("nextRefButton");
-    if (nextBtn) nextBtn.innerHTML = (currentReference + 1) + "/3 >";
+    if (nextBtn) nextBtn.innerHTML = (currentReference + 1) + "/" + referenceArray.length + " >";
 
     const ref = referenceArray[currentReference];
+    if (!ref) return;
     const urlInput = el("refUrl");
 
     if (ref.url) {
@@ -133,12 +493,18 @@ function setReferenceMenu() {
     el("refRotation").value = ref.rotation;
     el("refOpacityInput").value = ref.opacity;
 
+    const sharedSlider = el("refOpacityInputShared");
+    if (sharedSlider) {
+        sharedSlider.value = ref.opacity;
+    }
+
     const fileNameSpan = el("refFileName");
     if (fileNameSpan) {
         if (ref.fileName) {
             fileNameSpan.textContent = ref.fileName;
         } else if (ref.url) {
-            fileNameSpan.textContent = "Загружено по URL";
+            const isRu = (typeof lang === 'undefined' || typeof ru === 'undefined' || lang === ru);
+            fileNameSpan.textContent = isRu ? "Загружено по URL" : "Loaded from URL";
         } else {
             fileNameSpan.textContent = "";
         }

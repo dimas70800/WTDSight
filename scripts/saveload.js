@@ -581,20 +581,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             else if (file.type.startsWith('image/')) {
                 if (typeof abortCurrentEnhancement === 'function') abortCurrentEnhancement();
+                if (typeof abortCurrentBackgroundRemoval === 'function') abortCurrentBackgroundRemoval();
                 if (typeof referenceArray !== 'undefined' && typeof currentReference !== 'undefined') {
+                    const ref = referenceArray[currentReference];
                     if (typeof revokeReferenceBlobs === 'function') {
-                        revokeReferenceBlobs(referenceArray[currentReference]);
+                        revokeReferenceBlobs(ref);
                     }
-                    referenceArray[currentReference].fileName = file.name;
+                    ref.fileName = file.name;
+                    ref.originalBlob = file;
+                    ref.url = null;
+                    ref.isEnhanced = false;
+                    ref.isBgRemoved = false;
                     const url = URL.createObjectURL(file);
                     const img = new Image();
                     img.onload = () => {
-                        referenceArray[currentReference].obj = img;
-                        referenceArray[currentReference].originalObj = img;
-                        referenceArray[currentReference].isEnhanced = false;
-                        referenceArray[currentReference].url = null;
-                        
+                        ref.obj = img;
+                        ref.originalObj = img;
                         if (typeof setReferenceMenu === 'function') setReferenceMenu();
+                        if (typeof saveReferencesToStorage === 'function') saveReferencesToStorage();
                     };
                     img.src = url;
                 }

@@ -19,6 +19,7 @@ function loadSettings() {
         canvasBgColor: '#c7c7c7',
         drawGrid: true,
         drawCrosshair: true,
+        saveRefOnReload: false,
         oldSelection: false
     };
 }
@@ -33,6 +34,7 @@ function saveAllSettings() {
         const outlineEl = document.getElementById('outlineCheckBox');
         const drawGridEl = document.getElementById('drawGridCheckBox');
         const drawCrosshairEl = document.getElementById('drawCrosshairCheckBox');
+        const saveRefOnReloadEl = document.getElementById('saveRefOnReloadCheckBox');
         const canvasBgColorEl = document.getElementById('canvasBgColor');
         const oldSelectionEl = document.getElementById('oldSelectionCheckBox');
 
@@ -46,6 +48,7 @@ function saveAllSettings() {
             canvasBgColor: canvasBgColorEl.value,
             drawGrid: drawGridEl.checked,
             drawCrosshair: drawCrosshairEl.checked,
+            saveRefOnReload: saveRefOnReloadEl.checked,
             oldSelection: oldSelectionEl.checked
         };
 
@@ -88,6 +91,15 @@ function applyAllSettings(settings) {
 
     if (typeof toggleDrawCrosshair === 'function') {
         toggleDrawCrosshair(settings.drawCrosshair !== undefined ? settings.drawCrosshair : true);
+    }
+
+    const saveRefOnReloadEl = document.getElementById('saveRefOnReloadCheckBox');
+    if (saveRefOnReloadEl) {
+        saveRefOnReloadEl.checked = settings.saveRefOnReload || false;
+        saveRefOnReloadEl.addEventListener('change', saveAllSettings);
+    }
+    if (typeof applySaveRefOnReloadSetting === 'function') {
+        applySaveRefOnReloadSetting(settings.saveRefOnReload || false);
     }
 
     const oldSelectionEl = document.getElementById('oldSelectionCheckBox');

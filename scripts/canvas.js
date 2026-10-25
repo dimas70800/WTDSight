@@ -186,7 +186,7 @@ function render() {
         ctx.translate(-canvas.width / 2, -canvas.height / 2);
     }
 
-    for (let i = 0; i < 3; i++) drawReference(i);
+    for (let i = 0; i < (typeof referenceArray !== 'undefined' ? referenceArray.length : 0); i++) drawReference(i);
     if (drawGridEnabled) {
         drawGrid();
     }
@@ -1312,9 +1312,10 @@ function drawGhost() {
 }
 
 function drawReference(index) {
+    if (typeof referenceArray === 'undefined') return;
     const ref = referenceArray[index];
 
-    if (ref.obj == null) return;
+    if (!ref || ref.obj == null) return;
 
     const refAspectRatio = ref.obj.width / ref.obj.height;
 
@@ -3160,6 +3161,7 @@ canvas.onpointerup = (e) => {
 
         if (typeof isRefFreeMove !== 'undefined' && isRefFreeMove && typeof refTransformState !== 'undefined' && refTransformState.action) {
             refTransformState.action = null;
+            if (typeof scheduleSaveReferences === 'function') scheduleSaveReferences();
             return;
         }
 
